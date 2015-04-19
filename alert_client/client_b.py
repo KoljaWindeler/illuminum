@@ -10,6 +10,7 @@ file_uploading=""
 msg_q=[]
 file_q=[]
 client_socket=""
+last_transfer=time.time()
 
 #******************************************************#
 def trigger_handle(event,data):
@@ -42,7 +43,7 @@ def upload_file(path):
 		msg["data"]=base64.b64encode(strng).decode('utf-8')
 		msg["eof"]=0
 		msg["msg_id"]=i	
-		msg["ack_req"]=0
+		msg["ack"]=-1
 		if(len(strng)!=size):
 			msg["eof"]=1
 		#print('sending('+str(i)+') of '+path+'...')
@@ -63,6 +64,8 @@ def connect():
 		c_socket.connect(("192.168.1.80", 9876))
 	except:
 		print("Could not connect to server")
+		print("retrying in 3 sec")
+		time.sleep(3)
 		return -1
 
 	#### login 
@@ -71,7 +74,7 @@ def connect():
 	msg["client_pw"]=h.hexdigest()
 	msg["cmd"]="login"	
 	msg["ts"]=time.strftime("%d.%m.%Y || %H:%M:%S")
-	msg["ack_req"]=1
+	msg["ack"]=-1
 	msg_q.append(msg)
 	#msg=json.dumps(msg)
 	#client_socket.send(msg.encode("UTF-8"))
@@ -97,12 +100,18 @@ trigger.subscribe_callback(trigger_handle,"")
 comm_wait=0
 waiter=[]
 send_a_file=0
+hb_out=0
 
 while 1:
 	client_socket=connect()	
-	while 1:
+	while(client_socket!=""):
 		#************* receiving start ******************#		
-		ready_to_read, ready_to_write, in_error = select.select([client_socket,], [client_socket,], [], 5)
+		try:
+			ready_to_read, ready_to_write, in_error = select.select([client_socket,], [client_socket,], [], 5)
+		except:
+			print("select detected a broken connection")
+			break
+
 		if(len(ready_to_read) > 0):
 			#print("one process is ready")
 			try:
@@ -117,9 +126,11 @@ while 1:
 				enc=json.loads(recv.decode("UTF-8"))
 			except:
 				enc=""
+				break;
 			
 			if(type(enc) is dict):
 				#print("json decoded msg")
+				#print(enc)
 				if(enc.get("cmd")=="login"):
 					if(enc.get("ok")==1):
 						logged_in=1
@@ -127,7 +138,20 @@ while 1:
 					else:
 						logged_in=0
 						print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
+				if(enc.get("cmd")=="hb"):
+					last_transfer=time.time()
+					hb_out=0
+					print("hb return")
 		#************* receiving end ******************#
+		
+		#************* timeout check start ******************#
+		if(time.time()-last_transfer>60 and hb_out==0):
+			print("hbeet send")
+			msg={}
+			msg["cmd"]="hb"
+			msg_q.append(msg)
+			hb_out=1
+		#************* timeout check end ******************#
 
 		#************* file preperation start ******************#
 		if(len(file_q)>0):
@@ -154,11 +178,16 @@ while 1:
 				msg_q.remove(msg)
 			
 			if(msg!=""):
-				#print("message ready to send")
+				#print("A message is ready to send")
 				send_msg=json.dumps(msg)
-				client_socket.send(send_msg.encode("UTF-8"))
+				try:
+					client_socket.send(send_msg.encode("UTF-8"))
+				except:
+					client_socket=""
+					print("init reconnect")
+					break
 				#print("message send")
-				if(json.loads(send_msg).get("ack_req",0)==1):
+				if(json.loads(send_msg).get("ack",0)==-1):
 					#print("waiting on response")
 					comm_wait=1
 		else:
@@ -170,6 +199,6 @@ while 1:
 			#		tt=nt
 				send_a_file=3
 		#************* sending end ******************#
-		
+	print("connection destroyed, reconnecting")		
 		
 #exit()
