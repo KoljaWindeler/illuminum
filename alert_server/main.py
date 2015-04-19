@@ -32,6 +32,13 @@ def msg_handle(data,cli):
 			server.stop_server()
 			exit()
 		
+		#### heartbeat
+		elif(enc.get("cmd")=="hb"):
+			print("[A "+time.strftime("%H:%M:%S")+"] -> '"+cli.id+"' HB")
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=1
+			msg_q.append((msg,cli))
 		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file
 		elif(enc.get("cmd")=="wf"):
 			if(cli.logged_in==1):
@@ -48,17 +55,18 @@ def msg_handle(data,cli):
 					print("Received "+str(cli.paket_count_per_file)+" parts for this file")
 					print("[A "+time.strftime("%H:%M:%S")+"] -> '"+cli.id+"' finished upload")
 					# send good ack
-				msg={}
-				msg["cmd"]=enc.get("cmd")
-				msg["fn"]=enc.get("fn")
-				msg["ok"]=1
-				#msg_q.append((msg,cli))
+				if(enc.get("ack")==-1):
+					msg={}
+					msg["cmd"]=enc.get("cmd")
+					msg["fn"]=enc.get("fn")
+					msg["ok"]=1
+					msg_q.append((msg,cli))
+
 				cli.paket_count_per_file+=1
 				#print(str(time.time())+' enqueue')
-
 				#print("received:"+str(enc.get("msg_id")))
 				#print("sending ok")
-				server.send_data(cli,json.dumps(msg).encode("UTF-8"))
+				#server.send_data(cli,json.dumps(msg).encode("UTF-8"))
 			else:
 				if(enc.get("eof")==1):
 					print("[A "+time.strftime("%H:%M:%S")+"] -> client tried to upload without beeing logged in")
