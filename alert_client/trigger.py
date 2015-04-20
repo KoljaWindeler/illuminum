@@ -3,6 +3,21 @@ import subprocess
 import time
 import threading
 
+import pygame
+import pygame.camera
+
+try:
+	print("[A "+time.strftime("%H:%M:%S")+"] -> Starting Camera Interface")
+	pygame.camera.init()
+	cam = pygame.camera.Camera("/dev/video0",(1280,720))
+	cam.start()
+except:
+	print("Could not start the Camera!")
+
+#img = cam.get_image()
+#pygame.image.save(img,"test"+str(a)+".jpg")
+
+
 #******************************************************#
 def start():
         threading.Thread(target = start_trigger, args = ()).start()
@@ -18,13 +33,13 @@ def start_trigger():
 	while True:
 		if(GPIO.input(7) != state):
 			if(state == 0):
-				print("pin went high")
+				print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
 				for callb in callback_action:
 					callb("state_change","alert")
 				start = time.time()
 				webcam_capture_remaining=5
 			else:
-				print("pin went low")
+				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to idle state")
 				for callb in callback_action:
 					callb("state_change","idle")
 
@@ -38,12 +53,13 @@ def start_trigger():
 			webcam_capture=0
 
 		if(webcam_capture==1):
-			s = subprocess.Popen(['fswebcam', '-r 1280x720 -S10 --tempstamp "%d-%m-%Y %H:%M:%S (%Z)" ', path],stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]			
-			print('->file ready')
+			img = cam.get_image()
+			pygame.image.save(img,path)
+
+			#s = subprocess.Popen(['fswebcam', '-r 1280x720 -S10 --tempstamp "%d-%m-%Y %H:%M:%S (%Z)" ', path],stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]			
+			print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
 			for callb in callback_action:
 				callb("uploading",path)
-			print('->updated informing done')
-			print("-->Call took "+str(time.time()-start))
 
 	GPIO.cleanup()
 
