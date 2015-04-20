@@ -13,14 +13,14 @@ def start():
 def start_server ():
 	s = socket.socket()
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	s.bind(('', 9876))
+	s.bind(('', 9875))
 	s.listen(5) # max clients
-	print("[s] -> Waiting on clients")
+	print("[m2m] -> Waiting on clients")
 	while 1:
 		conn, addr = s.accept()
 		new_client=s_clients(conn)
 		clients.append(new_client)
-		print("[s] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
+		print("[m2m] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
 		threading.Thread(target = handle, args = (new_client, addr)).start()
 		# send every subscr
 		for callb in callback_con:
@@ -34,7 +34,7 @@ def handle (client, addr):
 		if res<0:
 			#print("returned:%d"%res)
 			break
-	print("[s] -> Client closed:"+str(addr))
+	print("[m2m] -> Client closed:"+str(addr))
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)
@@ -49,9 +49,9 @@ def recv_data (client, length):
 	except:	
 		print("recv killed")
 		return -1;
-	#print("[s] -> Incoming")
+	#print("[m2m] -> Incoming")
 	if(len(data)==0):
-		#print("[s] -> len=0 ==> disconnect")
+		#print("[m2m] -> len=0 ==> disconnect")
 		return -1
 	
 	data_dec=data.decode("UTF-8")
@@ -123,7 +123,7 @@ def send_data_all_clients(data):
 	 
 def stop_server():
 	send_data_all_clients(bytes("shutdown","UTF-8"))
-	print("[s] -> shutdown")
+	print("[m2m] -> shutdown")
 	os._exit(1)
 
 def subscribe_callback(fun,method):
