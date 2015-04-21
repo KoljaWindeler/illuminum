@@ -1,0 +1,108 @@
+Dann wollen wir doch mal sehen was wir so am laufen haben:<br>
+
+1.) Banking:<br>
+- Cronjob ruft jeden tag um 5:00 die /home/pi/python/banking/run.sh auf<br>
+- Hier wird zuerst die Zeitspanne generiert (date2.py)
+- Dann wird mit diesen Daten aqbanking-cli aufgerufen und exportiert die Transaktionen
+- Danach werden diese Exporte mit aqbanking-cli in Text dateien umgewandelt
+- Diese werden von der process.py ausgelesen
+- Process.py analysiert und schickt dann nach Bedarf Einträge an http://portal.akakraft.de/drinks2/cli.php
+- Außerdem generiert es mail via mail3
+- Mail3.py loggt sich in Koljspam493 ein und sendet mails
+
+- Zusätzlich passt http://cron-job.org/ (kkoolljjaa+cron@gmail.com) darauf auf das wir einträge erzeugen (ruft http://portal.akakraft.de/drinks2/cli.php?action=hb_check auf)
+
+2.) Podt:<br>
+- Cronjob ruft jeden tag um 6:00 die /home/pi/python/podt/podt.py auf
+- sendet eine mail mithilfe von mail.py
+- Mail.py loggt sich in Koljspam493 ein und sendet mails
+
+3.) Security Cam:<br>
+- wird nach einem neustart gestartet über  /etc/init.d/motion und läuft tippi toppi mit 640x480
+
+- Status wird nach einem reboot durch crontab: /home/pi/python/movement/resume_state.sh  wiederhergestellt
+-- dies ruf http://localhost:81 auf, bis die antwort zwischen 100 und 190 byte liegt, see below
+
+- crontab ruft jede std /home/pi/python/movement/remove_snaps.sh auf
+-- dies entfernt schlicht alle /tmp/motion/*snap*
+
+- crontab rufe jede minute /home/pi/python/movement/restart_motion.sh auf
+-- dies scannt ob in der log datei /tmp/motion.log in den letzten 10 zeilen das stichwort "closing" vorkommt. wenn dem so ist, wird /etc/init.d/motion restart aufgerufen
+-- danach wird das resume script von oben aufgerufen
+
+- Webserver für Logging: 
+-- Intern Port 82
+-- Extern Port 1024 
+-- Verzeichniss /var/www/log
+-- locked via /etc/nginx/conf/htpasswd && ssl
+-- status.php für Kamera Bild, index.php für das log
+
+- Webserver für Aktivierung:
+-- Intern Port 81
+-- Extern port 552
+-- Verzeichniss /var/www/switch
+-- not locked
+-- dieser Webserver sollte in der sql database sehen wer da ist und dann motions webserver auf port 8080 aufrufen
+-- reagiert der motion webserver nicht, wird das python script /home/pi/python/movement/message.py aufgerufen und sollte eine mail an mich senden
+-- wenn diese seite mit einem action==update aufgerufen wird, wird außerdem gecheckt ob der alarm innerhalb der letzten 5 Tage online war. Falls nicht wird das gleiche message script angestoßen um bescheid zu geben via mail
+
+- Falls Bewegungen festgestellt werden passiert folgendes:
+-- motion ruft /home/pi/python/movement/alert.py auf
+-- alert.py ruft sorter auf, dieser wartet 4 sec und sammelt alle bilder ein die zwischen aufrufzeitpunkt -2 sec bis now() erstellt worden sind und ruft mail auf
+-- Mail.py loggt sich in Koljspam493 ein und sendet die bilder in der mail
+
+
+4.) Backup
+- Backup wird auf SD Karte gelegt
+- /dev/mmcblk0p2 on /mnt/backup/card 
+- /mnt/backup/run.sh ruft rsync auf, recht einfach, manuell zu starten
+
+5.) CNC sync
+- CNC Daten liegen auf /mnt/store/CNC
+- gdrive wird durch root cronjob nach reboot wiede eingebunden
+- root cronjob ruft jede stunden (min=0) /home/pi/scripts/sync_cnc/do2.sh auf
+-- dieser unmountet /mnt/drive
+-- mountet es erneut /home/pi/scripts/gdrive/mount.sh
+-- führt ein find durch
+-- ruft unison auf und synchroniert dadurch /mnt/drive/CNC/parts und /mnt/drive/CNC/software_config mit /mnt/store/CNC ...
+
+6.) Other Webservers
+- default server
+-- intern port 80
+-- Extern port -
+-- Verzeichniss /var/www/general
+-- not locked
+-- darauf lief das websocket experiment
+-- darauf läuft noch immer der proxy server
+
+- phpmyadmin
+-- intern port 83
+-- extern port -
+-- verzeichniss /usr/share/phpmyadmin
+-- locked via login
+
+- pwm (passwort manager)
+-- intern port 84
+-- extern port - 
+-- verzeichniss /var/www/pwm
+-- locked via ssl, login, user account (jkw:april)
+
+7.) Gmedia render
+- deaktiviert, wurde gestartet durch /etc/init.d/gmrender-resurrect runlevel 2?
+
+8.) openVPN
+- port außen ist: 172.12.213.117:2136 udp
+- client dateien liegen unter: /etc/openvpn/easy-rsa/keys/: ca.crt,jkw.crt,client.ovpn, pw: q..z
+
+9.) pyLoad
+- läuft auf intern port 8000
+- speichert nach /mnt/store/temp
+- wird durch crontab nach reboot geladen
+
+10.) Netzwerk Server
+- Smb
+-- /mnt/store
+-- /tmp
+- nfs
+-- /home/pi/build 
+-- /mnt/store
