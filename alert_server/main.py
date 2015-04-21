@@ -8,7 +8,7 @@ import server_ws
 #******************************************************#
 # this function handles all incoming messages, they are already decoded
 def m2m_msg_handle(data,cli):
-	global msg_q_m2m
+	global msg_q_m2m, msg_q_ws
 	# decode msg from string to dicc
 	try:
 		enc=json.loads(data)
@@ -37,15 +37,30 @@ def m2m_msg_handle(data,cli):
 		
 		#### heartbeat
 		elif(enc.get("cmd")=="hb"):
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' HB")
+			# respond
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' HB updating "+str(len(cli.m2v))+" clients")
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
 			msg_q_m2m.append((msg,cli))
+
+			# tell subscribers
+			msg={}
+			msg["client_id"]=cli.id
+			msg["cmd"]=enc.get("cmd")
+			msg["ts"]=time.time()
+			for subscriber in cli.m2v:
+				#print("Tell that to "+subscriber.login)
+				msg_q_ws.append((msg,subscriber))
+
 		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file
 		elif(enc.get("cmd")=="wf"):
 			if(cli.logged_in==1):
 				if(cli.openfile!=enc.get("fn")):
+					try:
+						cli.fp.close()
+					except:
+						cli.fp=""
 					cli.openfile = enc.get("fn")
 					des_location="upload/"+str(int(time.time()))+"_"+cli.id+"_"+cli.openfile
 					cli.fp = open(des_location,'wb')
@@ -81,16 +96,38 @@ def m2m_msg_handle(data,cli):
 					
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="login"):
-			pw=124 # here is a database request needed!
-			h = hashlib.new('ripemd160')
-			h.update(str(pw).encode("UTF-8"))
 			msg={}
 			msg["cmd"]=enc.get("cmd")
-			if(h.hexdigest()==enc.get("client_pw")):
+
+			# data base has to give us this values based on enc.get("client_id")
+			pw=str(124)
+			h = hashlib.new('ripemd160')
+			h.update(pw.encode("UTF-8"))
+			db={}
+			db["pw"]=h.hexdigest()
+			db["user_id"]="jkw"
+			db["area"]="home"
+
+			# check parameter
+			if(db["pw"]==enc.get("client_pw")):
 				cli.logged_in=1
 				cli.id=enc.get("client_id")
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' log-in: OK")
 				msg["ok"]=1 # logged in
+				# get area and USER_id based on database value for this client-id
+				cli.user_id=db["user_id"]
+				cli.area=db["area"]
+				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"'@'"+cli.user_id+"' log-in: OK")
+				# search for all (active and logged-in) viewers for this client (same user_id)
+				info_viewer=0
+				print("my m2m user id is "+cli.user_id)
+				for viewer in server_ws.clients:
+					print("this client has used_id "+viewer.user_id)
+					if(viewer.user_id==cli.user_id):
+						# introduce them to each other
+						connect_ws_m2m(viewer,cli)
+						info_viewer+=1
+						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
+				print("[A_m2m "+time.strftime("%H:%M:%S")+"] informed "+str(info_viewer)+" viewer about log-in of "+cli.id)
 			else:
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' log-in: failed")
 				msg["ok"]=-2 # not logged in
@@ -99,7 +136,16 @@ def m2m_msg_handle(data,cli):
 
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="state_change"):
+			# print on console
 			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' changed state to: "+str(enc.get("state")))
+
+			# tell subscribers
+			msg={}
+			msg["client_id"]=cli.id
+			msg["cmd"]=enc.get("cmd")
+			msg["state"]=enc.get("state")
+			for subscriber in cli.m2v:
+				msg_q_ws.append((msg,subscriber))
 		
 		#### unsupported command
 		else:
@@ -136,11 +182,65 @@ def ws_msg_handle(str,cli):
 
         #print("cli:"+str(cli.port)+"/"+str(cli.ip))
 	if(type(enc) is dict):
-		print("websocket_msg")
+		if(enc.get("debug",0)==1):
+			print("websocket_msg")
+			for key, value in enc.items() :
+ 				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
+		## AREA CHANGE ##
+		if(enc.get("cmd"," ")=="area_change"):
+			print("websocket announced area change")
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+		## LOGIN from a viewer ##
+		elif(enc.get("cmd")=="login"):	
+			msg_ws={}
+			msg_ws["cmd"]=enc.get("cmd")
+			# data base has to give us this values
+			cli.login=enc.get("login")
+			pw2="124"
+			h = hashlib.new('ripemd160')
+			h.update(pw2.encode("UTF-8"))
+			db={}
+			db["pw"]=h.hexdigest()
+			db["user_id"]="jkw"
+
+			# check parameter
+			if(db["pw"]==enc.get("client_pw") or 1):
+				cli.logged_in=1
+				msg_ws["ok"]=1 # logged in
+				cli.user_id=db["user_id"]
+				print("[A_ws "+time.strftime("%H:%M:%S")+"] '"+cli.login+"'@'"+cli.user_id+"' log-in: OK")
+				# search for all (active and logged-in) camera modules with the same user_id and tell them that we'd like to be updated
+				for m2m in server_m2m.clients:
+					if(m2m.user_id==cli.user_id):
+						# introduce them to each other
+						connect_ws_m2m(cli,m2m)
+			else:
+				print("[A_ws "+time.strftime("%H:%M:%S")+"] '"+cli.login+"' log-in: failed")
+				msg_ws["ok"]=-2 # not logged in
+			msg_q_ws.append((msg_ws,cli))
+		
 #******************************************************#
 server_ws.start()
 server_ws.subscribe_callback(ws_msg_handle,"msg")
+server_ws.subscribe_callback(openfile2,"con")
 #******************************* WS clients **********************#
+#******************************* common **********************#
+def connect_ws_m2m(ws,m2m):
+	# add us to their (machine to viewer) list, to be notified whats going on
+	m2m.m2v.append(ws) #<- geht das? das wäre jetzt gern ein pointer, vor allem sollten wir vielleicht mal checken ob die schon verbunden waren?
+	# and add them to us to give us the change to tell them if they should be sharp or not
+	ws.v2m.append(m2m) 
+	# send a nice and shiny message to the viewer to tell him what boxes are online, 
+	# TODO: how will the user get informed about boxes which are not online? List of db?
+	msg_ws2={}
+	msg_ws2["cmd"]="m2v_login" #enc.get("cmd")
+	msg_ws2["m2m_client"]=m2m.id
+	msg_ws2["area"]=m2m.area
+	msg_ws2["state"]=m2m.state
+	msg_q_ws.append((msg_ws2,ws))
+
+#******************************* common **********************#
 	
 
 
@@ -150,6 +250,7 @@ server_ws.subscribe_callback(ws_msg_handle,"msg")
 now = time.time()*2
 update_all=0
 msg_q_m2m=[]
+msg_q_ws=[]
 
 while 1:
 	while(len(msg_q_m2m)>0):
@@ -158,8 +259,27 @@ while 1:
 		msg=data[0]
 		cli=data[1]
 		if(server_m2m.send_data(cli,json.dumps(msg).encode("UTF-8"))==0):
+			print("sending something to m2m")
 			msg_q_m2m.remove(data)
-		
+
+	while(len(msg_q_ws)>0):
+		#print(str(time.time())+' fire in the hole')
+		data=msg_q_ws[0]
+		msg=data[0]
+		cli=data[1]
+		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
+		try:
+			server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))
+			msg_q_ws.remove(data)
+		except:
+			# try to find that websockets in all client lists, so go through all clients and their lists
+			for m2m in server_m2m.clients:
+				for viewer in m2m.m2v:
+					if(viewer==cli):
+						m2m.m2v.remove(cli)
+			server_ws.clients.remove(cli)
+
+			
 	#if(time.time()-now>=1 or update_all):
 		# execute this once per second 
 		#now=time.time()

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
  
 import socket, struct,  threading, cgi, time
+from clients import ws_clients
 from base64 import b64encode
 from hashlib import sha1
 
 #******************************************************#
 def recv_data (client, length):
 	#print("Wait on data")
-	data = bytearray(client.recv(512))
+	data = bytearray(client.conn.recv(512))
 	#print("[ws] -> Incoming")
 	if(len(data)==0):
 		print("[ws] -> len=0 ==> disconnect")
@@ -21,7 +22,7 @@ def recv_data (client, length):
 		datalen = (0x7F & data[1])
 		
 		if(datalen > 6): #fin,length,4xmask,?
-			print("datalen: %d"%datalen)
+			#print("datalen: %d"%datalen)
 			indexFirstMask=2
 			if(datalen==126):
 				indexFirstMask+=2
@@ -66,7 +67,7 @@ def send_data(client, data):
             msg.append(d)
 
 	try:
-		client.send(msg)
+		client.conn.send(msg)
 	except:
 		print("failed")
 		return -1
@@ -92,6 +93,8 @@ def send_data_all_clients(data):
 def parse_headers (data):
 	headers = {}
 	lines = data.splitlines()
+	#print("lines:")
+	#print(lines)
 	for l in lines:
 		parts = l.split(": ", 1)
 		if len(parts) == 2:
@@ -100,13 +103,15 @@ def parse_headers (data):
 	return headers
 
 def handshake (client):
-	#print('[ws] -> Handshaking...')
-	data = str(client.recv(1024))
+	print('[S_ws] -> Handshaking...')
+	data = client.conn.recv(1024).decode("UTF-8")
 	headers = parse_headers(data)
 	#print('Got headers:')
 	#print('===========')
+	#i=0
 	#for k, v in headers.items():
-	#	print(k+':'+v)
+	#	print(str(i)+': '+k+':'+v)
+	#	i+=1
 	#print('===========')
 	shake = "HTTP/1.1 101 Switching Protocols\r\n"
 	for k, v in headers.items():
@@ -125,10 +130,13 @@ def handshake (client):
 			shake +="Sec-WebSocket-Accept:%s\r\n"%response_key.decode()
 	shake+="\r\n"
 	#print('Response: [%s]' % (shake.encode()))
-	return client.send(shake.encode())
+	return client.conn.send(shake.encode("UTF-8"))
  
 def handle (client, addr):
-	handshake(client)
+	if(handshake(client)>0):
+		print('[S_ws] -> done')
+		
+	
 	lock = threading.Lock()
 	while 1:
 		#time.sleep(5)
@@ -145,24 +153,25 @@ def handle (client, addr):
 		#lock.acquire()
 		#[send_data(c, data) for c in clients]
 		#lock.release()
-	print("[ws] -> Client closed:"+str(addr))
+	print("[ws] -> Client closed:"+str(client.ip))
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)
 	lock.release()
-	client.close()
+	client.conn.close()
 	
 def start_server ():
 	s = socket.socket()
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', 9876))
 	s.listen(5)
-	print("[ws] -> Waiting on clients")
+	print("[S_ws] -> Waiting on clients")
 	while 1:
 		conn, addr = s.accept()
-		clients.append(conn)
-		print("[ws] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
-		threading.Thread(target = handle, args = (conn, addr)).start()
+		new_client=ws_clients(conn)
+		clients.append(new_client)
+		print("[S_ws] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
+		threading.Thread(target = handle, args = (new_client,addr)).start()
 		# send every subscr
 		for callb in callback_con:
 			callb(conn)
