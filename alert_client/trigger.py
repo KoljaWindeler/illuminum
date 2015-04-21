@@ -26,12 +26,15 @@ def start_trigger():
 	#setup GPIO using Board numbering
 	GPIO.setmode(GPIO.BOARD)
 	GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-	state=1;
+
+	global detection
+	last_detection=detection
+	state=1
 	webcam_capture=0
 	webcam_capture_remaining=0
 
 	while True:
-		if(GPIO.input(7) != state):
+		if(GPIO.input(7) != state and detection==1):
 			if(state == 0):
 				print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
 				for callb in callback_action:
@@ -44,6 +47,17 @@ def start_trigger():
 					callb("state_change","idle")
 
 			state=GPIO.input(7)
+		
+		if(detection!=last_detection):
+			print("detection change -> loop")
+			if(detection==0):
+				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline state")
+				for callb in callback_action:
+					callb("state_change","offline")
+			else:
+				state=-1 #to be refreshed by the part above
+			last_detection=detection
+			
 
 		if(webcam_capture_remaining>0):
 			path='alert'+str(webcam_capture_remaining)+'.jpg';
@@ -69,5 +83,14 @@ def subscribe_callback(fun,method):
 	else:
 		callback_action.append(fun)
 
+def set_detection(state):
+	global detection
+	if(state=="on"):
+		detection=1
+		print("detection set to 1")
+	else:
+		print("detection set to 0")
+		detection=0
 
 callback_action=[subscribe_callback]
+detection=1

@@ -4,7 +4,7 @@ import socket,os,time,json,base64,hashlib,select,trigger
 #pygame.image.save(img,"test"+str(a)+".jpg")
 
 size = 512
-client_id="23s54fa59sd"
+mid="23s54fa59sd"
 pw=124
 h = hashlib.new('ripemd160')
 h.update(str(pw).encode("UTF-8"))
@@ -73,7 +73,7 @@ def connect():
 
 	#### login 
 	msg={}
-	msg["client_id"]=client_id
+	msg["mid"]=mid
 	msg["client_pw"]=h.hexdigest()
 	msg["cmd"]="login"	
 	msg["ts"]=time.strftime("%d.%m.%Y || %H:%M:%S")
@@ -141,10 +141,17 @@ while 1:
 					else:
 						logged_in=0
 						print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
-				if(enc.get("cmd")=="hb"):
+				elif(enc.get("cmd")=="hb"):
 					last_transfer=time.time()
 					hb_out=0
 					print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
+				elif(enc.get("cmd")=="set_detection"):
+					print("settings detection to "+enc.get("state"))
+					trigger.set_detection(enc.get("state"))
+				elif(enc.get("cmd")=="wf"):
+					ignore=1
+				else:
+					print("unsopported command:"+enc.get("cmd"))
 		#************* receiving end ******************#
 		
 		#************* timeout check start ******************#
