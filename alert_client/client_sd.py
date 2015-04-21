@@ -1,7 +1,7 @@
 # TCP client example
 import socket,os,time,json
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client_socket.connect(("192.168.1.80", 9876))
+client_socket.connect(("192.168.1.80", 9875))
 size = 512
 
 while(1):
