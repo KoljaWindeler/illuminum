@@ -23,6 +23,40 @@ if(!empty($output[0])){	// python serer is running add everything
 
 				if(msg_dec["cmd"]=="m2v_login"){
 					if(document.getElementById("clients")!=undefined){
+						var area=document.getElementById(msg_dec["user_id"]+"_"+msg_dec["area"]);
+						if(area==undefined){
+							var node=document.createElement("P");
+							node.appendChild(document.createTextNode("Area:"+msg_dec["user_id"]+"_"+msg_dec["area"]+""));
+							node.setAttribute("id",msg_dec["user_id"]+"_"+msg_dec["area"]);
+
+							var button=document.createElement("A");
+							button.setAttribute("id",+msg_dec["user_id"]+"_"+msg_dec["area"]+"_on");
+							button.onclick=function(){
+								var msg_int=msg_dec;
+								return function(){
+									set_detection(msg_int["user_id"],msg_int["area"],"on");
+								}
+							   }();
+							button.className="button";
+							button.text="Detection on";
+							node.appendChild(button);
+
+							button=document.createElement("A");
+							button.setAttribute("id",+msg_dec["user_id"]+"_"+msg_dec["area"]+"_off");
+							button.onclick=function(){
+								var msg_int=msg_dec;
+								return function(){
+									set_detection(msg_int["user_id"],msg_int["area"],"off");
+								}
+							   }();
+							button.className="button";
+							button.text="Detection off";
+							node.appendChild(button);
+
+							document.getElementById("clients").appendChild(node);
+							area=node;
+						}
+
 						var node=document.createElement("P");
 						node.appendChild(document.createTextNode("client:"+msg_dec["m2m_client"]));
 
@@ -30,7 +64,7 @@ if(!empty($output[0])){	// python serer is running add everything
 						sub_node.setAttribute("id",msg_dec["m2m_client"]+"_hb");
 
 						node.appendChild(sub_node);
-						document.getElementById("clients").appendChild(node);
+						area.appendChild(node);
 						console.log("hb feld in client angebaut");
 					}
 				}
@@ -42,7 +76,7 @@ if(!empty($output[0])){	// python serer is running add everything
 					}
 				}
 
-
+				///////////////////////////////////////////////////////////
 				if(msg_dec["app"]=="web_cam"){
 					if(msg_dec["cmd"]=="pic_ready"){
 						if(document.getElementById("webcam_pic")!=undefined){
@@ -84,6 +118,15 @@ if(!empty($output[0])){	// python serer is running add everything
 			con.send(JSON.stringify(cmd_data));
 		}
 
+		function set_detection(user,area,on_off){
+			if(con == null) {
+				return;
+			}
+			var cmd_data = { "cmd":"detection", "state":on_off, "area":area, "user":user};
+			console.log(JSON.stringify(cmd_data));
+			con.send(JSON.stringify(cmd_data));
+		}
+
 		function send(app,cmd) {
 			console.log("send");
 			console.log("app:"+app);
@@ -109,11 +152,12 @@ if(!empty($output[0])){	// python serer is running add everything
 
 	// add reboot button
 	$body.='<h1 id="l10n_title">Controll</h1>';
-	$body.='<a class="button" id="webcam_start" onclick="login(\'kolja\',\'huhu\')">Login</a>';
+	$body.='<a class="button" id="detection_start" onclick="send(\'detection\',\'on\')">Detection on</a>';
+	$body.='<a class="button" id="detection_stop" onclick="send(\'detection\',\'off\')">Detection off</a>';
 	
 } else { //python server is not running just add start button
 	$body.='<font color="red">offline</font> &nbsp; ';
-	$body.='<a class="button" href="http://'.$_SERVER[HTTP_HOST].$_SERVER[REQUEST_URI].'?start_python">Start server</a>';
+	#$body.='<a class="button" href="http://'.$_SERVER[HTTP_HOST].$_SERVER[REQUEST_URI].'?start_python">Start server</a>';
 }
 
 ///////////////// server status ///////////////////////////

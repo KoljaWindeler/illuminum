@@ -15,12 +15,12 @@ def start_server ():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', 9875))
 	s.listen(5) # max clients
-	print("[S_m2m] -> Waiting on clients")
+	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Waiting on clients")
 	while 1:
 		conn, addr = s.accept()
 		new_client=m2m_clients(conn)
 		clients.append(new_client)
-		print("[S_m2m] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
+		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
 		threading.Thread(target = handle, args = (new_client, addr)).start()
 		# send every subscr
 		for callb in callback_con:
@@ -34,7 +34,7 @@ def handle (client, addr):
 		if res<0:
 			#print("returned:%d"%res)
 			break
-	print("[S_m2m] -> Client closed:"+str(addr))
+	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr))
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)
@@ -123,7 +123,7 @@ def send_data_all_clients(data):
 	 
 def stop_server():
 	send_data_all_clients(bytes("shutdown","UTF-8"))
-	print("[S_m2m] -> shutdown")
+	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> shutdown")
 	os._exit(1)
 
 def subscribe_callback(fun,method):

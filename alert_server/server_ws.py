@@ -11,13 +11,17 @@ def recv_data (client, length):
 	data = bytearray(client.conn.recv(512))
 	#print("[ws] -> Incoming")
 	if(len(data)==0):
-		print("[ws] -> len=0 ==> disconnect")
+		print("[ws "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
+		for callb in callback_con:
+			callb("disconnect",client)
 		return -1
 	elif(data[0]!=129):
-		print("[ws] -> regular disconnect")
+		print("[ws "+time.strftime("%H:%M:%S")+"] -> regular disconnect")
+		for callb in callback_con:
+			callb("disconnect",client)
 		return -1
 	elif(len(data) < 6):
-		print("[ws] -> Error reading data")
+		print("[ws "+time.strftime("%H:%M:%S")+"] -> Error reading data")
 	else:
 		datalen = (0x7F & data[1])
 		
@@ -69,7 +73,7 @@ def send_data(client, data):
 	try:
 		client.conn.send(msg)
 	except:
-		print("failed")
+		print("ws send failed")
 		return -1
 
 	return 0
@@ -103,7 +107,7 @@ def parse_headers (data):
 	return headers
 
 def handshake (client):
-	print('[S_ws] -> Handshaking...')
+	#print('[S_ws "+time.strftime("%H:%M:%S")+"] -> Handshaking...')
 	data = client.conn.recv(1024).decode("UTF-8")
 	headers = parse_headers(data)
 	#print('Got headers:')
@@ -134,7 +138,8 @@ def handshake (client):
  
 def handle (client, addr):
 	if(handshake(client)>0):
-		print('[S_ws] -> done')
+		#print('[S_ws] -> done')
+		ignore=0
 		
 	
 	lock = threading.Lock()
@@ -153,7 +158,7 @@ def handle (client, addr):
 		#lock.acquire()
 		#[send_data(c, data) for c in clients]
 		#lock.release()
-	print("[ws] -> Client closed:"+str(client.ip))
+	print("[ws "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(client.ip))
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)
@@ -165,16 +170,16 @@ def start_server ():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', 9876))
 	s.listen(5)
-	print("[S_ws] -> Waiting on clients")
+	print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Waiting on clients")
 	while 1:
 		conn, addr = s.accept()
 		new_client=ws_clients(conn)
 		clients.append(new_client)
-		print("[S_ws] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
+		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
 		threading.Thread(target = handle, args = (new_client,addr)).start()
 		# send every subscr
 		for callb in callback_con:
-			callb(conn)
+			callb("conn",new_client)
 
  
 def start():

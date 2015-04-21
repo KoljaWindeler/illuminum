@@ -119,12 +119,12 @@ def m2m_msg_handle(data,cli):
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"'@'"+cli.user_id+"' log-in: OK")
 				# search for all (active and logged-in) viewers for this client (same user_id)
 				info_viewer=0
-				print("my m2m user id is "+cli.user_id)
+				#print("my m2m user id is "+cli.user_id)
 				for viewer in server_ws.clients:
-					print("this client has used_id "+viewer.user_id)
+					#print("this client has used_id "+viewer.user_id)
 					if(viewer.user_id==cli.user_id):
 						# introduce them to each other
-						connect_ws_m2m(viewer,cli)
+						connect_ws_m2m(cli,viewer)
 						info_viewer+=1
 						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] informed "+str(info_viewer)+" viewer about log-in of "+cli.id)
@@ -209,35 +209,53 @@ def ws_msg_handle(str,cli):
 				cli.logged_in=1
 				msg_ws["ok"]=1 # logged in
 				cli.user_id=db["user_id"]
-				print("[A_ws "+time.strftime("%H:%M:%S")+"] '"+cli.login+"'@'"+cli.user_id+"' log-in: OK")
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+cli.login+"'@'"+cli.user_id+"' log-in: OK")
 				# search for all (active and logged-in) camera modules with the same user_id and tell them that we'd like to be updated
+				# introduce them to each other
 				for m2m in server_m2m.clients:
 					if(m2m.user_id==cli.user_id):
-						# introduce them to each other
-						connect_ws_m2m(cli,m2m)
+						connect_ws_m2m(m2m,cli)
 			else:
-				print("[A_ws "+time.strftime("%H:%M:%S")+"] '"+cli.login+"' log-in: failed")
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+cli.login+"' log-in: failed")
 				msg_ws["ok"]=-2 # not logged in
 			msg_q_ws.append((msg_ws,cli))
+		else:
+			print("unsupported command: "+enc.get("cmd"))
+			
+
+def ws_con_handle(str,cli):
+	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
+	if(str=="disconnect"):
+		print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
+		# try to find that websockets in all client lists, so go through all clients and their lists	
+		for m2m in server_m2m.clients:
+			for viewer in m2m.m2v:
+				if(viewer==cli):
+					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.id+"' from "+cli.login)
+					m2m.m2v.remove(viewer)
+		server_ws.clients.remove(cli)
+		
 		
 #******************************************************#
 server_ws.start()
 server_ws.subscribe_callback(ws_msg_handle,"msg")
-server_ws.subscribe_callback(openfile2,"con")
+server_ws.subscribe_callback(ws_con_handle,"con")
 #******************************* WS clients **********************#
 #******************************* common **********************#
-def connect_ws_m2m(ws,m2m):
+def connect_ws_m2m(m2m,ws):
 	# add us to their (machine to viewer) list, to be notified whats going on
 	m2m.m2v.append(ws) #<- geht das? das wäre jetzt gern ein pointer, vor allem sollten wir vielleicht mal checken ob die schon verbunden waren?
 	# and add them to us to give us the change to tell them if they should be sharp or not
 	ws.v2m.append(m2m) 
 	# send a nice and shiny message to the viewer to tell him what boxes are online, 
 	# TODO: how will the user get informed about boxes which are not online? List of db?
+	print("[A     "+time.strftime("%H:%M:%S")+"] M2M '"+m2m.id+"' <-> WS '"+ws.login+"'")
 	msg_ws2={}
 	msg_ws2["cmd"]="m2v_login" #enc.get("cmd")
 	msg_ws2["m2m_client"]=m2m.id
 	msg_ws2["area"]=m2m.area
 	msg_ws2["state"]=m2m.state
+	msg_ws2["user_id"]=m2m.user_id
 	msg_q_ws.append((msg_ws2,ws))
 
 #******************************* common **********************#
@@ -258,9 +276,22 @@ while 1:
 		data=msg_q_m2m[0]
 		msg=data[0]
 		cli=data[1]
-		if(server_m2m.send_data(cli,json.dumps(msg).encode("UTF-8"))==0):
-			print("sending something to m2m")
+		if(0==server_m2m.send_data(cli,json.dumps(msg).encode("UTF-8"))):
+			#print("sending something to m2m")
 			msg_q_m2m.remove(data)
+		else:
+			# the cam box m2m unit is not longer available .. obviously, remove it from every viewer and inform them
+			for ws in server_ws.clients:
+				for viewer in m2m.v2m:
+					if(viewer==cli):
+						ws.v2m.remove(viewer)
+						msg={}
+						msg["cmd"]="m2m_disconnect"
+						msg["client_id"]=cli.id
+						msg_q_ws.append(msg)
+			server_m2m.clients.remove(cli)
+
+
 
 	while(len(msg_q_ws)>0):
 		#print(str(time.time())+' fire in the hole')
@@ -268,16 +299,10 @@ while 1:
 		msg=data[0]
 		cli=data[1]
 		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
-		try:
-			server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))
+		if(0==server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))):
 			msg_q_ws.remove(data)
-		except:
-			# try to find that websockets in all client lists, so go through all clients and their lists
-			for m2m in server_m2m.clients:
-				for viewer in m2m.m2v:
-					if(viewer==cli):
-						m2m.m2v.remove(cli)
-			server_ws.clients.remove(cli)
+		else:
+			ws_con_handle("disconnect",cli)
 
 			
 	#if(time.time()-now>=1 or update_all):
