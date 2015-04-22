@@ -4,6 +4,9 @@ import socket, struct,  threading, cgi, time, os
 from clients import m2m_clients
 from base64 import b64encode
 from hashlib import sha1
+MAX_SIZE_RECV=1024000
+PORT=9875
+MAX_CLIENTS=5
 
 #******************************************************#
 def start():
@@ -13,8 +16,8 @@ def start():
 def start_server ():
 	s = socket.socket()
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	s.bind(('', 9875))
-	s.listen(5) # max clients
+	s.bind(('', PORT))
+	s.listen(MAX_CLIENTS) # max clients
 	print("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients")
 	while 1:
 		conn, addr = s.accept()
@@ -30,9 +33,9 @@ def start_server ():
 def handle (client, addr):
 	lock = threading.Lock()
 	while 1:
-		res = recv_data(client, 1024)
+		res = recv_data(client, MAX_SIZE_RECV)
 		if res<0:
-			#print("returned:%d"%res)
+			print("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
 			break
 	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr))
 
@@ -57,7 +60,7 @@ def recv_data (client, length):
 		return -1;
 	#print("[S_m2m] -> Incoming")
 	if(len(data)==0):
-		#print("[S_m2m] -> len=0 ==> disconnect")
+		print("[S_m2m] -> len=0 ==> disconnect")
 		return -1
 	
 	data_dec=data.decode("UTF-8")
@@ -68,8 +71,8 @@ def recv_data (client, length):
 	# split messages at the end of the json identifier
 	data_array=data_dec.split('}');
 	
-	# assume a bad return value
-	ret=-3
+	# assume a good return value
+	ret=0
 	
 	#print("we have "+str(len(data_array))+" elements")
 	#for a in range(0,len(data_array)):

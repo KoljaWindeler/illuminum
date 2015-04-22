@@ -4,11 +4,14 @@ import socket, struct,  threading, cgi, time
 from clients import ws_clients
 from base64 import b64encode
 from hashlib import sha1
+MAX_SIZE_RECV=1024000
+PORT=9876
+MAX_CLIENTS=5
 
 #******************************************************#
 def recv_data (client, length):
 	#print("Wait on data")
-	data = bytearray(client.conn.recv(512))
+	data = bytearray(client.conn.recv(MAX_SIZE_RECV))
 	#print("[ws] -> Incoming")
 	if(len(data)==0):
 		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
@@ -168,8 +171,8 @@ def handle (client, addr):
 def start_server ():
 	s = socket.socket()
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	s.bind(('', 9876))
-	s.listen(5)
+	s.bind(('', PORT))
+	s.listen(MAX_CLIENTS)
 	print("[S_ws  "+time.strftime("%H:%M:%S")+"] Waiting on ws_clients")
 	while 1:
 		conn, addr = s.accept()
