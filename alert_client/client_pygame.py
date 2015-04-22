@@ -3,7 +3,9 @@ import socket,os,time,json,base64,hashlib,select,trigger
 #img = cam.get_image()
 #pygame.image.save(img,"test"+str(a)+".jpg")
 
-size = 512000
+MAX_MSG_SIZE = 512000
+SERVER_IP = "192.168.1.80"
+SERVER_PORT = 9875
 mid="23s54fa59sd"
 pw=124
 h = hashlib.new('ripemd160')
@@ -35,7 +37,7 @@ def upload_file(path):
 	img = open(path,'rb')
 	i=0
 	while True:
-		strng = img.read(size)
+		strng = img.read(MAX_MSG_SIZE-100)
 		if not strng:
 			break
 
@@ -46,7 +48,7 @@ def upload_file(path):
 		msg["eof"]=0
 		msg["msg_id"]=i	
 		msg["ack"]=-1
-		if(len(strng)!=size):
+		if(len(strng)!=(MAX_MSG_SIZE-100)):
 			msg["eof"]=1
 		#print('sending('+str(i)+') of '+path+'...')
 		msg_q.append(msg)
@@ -62,7 +64,7 @@ def connect():
 	print("[A "+time.strftime("%H:%M:%S")+"] -> connecting ...")
 	c_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	try:
-		c_socket.connect(("192.168.1.80", 9875))
+		c_socket.connect((SERVER_IP, SERVER_PORT))
 	except:
 		print("Could not connect to server")
 		print("retrying in 3 sec")
@@ -120,7 +122,7 @@ while 1:
 		if(len(ready_to_read) > 0):
 			#print("one process is ready")
 			try:
-				recv = client_socket.recv(2048)
+				recv = client_socket.recv(MAX_MSG_SIZE)
 				#print("Data received:"+str(recv))
 			except:
 				print('client_socket.recv detected error')
