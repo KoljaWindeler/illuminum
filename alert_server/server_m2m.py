@@ -15,16 +15,16 @@ def start_server ():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', 9875))
 	s.listen(5) # max clients
-	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Waiting on clients")
+	print("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients")
 	while 1:
 		conn, addr = s.accept()
 		new_client=m2m_clients(conn)
 		clients.append(new_client)
-		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
+		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" m2m_clients now")
 		threading.Thread(target = handle, args = (new_client, addr)).start()
-		# send every subscr
+		# for what ever that might be good for
 		for callb in callback_con:
-			callb(new_client)
+			callb("connect",new_client)
 	
 #******************************************************#
 def handle (client, addr):
@@ -35,6 +35,12 @@ def handle (client, addr):
 			#print("returned:%d"%res)
 			break
 	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr))
+
+	for callb in callback_con:
+		if(callb!=subscribe_callback):
+			callb("disconnect",client)
+
+	
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)

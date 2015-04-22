@@ -11,17 +11,17 @@ def recv_data (client, length):
 	data = bytearray(client.conn.recv(512))
 	#print("[ws] -> Incoming")
 	if(len(data)==0):
-		print("[ws "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
+		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
 		for callb in callback_con:
 			callb("disconnect",client)
 		return -1
 	elif(data[0]!=129):
-		print("[ws "+time.strftime("%H:%M:%S")+"] -> regular disconnect")
+		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> regular disconnect")
 		for callb in callback_con:
 			callb("disconnect",client)
 		return -1
 	elif(len(data) < 6):
-		print("[ws "+time.strftime("%H:%M:%S")+"] -> Error reading data")
+		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Error reading data")
 	else:
 		datalen = (0x7F & data[1])
 		
@@ -158,7 +158,7 @@ def handle (client, addr):
 		#lock.acquire()
 		#[send_data(c, data) for c in clients]
 		#lock.release()
-	print("[ws "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(client.ip))
+	print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(client.ip))
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)
@@ -170,12 +170,12 @@ def start_server ():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', 9876))
 	s.listen(5)
-	print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Waiting on clients")
+	print("[S_ws  "+time.strftime("%H:%M:%S")+"] Waiting on ws_clients")
 	while 1:
 		conn, addr = s.accept()
 		new_client=ws_clients(conn)
 		clients.append(new_client)
-		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Connection from:"+ str(addr)+" Serving "+str(len(clients))+" clients now")
+		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" ws_clients now")
 		threading.Thread(target = handle, args = (new_client,addr)).start()
 		# send every subscr
 		for callb in callback_con:

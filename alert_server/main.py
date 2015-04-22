@@ -38,15 +38,16 @@ def m2m_msg_handle(data,cli):
 		#### heartbeat
 		elif(enc.get("cmd")=="hb"):
 			# respond
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' HB updating "+str(len(cli.m2v))+" clients")
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' HB updating "+str(len(cli.m2v))+" clients")
 			msg={}
+			msg["mid"]=cli.mid
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
 			msg_q_m2m.append((msg,cli))
 
 			# tell subscribers
 			msg={}
-			msg["client_id"]=cli.id
+			msg["mid"]=cli.mid
 			msg["cmd"]=enc.get("cmd")
 			msg["ts"]=time.time()
 			for subscriber in cli.m2v:
@@ -62,16 +63,26 @@ def m2m_msg_handle(data,cli):
 					except:
 						cli.fp=""
 					cli.openfile = enc.get("fn")
-					des_location="upload/"+str(int(time.time()))+"_"+cli.id+"_"+cli.openfile
+					des_location="../webserver/upload/"+str(int(time.time()))+"_"+cli.mid+"_"+cli.openfile
 					cli.fp = open(des_location,'wb')
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' is uploading to "+des_location)
+					tmp_loc=des_location.split('/')
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
 					cli.paket_count_per_file=0
 				cli.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
 				if(enc.get("eof")==1):
+					# inform all clients
+					msg={}
+					msg["mid"]=cli.mid
+					msg["cmd"]="rf"
+					tmp=cli.fp.name.split('/')
+					msg["path"]='upload/'+tmp[len(tmp)-1]
+					for v in cli.m2v:
+						msg_q_ws.append((msg,v))
+
 					cli.fp.close()
 					cli.openfile=""
-					print("Received "+str(cli.paket_count_per_file)+" parts for this file")
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' finished upload")
+					#print("Received "+str(cli.paket_count_per_file)+" parts for this file")
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' finished upload")	
 					# send good ack
 				if(enc.get("ack")==-1):
 					msg={}
@@ -99,54 +110,56 @@ def m2m_msg_handle(data,cli):
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 
-			# data base has to give us this values based on enc.get("client_id")
+			# data base has to give us this values based on enc.get("mid")
 			pw=str(124)
 			h = hashlib.new('ripemd160')
 			h.update(pw.encode("UTF-8"))
 			db={}
 			db["pw"]=h.hexdigest()
-			db["user_id"]="jkw"
+			db["account"]="jkw"
 			db["area"]="home"
 
 			# check parameter
 			if(db["pw"]==enc.get("client_pw")):
 				cli.logged_in=1
-				cli.id=enc.get("client_id")
+				cli.mid=enc.get("mid")
 				msg["ok"]=1 # logged in
-				# get area and USER_id based on database value for this client-id
-				cli.user_id=db["user_id"]
+				# get area and account based on database value for this mid
+				cli.account=db["account"]
 				cli.area=db["area"]
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"'@'"+cli.user_id+"' log-in: OK")
-				# search for all (active and logged-in) viewers for this client (same user_id)
+				# search for all (active and logged-in) viewers for this client (same account)
 				info_viewer=0
-				#print("my m2m user id is "+cli.user_id)
+				#print("my m2m account is "+cli.account)
 				for viewer in server_ws.clients:
-					#print("this client has used_id "+viewer.user_id)
-					if(viewer.user_id==cli.user_id):
+					#print("this client has account "+viewer.account)
+					if(viewer.account==cli.account):
 						# introduce them to each other
 						connect_ws_m2m(cli,viewer)
 						info_viewer+=1
 						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] informed "+str(info_viewer)+" viewer about log-in of "+cli.id)
+				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
 			else:
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' log-in: failed")
+				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' log-in: failed")
 				msg["ok"]=-2 # not logged in
 			msg_q_m2m.append((msg,cli))
 
 
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="state_change"):
-			# print on console
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.id+"' changed state to: "+str(enc.get("state")))
-
 			# tell subscribers
 			msg={}
-			msg["client_id"]=cli.id
+			msg["mid"]=cli.mid
 			msg["cmd"]=enc.get("cmd")
 			msg["state"]=enc.get("state")
+			informed=0
 			for subscriber in cli.m2v:
 				msg_q_ws.append((msg,subscriber))
-		
+				informed+=1
+
+			# print on console
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' changed state to: "+str(enc.get("state"))+" (->"+str(informed)+" ws_clients)")
+
+				
 		#### unsupported command
 		else:
 				print("unsupported command: "+enc.get("cmd"))
@@ -161,21 +174,34 @@ def m2m_msg_handle(data,cli):
 		
 #******************************************************#	
 #******************************************************#
-def openfile2(cli):
-	global update_all
-	update_all=1
+def m2m_con_handle(data,cli):
+	# this function is is used to be callen if a m2m disconnects, we have to update all ws clients
+	#print("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
+	if(data=="disconnect"):
+		print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' disconneted")
+		# try to find that m2m in all ws clients lists, so go through all clients and their lists	
+		for ws in server_ws.clients:
+			for viewer in ws.v2m:
+				if(viewer==cli):
+					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+ws.login+"' from "+cli.mid)
+					ws.v2m.remove(viewer)
+					msg={}
+					msg["cmd"]="disconnect"
+					msg["mid"]=cli.mid
+					msg_q_ws.append((msg,cli))
+		server_m2m.clients.remove(cli)
 #******************************************************#
 server_m2m.start()
 server_m2m.subscribe_callback(m2m_msg_handle,"msg")
-server_m2m.subscribe_callback(openfile2,"con")
+server_m2m.subscribe_callback(m2m_con_handle,"con")
 #******************************* m2m **********************#
 
 
 #******************************* WS clients **********************#
 #******************************************************#
-def ws_msg_handle(str,cli):
+def ws_msg_handle(data,cli):
 	try:
-		enc=json.loads(str)
+		enc=json.loads(data)
 	except:
 		enc=""
 		print("-d--> json decoding failed on:" + data)
@@ -202,39 +228,58 @@ def ws_msg_handle(str,cli):
 			h.update(pw2.encode("UTF-8"))
 			db={}
 			db["pw"]=h.hexdigest()
-			db["user_id"]="jkw"
+			db["account"]="jkw"
 
 			# check parameter
 			if(db["pw"]==enc.get("client_pw") or 1):
 				cli.logged_in=1
 				msg_ws["ok"]=1 # logged in
-				cli.user_id=db["user_id"]
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+cli.login+"'@'"+cli.user_id+"' log-in: OK")
-				# search for all (active and logged-in) camera modules with the same user_id and tell them that we'd like to be updated
+				cli.account=db["account"]
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+cli.login+"'@'"+cli.account+"' log-in: OK")
+				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
 				# introduce them to each other
 				for m2m in server_m2m.clients:
-					if(m2m.user_id==cli.user_id):
+					if(m2m.account==cli.account):
 						connect_ws_m2m(m2m,cli)
 			else:
 				print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+cli.login+"' log-in: failed")
 				msg_ws["ok"]=-2 # not logged in
 			msg_q_ws.append((msg_ws,cli))
+
+		## Detection on/off handle
+		elif(enc.get("cmd")=="detection"):
+			area=enc.get("area")
+			# check what m2m clients are in the list of this observer and what area they are in
+			clients_affected=0
+			for m2m in cli.v2m:
+				if(area==m2m.area):
+					msg={}
+					msg["cmd"]="set_detection"
+					msg["state"]=enc.get("state")
+					msg_q_m2m.append((msg,m2m))
+					clients_affected+=1
+			print("[A_ws  "+time.strftime("%H:%M:%S")+"] set detection of area '"+area+"' to '"+str(enc.get("state"))+"' (->"+str(clients_affected)+" m2m_clients)")
+
+		## unsupported cmd
 		else:
 			print("unsupported command: "+enc.get("cmd"))
 			
 
-def ws_con_handle(str,cli):
+def ws_con_handle(data,cli):
+	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients
 	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
-	if(str=="disconnect"):
+	if(data=="disconnect"):
 		print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
 		# try to find that websockets in all client lists, so go through all clients and their lists	
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
 				if(viewer==cli):
-					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.id+"' from "+cli.login)
+					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+cli.login)
 					m2m.m2v.remove(viewer)
-		server_ws.clients.remove(cli)
-		
+		try:
+			server_ws.clients.remove(cli)
+		except:
+			ignore=1
 		
 #******************************************************#
 server_ws.start()
@@ -249,13 +294,13 @@ def connect_ws_m2m(m2m,ws):
 	ws.v2m.append(m2m) 
 	# send a nice and shiny message to the viewer to tell him what boxes are online, 
 	# TODO: how will the user get informed about boxes which are not online? List of db?
-	print("[A     "+time.strftime("%H:%M:%S")+"] M2M '"+m2m.id+"' <-> WS '"+ws.login+"'")
+	print("[A     "+time.strftime("%H:%M:%S")+"] MID '"+m2m.mid+"' <-> WS '"+ws.login+"'")
 	msg_ws2={}
 	msg_ws2["cmd"]="m2v_login" #enc.get("cmd")
-	msg_ws2["m2m_client"]=m2m.id
+	msg_ws2["mid"]=m2m.mid
 	msg_ws2["area"]=m2m.area
 	msg_ws2["state"]=m2m.state
-	msg_ws2["user_id"]=m2m.user_id
+	msg_ws2["account"]=m2m.account
 	msg_q_ws.append((msg_ws2,ws))
 
 #******************************* common **********************#
@@ -287,7 +332,7 @@ while 1:
 						ws.v2m.remove(viewer)
 						msg={}
 						msg["cmd"]="m2m_disconnect"
-						msg["client_id"]=cli.id
+						msg["mid"]=cli.mid
 						msg_q_ws.append(msg)
 			server_m2m.clients.remove(cli)
 
@@ -299,9 +344,8 @@ while 1:
 		msg=data[0]
 		cli=data[1]
 		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
-		if(0==server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))):
-			msg_q_ws.remove(data)
-		else:
+		msg_q_ws.remove(data)
+		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
 			ws_con_handle("disconnect",cli)
 
 			
@@ -321,7 +365,7 @@ while 1:
 
 	#for client in server.clients:
 	#	if(time.time()-client.last_comm>10):
-	#		print("client "+client.id+" timed out")
+	#		print("client "+client.mid+" timed out")
 	#		client.conn.close()
 	#		server.clients.remove(client)
 	
