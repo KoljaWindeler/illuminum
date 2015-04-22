@@ -4,9 +4,9 @@ import socket, struct,  threading, cgi, time, os
 from clients import m2m_clients
 from base64 import b64encode
 from hashlib import sha1
-MAX_SIZE_RECV=1024000
-PORT=9875
-MAX_CLIENTS=5
+SERVER_PORT=9875
+MAX_CONN=5
+MAX_MSG_SIZE=1024000
 
 #******************************************************#
 def start():
@@ -16,8 +16,8 @@ def start():
 def start_server ():
 	s = socket.socket()
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	s.bind(('', PORT))
-	s.listen(MAX_CLIENTS) # max clients
+	s.bind(('', SERVER_PORT))
+	s.listen(MAX_CONN) # max clients
 	print("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients")
 	while 1:
 		conn, addr = s.accept()
@@ -33,7 +33,7 @@ def start_server ():
 def handle (client, addr):
 	lock = threading.Lock()
 	while 1:
-		res = recv_data(client, MAX_SIZE_RECV)
+		res = recv_data(client, MAX_MSG_SIZE)
 		if res<0:
 			print("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
 			break
