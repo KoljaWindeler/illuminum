@@ -23,18 +23,18 @@ if(!empty($output[0])){	// python serer is running add everything
 
 				if(msg_dec["cmd"]=="m2v_login"){
 					if(document.getElementById("clients")!=undefined){
-						var area=document.getElementById(msg_dec["user_id"]+"_"+msg_dec["area"]);
+						var area=document.getElementById(msg_dec["account"]+"_"+msg_dec["area"]);
 						if(area==undefined){
 							var node=document.createElement("P");
-							node.appendChild(document.createTextNode("Area:"+msg_dec["user_id"]+"_"+msg_dec["area"]+""));
-							node.setAttribute("id",msg_dec["user_id"]+"_"+msg_dec["area"]);
+							node.appendChild(document.createTextNode("Area:"+msg_dec["account"]+"_"+msg_dec["area"]+""));
+							node.setAttribute("id",msg_dec["account"]+"_"+msg_dec["area"]);
 
 							var button=document.createElement("A");
-							button.setAttribute("id",+msg_dec["user_id"]+"_"+msg_dec["area"]+"_on");
+							button.setAttribute("id",+msg_dec["account"]+"_"+msg_dec["area"]+"_on");
 							button.onclick=function(){
 								var msg_int=msg_dec;
 								return function(){
-									set_detection(msg_int["user_id"],msg_int["area"],"on");
+									set_detection(msg_int["account"],msg_int["area"],1);
 								}
 							   }();
 							button.className="button";
@@ -42,11 +42,11 @@ if(!empty($output[0])){	// python serer is running add everything
 							node.appendChild(button);
 
 							button=document.createElement("A");
-							button.setAttribute("id",+msg_dec["user_id"]+"_"+msg_dec["area"]+"_off");
+							button.setAttribute("id",+msg_dec["account"]+"_"+msg_dec["area"]+"_off");
 							button.onclick=function(){
 								var msg_int=msg_dec;
 								return function(){
-									set_detection(msg_int["user_id"],msg_int["area"],"off");
+									set_detection(msg_int["account"],msg_int["area"],0);
 								}
 							   }();
 							button.className="button";
@@ -58,53 +58,64 @@ if(!empty($output[0])){	// python serer is running add everything
 						}
 
 						var node=document.createElement("P");
-						node.appendChild(document.createTextNode("client:"+msg_dec["m2m_client"]));
+						node.appendChild(document.createTextNode("client:"+msg_dec["mid"]));
 
 						var sub_node=document.createElement("P");
-						sub_node.setAttribute("id",msg_dec["m2m_client"]+"_hb");
-
+						sub_node.setAttribute("id",msg_dec["mid"]+"_hb");
 						node.appendChild(sub_node);
+
+						sub_node=document.createElement("P");
+						sub_node.setAttribute("id",msg_dec["mid"]+"_state");
+						node.appendChild(sub_node);
+
+						sub_node=document.createElement("img");
+						sub_node.setAttribute("id",msg_dec["mid"]+"_img");
+						node.appendChild(sub_node);
+						console.log(msg_dec["mid"]+"_img"+" angelegt");
+
+
 						area.appendChild(node);
 						console.log("hb feld in client angebaut");
+
+						document.getElementById(msg_dec["mid"]+"_state").innerHTML=msg_dec["state"];
 					}
 				}
 
-				if(msg_dec["cmd"]=="hb"){
-					if(document.getElementById(msg_dec["client_id"]+"_hb")!=undefined){
-						document.getElementById(msg_dec["client_id"]+"_hb").innerHTML=msg_dec["ts"];
+				else if(msg_dec["cmd"]=="hb"){
+					if(document.getElementById(msg_dec["mid"]+"_hb")!=undefined){
+						document.getElementById(msg_dec["mid"]+"_hb").innerHTML=msg_dec["ts"];
 						console.log("hb ts updated");
 					}
 				}
 
-				///////////////////////////////////////////////////////////
-				if(msg_dec["app"]=="web_cam"){
-					if(msg_dec["cmd"]=="pic_ready"){
-						if(document.getElementById("webcam_pic")!=undefined){
-							document.getElementById("webcam_pic").innerHTML=\'<img src="webcam/dump.jpg">\';
-						}
-					} else if(msg_dec["cmd"]=="offline" || msg_dec["cmd"]=="online") {
-						if(document.getElementById("webcam_status")!=undefined){
-							if(msg_dec["cmd"]=="offline"){
-								document.getElementById("webcam_status").innerHTML=\'Status: <font color="red">offline</font><br> <a class="button" id="webcam_start" onclick="send(\\\'web_cam\\\',\\\'start\\\')">Start</a><a class="button" id="webcam_oneshot" onclick="send(\\\'web_cam\\\',\\\'single\\\')">Single Shot</a>\';
-							} else if(msg_dec["cmd"]=="online"){
-								document.getElementById("webcam_status").innerHTML=\'Status: <font color="green">online</font> <div id="webcam_detection_status"></div><a class="button" id="webcam_start" onclick="send(\\\'web_cam\\\',\\\'detection_start\\\')">On</a><a class="button" id="webcam_start" onclick="send(\\\'web_cam\\\',\\\'detection_pause\\\')">Off</a>\';
-								document.getElementById("webcam_pic").innerHTML=\'\';
+				else if(msg_dec["cmd"]=="state_change"){
+					e=document.getElementById(msg_dec["mid"]+"_state");
+					state=msg_dec["state"];
+					if(e!=undefined){
+						if(state==0){
+							e.innerHTML="Idle";
+							img=document.getElementById(msg_dec["mid"]+"_img");
+							if(img!=undefined){
+								console.log("habs");
+								img.src="";
 							}
-						}
-					} else if(msg_dec["cmd"]=="detection_activ" || msg_dec["cmd"]=="detection_inactiv"){
-						console.log("detection bla");
-						if(document.getElementById("webcam_detection_status")!=undefined){
-							console.log("element found");
-							document.getElementById("webcam_detection_status").innerHTML=msg_dec["cmd"];
-						}
-					}
-				} else if(msg_dec["app"]=="ws"){
-					if(msg_dec["cmd"]=="update_time"){
-						if(document.getElementById("track")!=undefined){
-							document.getElementById("track").innerHTML = msg_dec["data"];
+						} else if(state==1){
+							e.innerHTML="Alert";
+						} else if(state==2){
+							e.innerHTML="Detection offline";
 						}
 					}
 				}
+
+				else if(msg_dec["cmd"]=="rf"){
+					console.log("suche nach: "+msg_dec["mid"]+"_img");
+					img=document.getElementById(msg_dec["mid"]+"_img");
+					if(img!=undefined){
+						console.log("habs");
+						img.src="http://192.168.1.80/"+msg_dec["path"];
+					};
+				}
+
 			}
 
 	        }
@@ -151,9 +162,9 @@ if(!empty($output[0])){	// python serer is running add everything
 	$body.='<div id="clients"></div>';
 
 	// add reboot button
-	$body.='<h1 id="l10n_title">Controll</h1>';
-	$body.='<a class="button" id="detection_start" onclick="send(\'detection\',\'on\')">Detection on</a>';
-	$body.='<a class="button" id="detection_stop" onclick="send(\'detection\',\'off\')">Detection off</a>';
+	//$body.='<h1 id="l10n_title">Controll</h1>';
+	//$body.='<a class="button" id="detection_start" onclick="send(\'detection\',\'on\')">Detection on</a>';
+	//$body.='<a class="button" id="detection_stop" onclick="send(\'detection\',\'off\')">Detection off</a>';
 	
 } else { //python server is not running just add start button
 	$body.='<font color="red">offline</font> &nbsp; ';
