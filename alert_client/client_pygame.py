@@ -1,10 +1,10 @@
 # TCP client example
-import socket,os,time,json,base64,hashlib,select,trigger
+import socket,os,time,json,base64,hashlib,select,trigger,uuid
 
 MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
 SERVER_PORT = 9875
-mid="23s54fa59sd"
+mid=uuid.getnode()
 pw=124
 h = hashlib.new('ripemd160')
 h.update(str(pw).encode("UTF-8"))
