@@ -10,9 +10,11 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 
-WIDTH=1280
-HEIGHT=720
-TIMING_DEBUG=1
+#WIDTH=1280
+#HEIGHT=720
+WIDTH=640
+HEIGHT=480
+TIMING_DEBUG=0
 
 try:
 	print("[A "+time.strftime("%H:%M:%S")+"] -> Starting Camera Interface")
@@ -83,6 +85,8 @@ def start_trigger():
 
 		if(webcam_capture==1):
 			webcam_capture=0
+			pic_start=time.time()
+
 			#pygame img
 			if(TIMING_DEBUG):
 				pic_t = time.time()
@@ -113,7 +117,7 @@ def start_trigger():
 
 			print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
 			for callb in callback_action:
-				callb("uploading",path)
+				callb("uploading",(path,pic_start))
 
 			if(TIMING_DEBUG):
 				print("Spooling took "+str(time.time()-pic_t))

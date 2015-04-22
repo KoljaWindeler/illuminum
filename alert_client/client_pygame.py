@@ -26,8 +26,11 @@ def trigger_handle(event,data):
 		msg["state"]=data
 		msg_q.append(msg)
 #******************************************************#
-def upload_file(path):
+def upload_file(data):
 	#print(str(time.time())+" -> this is upload_file with "+path)
+	path=data[0]
+	ts=data[1]
+
 	global logged_in
 	if(logged_in!=1):
 		print("We can't upload as we are not logged in")
@@ -49,6 +52,7 @@ def upload_file(path):
 		msg["eof"]=0
 		msg["msg_id"]=i	
 		msg["ack"]=-1
+		msg["ts"]=ts
 		if(len(strng)!=(MAX_MSG_SIZE-100)):
 			msg["eof"]=1
 		#print('sending('+str(i)+') of '+path+'...')
@@ -102,8 +106,8 @@ def connect():
 
 trigger.start()
 trigger.subscribe_callback(trigger_handle,"")
-trigger.set_interval(30)
-trigger.set_interval(2)
+#trigger.set_interval(10)
+trigger.set_interval(1)
 
 comm_wait=0
 waiter=[]
@@ -211,7 +215,9 @@ while 1:
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("eof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
-						print("[A "+time.strftime("%H:%M:%S")+"] -> took:"+str(time.time()-file_upload_start))
+						print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
+						print("[A "+time.strftime("%H:%M:%S")+"] -> ctime:"+str(time.time()-json.loads(send_msg).get("ts",0)))
+
 		#else:
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")		
