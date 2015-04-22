@@ -29,22 +29,23 @@ def start_trigger():
 
 	global detection
 	last_detection=detection
-	state=1
+	state=-1 # to be refreshed
 	webcam_capture=0
 	webcam_capture_remaining=0
 
 	while True:
-		if(GPIO.input(7) != state and detection==1):
-			if(state == 0):
+		gpio_state=GPIO.input(7)
+		if(gpio_state != state and detection==1):
+			if(gpio_state == 1):
 				print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
 				for callb in callback_action:
-					callb("state_change","alert")
+					callb("state_change",1) #alert
 				start = time.time()
 				webcam_capture_remaining=5
 			else:
 				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to idle state")
 				for callb in callback_action:
-					callb("state_change","idle")
+					callb("state_change",0) #idle
 
 			state=GPIO.input(7)
 		
@@ -53,7 +54,7 @@ def start_trigger():
 			if(detection==0):
 				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline state")
 				for callb in callback_action:
-					callb("state_change","offline")
+					callb("state_change",2) # detection disabled
 			else:
 				state=-1 #to be refreshed by the part above
 			last_detection=detection
@@ -85,7 +86,7 @@ def subscribe_callback(fun,method):
 
 def set_detection(state):
 	global detection
-	if(state=="on"):
+	if(str(state)=="1"):
 		detection=1
 		print("detection set to 1")
 	else:

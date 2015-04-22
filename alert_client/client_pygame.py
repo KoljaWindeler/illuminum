@@ -146,7 +146,7 @@ while 1:
 					hb_out=0
 					print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
 				elif(enc.get("cmd")=="set_detection"):
-					print("settings detection to "+enc.get("state"))
+					print("setting detection to "+str(enc.get("state")))
 					trigger.set_detection(enc.get("state"))
 				elif(enc.get("cmd")=="wf"):
 					ignore=1
