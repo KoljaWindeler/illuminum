@@ -6,10 +6,18 @@ import threading
 import pygame
 import pygame.camera
 
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+
+WIDTH=1280
+HEIGHT=720
+TIMING_DEBUG=1
+
 try:
 	print("[A "+time.strftime("%H:%M:%S")+"] -> Starting Camera Interface")
 	pygame.camera.init()
-	cam = pygame.camera.Camera("/dev/video0",(1280,720))
+	cam = pygame.camera.Camera("/dev/video0",(WIDTH,HEIGHT))
 	cam.start()
 except:
 	print("Could not start the Camera!")
@@ -75,13 +83,40 @@ def start_trigger():
 
 		if(webcam_capture==1):
 			webcam_capture=0
-			img = cam.get_image()
-			pygame.image.save(img,path)
+			#pygame img
+			if(TIMING_DEBUG):
+				pic_t = time.time()
 
-			#s = subprocess.Popen(['fswebcam', '-r 1280x720 -S10 --tempstamp "%d-%m-%Y %H:%M:%S (%Z)" ', path],stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]			
+			img = cam.get_image()
+
+			#pillow
+			if(TIMING_DEBUG):
+				print("Snapping took "+str(time.time()-pic_t))
+				pic_t = time.time()
+			
+			pil_string_image = pygame.image.tostring(img, "RGBA",False)
+			img = Image.fromstring("RGBA",(WIDTH,HEIGHT),pil_string_image)
+			
+			draw=ImageDraw.Draw(img)
+			f=ImageFont.load_default()
+			draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(10,10,10),font=f)
+
+			if(TIMING_DEBUG):
+				print("Processing took "+str(time.time()-pic_t))
+				pic_t = time.time()
+
+			img.save(path)
+
+			if(TIMING_DEBUG):
+				print("Saving took "+str(time.time()-pic_t))
+				pic_t = time.time()
+
 			print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
 			for callb in callback_action:
 				callb("uploading",path)
+
+			if(TIMING_DEBUG):
+				print("Spooling took "+str(time.time()-pic_t))
 
 	GPIO.cleanup()
 

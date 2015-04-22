@@ -1,7 +1,5 @@
 # TCP client example
 import socket,os,time,json,base64,hashlib,select,trigger
-#img = cam.get_image()
-#pygame.image.save(img,"test"+str(a)+".jpg")
 
 MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
@@ -45,6 +43,9 @@ def upload_file(path):
 		msg["cmd"]="wf"
 		msg["fn"]=path
 		msg["data"]=base64.b64encode(strng).decode('utf-8')
+		msg["sof"]=0
+		if(i==0):
+			msg["sof"]=1
 		msg["eof"]=0
 		msg["msg_id"]=i	
 		msg["ack"]=-1
@@ -193,6 +194,10 @@ while 1:
 			if(msg!=""):
 				#print("A message is ready to send")
 				send_msg=json.dumps(msg)
+				if(json.loads(send_msg).get("cmd"," ")=="wf"):
+					if(json.loads(send_msg).get("sof",0)==1):
+						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn"))
+						file_upload_start=time.time()
 				try:
 					client_socket.send(send_msg.encode("UTF-8"))
 				except:
@@ -206,6 +211,7 @@ while 1:
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("eof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
+						print("[A "+time.strftime("%H:%M:%S")+"] -> took:"+str(time.time()-file_upload_start))
 		#else:
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")		
