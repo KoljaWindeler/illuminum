@@ -27,6 +27,8 @@ def start_trigger():
 	GPIO.setmode(GPIO.BOARD)
 	GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
+	global last_webcam_ts
+	global webcam_interval
 	global detection
 	last_detection=detection
 	state=-1 # to be refreshed
@@ -58,16 +60,21 @@ def start_trigger():
 			else:
 				state=-1 #to be refreshed by the part above
 			last_detection=detection
-			
+		
+		if(webcam_interval!=0):
+			if(time.time()>last_webcam_ts+webcam_interval):
+				path='snap.jpg'
+				webcam_capture=1
+				last_webcam_ts=time.time()
+				print("taking a snap")
 
 		if(webcam_capture_remaining>0):
 			path='alert'+str(webcam_capture_remaining)+'.jpg';
 			webcam_capture=1
 			webcam_capture_remaining-=1
-		else:
-			webcam_capture=0
 
 		if(webcam_capture==1):
+			webcam_capture=0
 			img = cam.get_image()
 			pygame.image.save(img,path)
 
@@ -93,5 +100,13 @@ def set_detection(state):
 		print("detection set to 0")
 		detection=0
 
+def set_interval(interval):
+	global webcam_interval
+	if(interval!=0):
+		webcam_interval=interval
+	
+
+webcam_interval=0
+last_webcam_ts=time.time()
 callback_action=[subscribe_callback]
 detection=1

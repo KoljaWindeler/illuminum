@@ -3,7 +3,7 @@ import socket,os,time,json,base64,hashlib,select,trigger
 #img = cam.get_image()
 #pygame.image.save(img,"test"+str(a)+".jpg")
 
-size = 512
+size = 512000
 mid="23s54fa59sd"
 pw=124
 h = hashlib.new('ripemd160')
@@ -99,6 +99,8 @@ def connect():
 
 trigger.start()
 trigger.subscribe_callback(trigger_handle,"")
+trigger.set_interval(30)
+trigger.set_interval(2)
 
 comm_wait=0
 waiter=[]
@@ -121,7 +123,7 @@ while 1:
 				recv = client_socket.recv(2048)
 				#print("Data received:"+str(recv))
 			except:
-				print('client_socketection error')
+				print('client_socket.recv detected error')
 				break;
 			
 			comm_wait=0
@@ -150,6 +152,8 @@ while 1:
 					trigger.set_detection(enc.get("state"))
 				elif(enc.get("cmd")=="wf"):
 					ignore=1
+				elif(enc.get("cmd")=="snap"):
+					trigger.set_interval(int(enc.get("interval",0)))
 				else:
 					print("unsopported command:"+enc.get("cmd"))
 		#************* receiving end ******************#
