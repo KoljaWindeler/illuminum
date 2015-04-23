@@ -28,7 +28,9 @@ def start_trigger():
 		try:
 			print("[A "+time.strftime("%H:%M:%S")+"] -> Starting Camera Interface")
 			os.system('v4l2-ctl -d 0 -c focus_auto=1')
-			#os.system('v4l2-ctl -d 0 -c focus_absolute=250')
+			os.system('v4l2-ctl -d 0 -c contrast=1')
+			os.system('v4l2-ctl -d 0 -c saturation=83')
+			os.system('v4l2-ctl -d 0 -c sharpness=25')
 			os.system('v4l2-ctl -d 0 -c brightness=130')
 			os.system('v4l2-ctl -d 0 -c white_balance_temperature_auto=1')
 			pygame.camera.init()
