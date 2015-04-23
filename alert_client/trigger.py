@@ -84,7 +84,6 @@ def start_trigger():
 				if(time.time()>last_webcam_ts+webcam_interval):
 					path='snap.jpg'
 					webcam_capture=1
-					last_webcam_ts=time.time()
 					#print("taking a snap")
 
 			if(webcam_capture_remaining>0):
@@ -94,6 +93,7 @@ def start_trigger():
 
 			if(webcam_capture==1):
 				webcam_capture=0
+				last_webcam_ts=time.time()
 				pic_start=time.time()
 	
 				#pygame img
