@@ -74,11 +74,15 @@ def m2m_msg_handle(data,cli):
 					msg={}
 					msg["mid"]=cli.mid
 					msg["cmd"]="rf"
-					tmp=cli.fp.name.split('/')
-					msg["path"]='upload/'+tmp[len(tmp)-1]
+					if(enc.get("sof",0)==1):
+						#send img, assuming this is a at once img
+						msg["img"]=enc.get("data")
+					else:
+						#send path if it was hacked ... not wise TODO: read img and send at once
+						tmp=cli.fp.name.split('/')
+						msg["path"]='upload/'+tmp[len(tmp)-1]
 					for v in cli.m2v:
 						msg_q_ws.append((msg,v))
-
 					cli.fp.close()
 					cli.openfile=""
 					#print("Received "+str(cli.paket_count_per_file)+" parts for this file")
