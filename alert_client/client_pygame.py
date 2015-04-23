@@ -106,8 +106,8 @@ def connect():
 
 trigger.start()
 trigger.subscribe_callback(trigger_handle,"")
-#trigger.set_interval(10)
-trigger.set_interval(1)
+trigger.set_interval(10)
+#trigger.set_interval(1)
 
 comm_wait=0
 waiter=[]
@@ -215,8 +215,8 @@ while 1:
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("eof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
-						print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
-						print("[A "+time.strftime("%H:%M:%S")+"] -> ctime:"+str(time.time()-json.loads(send_msg).get("ts",0)))
+						#print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
+						#print("[A "+time.strftime("%H:%M:%S")+"] -> ctime:"+str(time.time()-json.loads(send_msg).get("ts",0)))
 
 		#else:
 		#************* sending end ******************#
