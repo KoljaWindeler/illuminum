@@ -188,7 +188,9 @@ def m2m_con_handle(data,cli):
 					msg={}
 					msg["cmd"]="disconnect"
 					msg["mid"]=cli.mid
-					msg_q_ws.append((msg,cli))
+					msg["area"]=cli.area
+					msg["account"]=cli.account
+					msg_q_ws.append((msg,ws))
 		server_m2m.clients.remove(cli)
 #******************************************************#
 server_m2m.start()
@@ -235,14 +237,14 @@ def ws_msg_handle(data,cli):
 				cli.logged_in=1
 				msg_ws["ok"]=1 # logged in
 				cli.account=db["account"]
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+cli.login+"'@'"+cli.account+"' log-in: OK")
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: OK, '"+cli.login+"'@'"+cli.account+"'")
 				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
 				# introduce them to each other
 				for m2m in server_m2m.clients:
 					if(m2m.account==cli.account):
 						connect_ws_m2m(m2m,cli)
 			else:
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+cli.login+"' log-in: failed")
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: failed, '"+cli.login+"'")
 				msg_ws["ok"]=-2 # not logged in
 			msg_q_ws.append((msg_ws,cli))
 
@@ -269,7 +271,7 @@ def ws_con_handle(data,cli):
 	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients
 	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
-		print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
+		#print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
 		# try to find that websockets in all client lists, so go through all clients and their lists	
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:

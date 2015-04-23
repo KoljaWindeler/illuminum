@@ -161,7 +161,7 @@ def handle (client, addr):
 		#lock.acquire()
 		#[send_data(c, data) for c in clients]
 		#lock.release()
-	print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(client.ip))
+	print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Client "+client.login+" closed: "+str(client.ip))
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)

@@ -35,7 +35,7 @@ def handle (client, addr):
 	while 1:
 		res = recv_data(client, MAX_MSG_SIZE)
 		if res<0:
-			print("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
+			#print("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
 			break
 	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr))
 
