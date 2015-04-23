@@ -59,6 +59,7 @@ if(!empty($output[0])){	// python serer is running add everything
 
 						var node=document.createElement("P");
 						node.appendChild(document.createTextNode("client:"+msg_dec["mid"]));
+						node.setAttribute("id",msg_dec["mid"]);
 
 						var sub_node=document.createElement("P");
 						sub_node.setAttribute("id",msg_dec["mid"]+"_hb");
@@ -112,8 +113,27 @@ if(!empty($output[0])){	// python serer is running add everything
 					img=document.getElementById(msg_dec["mid"]+"_img");
 					if(img!=undefined){
 						console.log("habs");
-						img.src="http://192.168.1.80/"+msg_dec["path"];
+						if(msg_dec["img"]!=""){
+							console.log("direkt");
+							img.src="data:image/png;base64,"+msg_dec["img"];
+						} else if(msg_dec["path"]!=""){
+							img.src="http://192.168.1.80/"+msg_dec["path"];
+						};
+
 					};
+				}
+
+				else if(msg_dec["cmd"]=="disconnect"){
+					var area=document.getElementById(msg_dec["account"]+"_"+msg_dec["area"]);
+					var client=document.getElementById(msg_dec["mid"]);
+                                        if(area!=undefined){
+						console.log("area gefunden");
+						if(client!=undefined){
+							console.log("client gefunden");
+							area.removeChild(client);
+							console.log("entfernt");
+						}
+					}
 				}
 
 			}
