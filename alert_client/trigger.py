@@ -50,8 +50,14 @@ def start_trigger():
 		state=-1 # to be refreshed
 		webcam_capture=0
 		webcam_capture_remaining=0
+		busy=1
 
 		while True:
+			# cpu spacing
+			if(busy==0):
+				time.sleep(0.1)
+			busy=0
+		
 			try:
 				gpio_state=GPIO.input(7)
 			except:
@@ -59,6 +65,7 @@ def start_trigger():
 				break
 
 			if(gpio_state != state and detection==1):
+				busy=1
 				if(gpio_state == 1):
 					print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
 					for callb in callback_action:
@@ -73,6 +80,7 @@ def start_trigger():
 				state=GPIO.input(7)
 		
 			if(detection!=last_detection):
+				busy=1
 				print("detection change -> loop")
 				if(detection==0):
 					print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline state")
@@ -94,6 +102,7 @@ def start_trigger():
 				webcam_capture_remaining-=1
 
 			if(webcam_capture==1):
+				busy=1
 				webcam_capture=0
 				last_webcam_ts=time.time()
 				pic_start=time.time()

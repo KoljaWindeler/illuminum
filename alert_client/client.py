@@ -118,6 +118,7 @@ while 1:
 	logged_in=0
 	client_socket=connect()	
 	while(client_socket!=""):
+		time.sleep(0.1)
 		#************* receiving start ******************#		
 		try:
 			ready_to_read, ready_to_write, in_error = select.select([client_socket,], [client_socket,], [], 5)
