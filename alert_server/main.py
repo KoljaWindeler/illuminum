@@ -1,5 +1,5 @@
 import time,json,os,base64,hashlib
-
+from clients import webcam_viewer
 import server_m2m
 import server_ws
 
@@ -65,8 +65,8 @@ def m2m_msg_handle(data,cli):
 					cli.openfile = enc.get("fn")
 					des_location="../webserver/upload/"+str(int(time.time()))+"_"+cli.mid+"_"+cli.openfile
 					cli.fp = open(des_location,'wb')
-					tmp_loc=des_location.split('/')
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
+					#tmp_loc=des_location.split('/')
+					#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
 					cli.paket_count_per_file=0
 				cli.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
 				if(enc.get("eof")==1):
@@ -74,6 +74,7 @@ def m2m_msg_handle(data,cli):
 					msg={}
 					msg["mid"]=cli.mid
 					msg["cmd"]="rf"
+					# all image data
 					if(enc.get("sof",0)==1):
 						#send img, assuming this is a at once img
 						msg["img"]=enc.get("data")
@@ -81,12 +82,19 @@ def m2m_msg_handle(data,cli):
 						#send path if it was hacked ... not wise TODO: read img and send at once
 						tmp=cli.fp.name.split('/')
 						msg["path"]='upload/'+tmp[len(tmp)-1]
-					for v in cli.m2v:
-						msg_q_ws.append((msg,v))
+					# use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
+					for v in cli.webcam:
+						#only update if last ts war more then interval ago
+						if(time.time()>=v.ts+v.interval):
+							v.ts=time.time()
+							msg_q_ws.append((msg,v.ws))
+					
+					des_location=cli.fp.name
+					tmp_loc=des_location.split('/')
 					cli.fp.close()
 					cli.openfile=""
 					#print("Received "+str(cli.paket_count_per_file)+" parts for this file")
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' finished upload")	
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1])	
 					# send good ack
 				if(enc.get("ack")==-1):
 					msg={}
@@ -265,6 +273,11 @@ def ws_msg_handle(data,cli):
 					msg_q_m2m.append((msg,m2m))
 					clients_affected+=1
 			print("[A_ws  "+time.strftime("%H:%M:%S")+"] set detection of area '"+area+"' to '"+str(enc.get("state"))+"' (->"+str(clients_affected)+" m2m_clients)")
+		
+		## webcam interval -> sign in or out to webcam
+		elif(enc.get("cmd")=="set_interval"):
+			set_webcam_con(enc.get("mid"),enc.get("interval",0),cli)
+	
 
 		## unsupported cmd
 		else:
@@ -272,16 +285,20 @@ def ws_msg_handle(data,cli):
 			
 
 def ws_con_handle(data,cli):
-	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients
+	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients and their webcam lists
 	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
-		#print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
+		print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
 		# try to find that websockets in all client lists, so go through all clients and their lists	
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
 				if(viewer==cli):
 					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+cli.login)
 					m2m.m2v.remove(viewer)
+					
+					# also check if that ws has been one of the watchers of the webfeed
+					set_webcam_con(m2m.mid,0,cli)
+
 		try:
 			server_ws.clients.remove(cli)
 		except:
@@ -308,6 +325,46 @@ def connect_ws_m2m(m2m,ws):
 	msg_ws2["state"]=m2m.state
 	msg_ws2["account"]=m2m.account
 	msg_q_ws.append((msg_ws2,ws))
+#################
+def set_webcam_con(mid,interval,ws):
+	#print("--> change interval "+str(interval))
+	msg={}
+	msg["cmd"]="set_interval"
+	#search for the m2m module that shall upload the picture to the ws
+	for m2m in ws.v2m:
+		if(m2m.mid==mid):
+			#print("habe die angeforderte MID in der clienten liste vom ws gefunden")
+			# thats our m2m cam
+			if(interval>0):
+				# put the ws on his list of webcam subscripters
+				viewer=webcam_viewer(ws)
+				viewer.interval=interval
+				viewer.ts=0 # deliver the next frame asap
+				m2m.webcam.append(viewer)
+				msg["interval"]=1 #always 1sec
+	
+				# inform the webcam that we are watching
+				msg_q_m2m.append((msg,m2m))
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+ws.login+" to webcam stream from "+mid)
+					
+			# this clients switched off 
+			else:
+				# remove us from the list 
+				# go through all elements in the webcam list 
+				#print("suche in der webcam liste nach unserem ws")
+				for viewer in m2m.webcam:
+					if(viewer.ws==ws):
+						#print("gefunden und entfernt")
+						m2m.webcam.remove(viewer)
+	
+				# check if we shall switch of the feed
+				clients_remaining=len(m2m.webcam)
+				if(clients_remaining==0):
+					msg["interval"]=0
+					msg_q_m2m.append((msg,m2m))
+					#print("sende stop nachricht an m2m:"+str(m2m.mid))
+			
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
 
 #******************************* common **********************#
 	

@@ -1,6 +1,5 @@
 #A info container for each camera client
-class m2m_clients:
- 
+class m2m_clients: 
 	def __init__(self, addr):
 		self.ip = addr.getpeername()[0]  	# the IP adress
 		self.port = addr.getpeername()[1]	# the client port
@@ -17,7 +16,7 @@ class m2m_clients:
 		self.area=" "				# a location like "in front of the main entrace"
 		self.account=" "			# the accout the device belongs to .. something like JKW even if there are two logins (kolja,caro) to the ACCOUNT
 		self.state=0				# what state is the cam in? 0=idle
-
+		self.webcam=[]				# list of webcam_viewer who are watching the webcam
 
 # dies ist der WEBSOCKET client
 class ws_clients:
@@ -34,3 +33,8 @@ class ws_clients:
 		self.accunt=" "				# the account the login belongs to .. something like JKW even if there are two logins (kolja,caro) to the account. multiple login for one account
 
 
+class webcam_viewer:
+	def __init__(self,cli):
+		self.ws = cli 				# this shall hold the websocket client
+		self.interval = 0			# the intervall as in
+		self.ts = 0				# the timestamp of the last refresh

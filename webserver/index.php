@@ -61,6 +61,30 @@ if(!empty($output[0])){	// python serer is running add everything
 						node.appendChild(document.createTextNode("client:"+msg_dec["mid"]));
 						node.setAttribute("id",msg_dec["mid"]);
 
+						var button=document.createElement("A");
+						button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
+						button.onclick=function(){
+							var msg_int=msg_dec;
+							return function(){
+								set_interval(msg_int["mid"],1);
+							}
+						   }();
+						button.className="button";
+						button.text="Webcam on";
+						node.appendChild(button);
+
+						button=document.createElement("A");
+						button.setAttribute("id",+msg_dec["mid"]+"_set_interval_0");
+						button.onclick=function(){
+							var msg_int=msg_dec;
+							return function(){
+								set_interval(msg_int["mid"],0);
+							}
+						   }();
+						button.className="button";
+						button.text="Webcam off";
+						node.appendChild(button);
+
 						var sub_node=document.createElement("P");
 						sub_node.setAttribute("id",msg_dec["mid"]+"_hb");
 						node.appendChild(sub_node);
@@ -68,12 +92,6 @@ if(!empty($output[0])){	// python serer is running add everything
 						sub_node=document.createElement("P");
 						sub_node.setAttribute("id",msg_dec["mid"]+"_state");
 						node.appendChild(sub_node);
-
-						sub_node=document.createElement("img");
-						sub_node.setAttribute("id",msg_dec["mid"]+"_img");
-						node.appendChild(sub_node);
-						console.log(msg_dec["mid"]+"_img"+" angelegt");
-
 
 						area.appendChild(node);
 						console.log("hb feld in client angebaut");
@@ -109,17 +127,16 @@ if(!empty($output[0])){	// python serer is running add everything
 				}
 
 				else if(msg_dec["cmd"]=="rf"){
-					console.log("suche nach: "+msg_dec["mid"]+"_img");
 					img=document.getElementById(msg_dec["mid"]+"_img");
 					if(img!=undefined){
-						console.log("habs");
 						if(msg_dec["img"]!=""){
-							console.log("direkt");
 							img.src="data:image/png;base64,"+msg_dec["img"];
 						} else if(msg_dec["path"]!=""){
 							img.src="http://192.168.1.80/"+msg_dec["path"];
 						};
 
+					} else {
+						alert("konnte mid_img nicht finden!!");
 					};
 				}
 
@@ -139,6 +156,30 @@ if(!empty($output[0])){	// python serer is running add everything
 			}
 
 	        }
+
+		function set_interval(mid,interval){
+			if(con == null){
+				return;
+			}
+			var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":interval};
+			console.log(JSON.stringify(cmd_data));
+			con.send(JSON.stringify(cmd_data));
+
+			var client=document.getElementById(mid);
+			if(interval==0){
+				var img=document.getElementById(mid+"_img");
+				if(client!=undefined){
+					if(img!=undefined){
+						client.removeChild(img);
+					}
+				}
+			} else {
+				var sub_node=document.createElement("img");
+				sub_node.setAttribute("id",mid+"_img");
+				client.appendChild(sub_node);
+			}
+		}
+
 		function login(user,pw) {
 			console.log("send login");
 			if(con == null){
