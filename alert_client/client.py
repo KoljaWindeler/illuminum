@@ -1,5 +1,5 @@
 # TCP client example
-import socket,os,time,json,base64,hashlib,select,trigger,uuid
+import socket,os,time,json,base64,hashlib,select,trigger,uuid,sys
 
 MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
@@ -121,11 +121,19 @@ while 1:
 		time.sleep(0.1)
 		#************* receiving start ******************#		
 		try:
-			ready_to_read, ready_to_write, in_error = select.select([client_socket,], [client_socket,], [], 5)
+			ready_to_read, ready_to_write, in_error = select.select([client_socket,sys.stdin], [client_socket,], [], 5)
 		except:
 			print("select detected a broken connection")
 			break
 
+		## react on keydown
+		if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+			input=sys.stdin.readline()
+			if(input[:1]=="q"):
+				print("Quit")
+				os._exit(1)
+				
+		## react on msg in
 		if(len(ready_to_read) > 0):
 			#print("one process is ready")
 			try:
