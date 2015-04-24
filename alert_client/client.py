@@ -106,12 +106,13 @@ def connect():
 
 trigger.start()
 trigger.subscribe_callback(trigger_handle,"")
-trigger.set_interval(10)
+#trigger.set_interval(10)
 #trigger.set_interval(1)
 
 comm_wait=0
 waiter=[]
 hb_out=0
+recv_buffer=""
 
 while 1:
 	logged_in=0
@@ -127,42 +128,61 @@ while 1:
 		if(len(ready_to_read) > 0):
 			#print("one process is ready")
 			try:
-				recv = client_socket.recv(MAX_MSG_SIZE)
+				data = client_socket.recv(MAX_MSG_SIZE)
+				data_dec = data.decode("UTF-8")
 				#print("Data received:"+str(recv))
 			except:
 				print('client_socket.recv detected error')
 				break;
 			
 			comm_wait=0
-			try:
-				enc=json.loads(recv.decode("UTF-8"))
-			except:
-				enc=""
-				break;
+			data_dec=recv_buffer+data_dec
+			data_array=data_dec.split('}')
+		
+			for a in range(0,len(data_array)-1):
+				data_array[a]+='}'
+
+				try:
+					enc=json.loads(data_array[a])
+				except:
+					enc=""
+					print("json decode failed on:"+data_array[a])
+					break;
 			
-			if(type(enc) is dict):
-				#print("json decoded msg")
-				#print(enc)
-				if(enc.get("cmd")=="login"):
-					if(enc.get("ok")==1):
-						logged_in=1
-						print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
+				if(type(enc) is dict):
+					#print("json decoded msg")
+					#print(enc)
+					if(enc.get("cmd")=="login"):
+						if(enc.get("ok")==1):
+							logged_in=1
+							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
+						else:
+							logged_in=0
+							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
+					elif(enc.get("cmd")=="hb"):
+						last_transfer=time.time()
+						hb_out=0
+						print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
+					elif(enc.get("cmd")=="set_detection"):
+						print("setting detection to "+str(enc.get("state")))
+						trigger.set_detection(enc.get("state"))
+					elif(enc.get("cmd")=="wf"):
+						ignore=1
+					elif(enc.get("cmd")=="set_interval"):
+						print("setting interval to "+str(int(enc.get("interval",0))))
+						trigger.set_interval(int(enc.get("interval",0)))
 					else:
-						logged_in=0
-						print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
-				elif(enc.get("cmd")=="hb"):
-					last_transfer=time.time()
-					hb_out=0
-					print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
-				elif(enc.get("cmd")=="set_detection"):
-					print("setting detection to "+str(enc.get("state")))
-					trigger.set_detection(enc.get("state"))
-				elif(enc.get("cmd")=="wf"):
-					ignore=1
-				elif(enc.get("cmd")=="snap"):
-					trigger.set_interval(int(enc.get("interval",0)))
-				else:
-					print("unsopported command:"+enc.get("cmd"))
+						print("unsopported command:"+enc.get("cmd"))
+				#end of "if"
+			# end of "for"
+
+			if(data_array[len(data_array)-1]==""):
+				#if data contained a full message and ended with closing tag, we a$
+				recv_buffer=""
+			else:
+				# but if we grabbed something like 1.5 messages, we should buffer $
+				recv_buffer=data_array[len(data_array)-1]
+				#print("using buffer!")
 		#************* receiving end ******************#
 		
 		#************* timeout check start ******************#

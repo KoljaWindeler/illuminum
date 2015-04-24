@@ -156,11 +156,10 @@ def set_detection(state):
 
 def set_interval(interval):
 	global webcam_interval
-	if(interval!=0):
-		webcam_interval=interval
+	webcam_interval=interval
 	
 
 webcam_interval=0
 last_webcam_ts=time.time()
 callback_action=[subscribe_callback]
-detection=1
+detection=0 # set to 1 for default
