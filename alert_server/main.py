@@ -377,9 +377,16 @@ now = time.time()*2
 update_all=0
 msg_q_m2m=[]
 msg_q_ws=[]
+busy=1
 
 while 1:
+	# sleeping
+	if(busy==0):
+		time.sleep(0.03)
+	busy=0
+
 	while(len(msg_q_m2m)>0):
+		busy=1
 		#print(str(time.time())+' fire in the hole')
 		data=msg_q_m2m[0]
 		msg=data[0]
@@ -402,6 +409,7 @@ while 1:
 
 
 	while(len(msg_q_ws)>0):
+		busy=1
 		#print(str(time.time())+' fire in the hole')
 		data=msg_q_ws[0]
 		msg=data[0]
