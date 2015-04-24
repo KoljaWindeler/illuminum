@@ -127,6 +127,15 @@ if(!empty($output[0])){	// python serer is running add everything
 				}
 
 				else if(msg_dec["cmd"]=="rf"){
+					var client=document.getElementById(msg_dec["mid"]);
+					if(client!=undefined){
+						if(document.getElementById(msg_dec["mid"]+"_img")==undefined){
+							var sub_node=document.createElement("img");
+							sub_node.setAttribute("id",msg_dec["mid"]+"_img");
+							client.appendChild(sub_node);
+						}
+					}
+
 					img=document.getElementById(msg_dec["mid"]+"_img");
 					if(img!=undefined){
 						if(msg_dec["img"]!=""){
@@ -174,9 +183,11 @@ if(!empty($output[0])){	// python serer is running add everything
 					}
 				}
 			} else {
-				var sub_node=document.createElement("img");
-				sub_node.setAttribute("id",mid+"_img");
-				client.appendChild(sub_node);
+				if(document.getElementById(mid+"_img")==undefined){
+					var sub_node=document.createElement("img");
+					sub_node.setAttribute("id",mid+"_img");
+					client.appendChild(sub_node);
+				}
 			}
 		}
 

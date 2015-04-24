@@ -82,12 +82,18 @@ def m2m_msg_handle(data,cli):
 						#send path if it was hacked ... not wise TODO: read img and send at once
 						tmp=cli.fp.name.split('/')
 						msg["path"]='upload/'+tmp[len(tmp)-1]
-					# use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
-					for v in cli.webcam:
-						#only update if last ts war more then interval ago
-						if(time.time()>=v.ts+v.interval):
-							v.ts=time.time()
-							msg_q_ws.append((msg,v.ws))
+
+					# select the ws to send to
+					if(cli.state==1): # alert -> inform everyone
+						# the m2v list has all viewer
+						for v in cli.m2v:
+							msg_q_ws.append((msg,v))
+					else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
+						for v in cli.webcam:
+							#only update if last ts war more then interval ago
+							if(time.time()>=v.ts+v.interval):
+								v.ts=time.time()
+								msg_q_ws.append((msg,v.ws))
 					
 					des_location=cli.fp.name
 					tmp_loc=des_location.split('/')
@@ -158,6 +164,7 @@ def m2m_msg_handle(data,cli):
 
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="state_change"):
+			cli.state=enc.get("state")
 			# tell subscribers
 			msg={}
 			msg["mid"]=cli.mid
