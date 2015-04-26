@@ -34,7 +34,7 @@ if(!empty($output[0])){	// python serer is running add everything
 							button.onclick=function(){
 								var msg_int=msg_dec;
 								return function(){
-									set_detection(msg_int["account"],msg_int["area"],1);
+									set_detection(msg_int["account"],msg_int["area"],2);
 								}
 							   }();
 							button.className="button";
