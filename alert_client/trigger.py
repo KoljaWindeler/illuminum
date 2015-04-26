@@ -83,23 +83,35 @@ def start_trigger():
 				cam.start()
 				
 			# react on pin state change
-			if(gpio_state != state and detection>=1):
+			if(gpio_state != state):
 				busy=1
 				if(gpio_state == 1):
-					print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
-					for callb in callback_action:
-						callb("state_change",1) #alert
-					start = time.time()
-					webcam_capture_remaining=5
+					if(detection==0):				
+						print("[A "+time.strftime("%H:%M:%S")+"] -> offline, movement")
+						ex_state=3
+					else:
+						print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
+						ex_state=1
+						start = time.time()
+						webcam_capture_remaining=5
+
 				else:
-					print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to idle state")
-					for callb in callback_action:
-						callb("state_change",0) #idle
+					if(detection==0):
+						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline,idle state")
+						ex_state=2
+					else:
+						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to idle state")
+						ex_state=0
+
+				for callb in callback_action:
+					callb("state_change",ex_state) 
 	
-				state=GPIO.input(7)
+				state=gpio_state
+
 			elif(gpio_state == 1 and detection == 2): # the "send all photos until low mode"
 				busy=1
 				webcam_capture_remaining=1
+
 		
 			# set detection on / off
 			if(detection!=last_detection):
@@ -152,7 +164,7 @@ def start_trigger():
 					img = Image.fromstring("RGBA",(cam_width,cam_height),pil_string_image)
 				
 					draw=ImageDraw.Draw(img)
-					draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(255,10,10),font=f)
+					draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(10,10,10),font=f)
 
 					if(TIMING_DEBUG):
 						td.append((time.time(),"processing"))
