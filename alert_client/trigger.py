@@ -57,22 +57,24 @@ def start_trigger():
 		global detection
 		last_detection=detection
 		state=-1 # to be refreshed
-		webcam_capture=0
 		webcam_capture_remaining=0
 		busy=1
+		webcam_ok=1
 
-		while True:
+		while webcam_ok:
 			# cpu spacing
 			if(busy==0):
 				time.sleep(0.1)
 			busy=0
 		
+			# try to get the pin state
 			try:
 				gpio_state=GPIO.input(7)
 			except:
 				print("Trouble reading GPIO, restarting")
 				break
 
+			# changing the resolution - depr.
 			if(change_res_event==1):
 				print("changing resolution ("+str(cam_width)+"/"+str(cam_height)+")")
 				change_res_event=0
@@ -80,7 +82,8 @@ def start_trigger():
 				cam=pygame.camera.Camera("/dev/video0",(cam_width,cam_height))
 				cam.start()
 				
-			if(gpio_state != state and detection==1):
+			# react on pin state change
+			if(gpio_state != state and detection>=1):
 				busy=1
 				if(gpio_state == 1):
 					print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
@@ -94,7 +97,11 @@ def start_trigger():
 						callb("state_change",0) #idle
 	
 				state=GPIO.input(7)
+			elif(gpio_state == 1 and detection == 2): # the "send all photos until low mode"
+				busy=1
+				webcam_capture_remaining=1
 		
+			# set detection on / off
 			if(detection!=last_detection):
 				busy=1
 				print("detection change -> loop")
@@ -106,79 +113,82 @@ def start_trigger():
 					state=-1 #to be refreshed by the part above
 				last_detection=detection
 			
+			# interval photos
 			if(webcam_interval!=0):
 				if(time.time()>last_webcam_ts+webcam_interval):
-					path='snap.jpg'
-					webcam_capture=1
+					webcam_capture_remaining=1
 					#print("taking a snap")
 
+			# capture photos!
 			if(webcam_capture_remaining>0):
-				path='alert'+str(webcam_capture_remaining)+'.jpg';
-				webcam_capture=1
-				webcam_capture_remaining-=1
-
-			if(webcam_capture==1):
 				busy=1
-				webcam_capture=0
 				last_webcam_ts=time.time()
-				#pic_start=time.time()
+				img_q=[]
 				td=[]
 
-				#pygame img
 				if(TIMING_DEBUG):
-				#	pic_t = time.time()
 					td.append((time.time(),"start"))
 
-
-				try:
-					img = cam.get_image()
-				except:
-					print("trouble to get a picture from the cam, restarting")
-					break
+				# take as many shoots as in webcam_capture_remaining, place in buffer
+				for i in range(0,webcam_capture_remaining):
+					try:
+						img = cam.get_image()
+					except:
+						print("trouble to get a picture from the cam, restarting")
+						webcam_ok=0
+						break
 	
-				#pillow
-				if(TIMING_DEBUG):
-				#	print("Snapping took "+str(time.time()-pic_t))
-				#	pic_t = time.time()
-					td.append((time.time(),"snapping"))
+					if(TIMING_DEBUG):
+						td.append((time.time(),"snapping"))
 
-			
-				pil_string_image = pygame.image.tostring(img, "RGBA",False)
-				img = Image.fromstring("RGBA",(cam_width,cam_height),pil_string_image)
-				
-				draw=ImageDraw.Draw(img)
-				draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(10,10,10),font=f)
-
-				if(TIMING_DEBUG):
-				#	print("Processing took "+str(time.time()-pic_t))
-				#	pic_t = time.time()
-					td.append((time.time(),"processing"))
-
-
-				#img_str=img.tostring(,)
-				if(MS):
-					img.save(path,"jpeg")
-				else:
-					b = io.BytesIO() 
-					img.save(b, 'jpeg')
-					img_bytes = b.getvalue()
-
-				if(TIMING_DEBUG):
-				#	print("Saving took "+str(time.time()-pic_t))
-				#	pic_t = time.time()
-					td.append((time.time(),"saving"))
-
-
-				print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
-				for callb in callback_action:
-					if(MS):
-						callb("uploading",(path,td))
+					# saving to file
+					if(state==1):
+						path='alert'+str(i)+'.jpg';
 					else:
-						callb("uploading_str",(img_bytes,td))
-					#callb("uploading_str",(img_str,pic_start))
+						path='snap'+str(i)+'.jpg';
+				
+					# add the timestamp
+					pil_string_image = pygame.image.tostring(img, "RGBA",False)
+					img = Image.fromstring("RGBA",(cam_width,cam_height),pil_string_image)
+				
+					draw=ImageDraw.Draw(img)
+					draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(255,10,10),font=f)
 
-				#if(TIMING_DEBUG):
-				#	print("Spooling took "+str(time.time()-pic_t))
+					if(TIMING_DEBUG):
+						td.append((time.time(),"processing"))
+
+					# appending to save later
+					img_q.append((img,path))
+
+				# saveing
+				for i in range(0,webcam_capture_remaining):
+					#dequeueing
+					img_de=img_q[0]
+					img_q.remove(img_de)
+
+					img=img_de[0]
+					path=img_de[1]
+
+					if(MS):
+						img.save(path,"jpeg")
+					else:
+						# saving to stream
+						b = io.BytesIO() 
+						img.save(b, 'jpeg')
+						img_bytes = b.getvalue()
+
+					if(TIMING_DEBUG):
+						td.append((time.time(),"saving"))
+
+
+					print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
+					for callb in callback_action:
+						if(MS):
+							callb("uploading",(path,td))
+						else:
+							callb("uploading_str",(img_bytes,td))
+
+				webcam_capture_remaining=0
 
 		GPIO.cleanup()
 
@@ -190,12 +200,8 @@ def subscribe_callback(fun,method):
 
 def set_detection(state):
 	global detection
-	if(str(state)=="1"):
-		detection=1
-		print("detection set to 1")
-	else:
-		print("detection set to 0")
-		detection=0
+	detection=state
+	print("detection set to "+str(state))
 
 def set_interval(interval):
 	global webcam_interval
