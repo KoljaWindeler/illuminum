@@ -3,7 +3,6 @@ import subprocess
 import time
 import threading
 import os
-import io
 
 import pygame
 import pygame.camera
@@ -16,8 +15,8 @@ WIDTH=1280
 HEIGHT=720
 #WIDTH=640
 #HEIGHT=480
-TIMING_DEBUG=0
-MS=1
+TIMING_DEBUG=1
+
 
 
 #******************************************************#
@@ -121,14 +120,11 @@ def start_trigger():
 				busy=1
 				webcam_capture=0
 				last_webcam_ts=time.time()
-				#pic_start=time.time()
-				td=[]
-
+				pic_start=time.time()
+	
 				#pygame img
 				if(TIMING_DEBUG):
-				#	pic_t = time.time()
-					td.append((time.time(),"start"))
-
+					pic_t = time.time()
 
 				try:
 					img = cam.get_image()
@@ -138,10 +134,8 @@ def start_trigger():
 	
 				#pillow
 				if(TIMING_DEBUG):
-				#	print("Snapping took "+str(time.time()-pic_t))
-				#	pic_t = time.time()
-					td.append((time.time(),"snapping"))
-
+					print("Snapping took "+str(time.time()-pic_t))
+					pic_t = time.time()
 			
 				pil_string_image = pygame.image.tostring(img, "RGBA",False)
 				img = Image.fromstring("RGBA",(cam_width,cam_height),pil_string_image)
@@ -150,35 +144,23 @@ def start_trigger():
 				draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(10,10,10),font=f)
 
 				if(TIMING_DEBUG):
-				#	print("Processing took "+str(time.time()-pic_t))
-				#	pic_t = time.time()
-					td.append((time.time(),"processing"))
+					print("Processing took "+str(time.time()-pic_t))
+					pic_t = time.time()
 
-
-				#img_str=img.tostring(,)
-				if(MS):
-					img.save(path,"jpeg")
-				else:
-					b = io.BytesIO() 
-					img.save(b, 'jpeg')
-					img_bytes = b.getvalue()
+				img_str=img.tostring()
+				#img.save(path)
 
 				if(TIMING_DEBUG):
-				#	print("Saving took "+str(time.time()-pic_t))
-				#	pic_t = time.time()
-					td.append((time.time(),"saving"))
-
+					print("Saving took "+str(time.time()-pic_t))
+					pic_t = time.time()
 
 				print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
 				for callb in callback_action:
-					if(MS):
-						callb("uploading",(path,td))
-					else:
-						callb("uploading_str",(img_bytes,td))
-					#callb("uploading_str",(img_str,pic_start))
+					#callb("uploading",(path,pic_start))
+					callb("uploading_str",(img_str,pic_start,path))
 
-				#if(TIMING_DEBUG):
-				#	print("Spooling took "+str(time.time()-pic_t))
+				if(TIMING_DEBUG):
+					print("Spooling took "+str(time.time()-pic_t))
 
 		GPIO.cleanup()
 

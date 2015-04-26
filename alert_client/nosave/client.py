@@ -8,7 +8,6 @@ mid=str(uuid.getnode())
 pw=124
 h = hashlib.new('ripemd160')
 h.update(str(pw).encode("UTF-8"))
-
 logged_in=0
 file_uploading=""
 msg_q=[]
@@ -21,43 +20,38 @@ last_transfer=time.time()
 def trigger_handle(event,data):
 	global msg_q
 	if(event=="uploading"):
-		#avoi overloading
-		if(len(file_q)<5):
-			file_q.append(data)			
+		file_q.append(data)
 	elif(event=="state_change"):
 		msg={}
 		msg["cmd"]=event
 		msg["state"]=data
 		msg_q.append(msg)
 	elif(event=="uploading_str"):
+		print("queueing")
 		file_str_q.append(data)
 
 #******************************************************#
-def upload_str_file(data):
-	global logged_in
-	if(logged_in!=1):
-		print("We can't upload as we are not logged in")
-		return -1
-	td=data[1]
+def upload_file_str(data):
 	msg={}
 	msg["cmd"]="wf"
+	timeing=time.time()
 	msg["data"]=base64.b64encode(data[0]).decode('utf-8')
+	timeing=time.time()-timeing
+	print("B64 str took "+str(timeing))
 	msg["sof"]=1
 	msg["eof"]=1
 	msg["msg_id"]=0
 	msg["ack"]=-1
 	msg["ts"]=data[1]
-	msg["fn"]=""
-	if(trigger.TIMING_DEBUG):
-		td.append((time.time(),"b64 - gen msg"))
-		msg["td"]=td
+	msg["fn"]=data[2]
 	msg_q.append(msg)
+
 
 
 def upload_file(data):
 	#print(str(time.time())+" -> this is upload_file with "+path)
 	path=data[0]
-	td=data[1]
+	ts=data[1]
 
 	global logged_in
 	if(logged_in!=1):
@@ -67,10 +61,6 @@ def upload_file(data):
 	i=0
 	while True:
 		strng = img.read(MAX_MSG_SIZE-100)
-
-		if(trigger.TIMING_DEBUG):
-			td.append((time.time(),"reading img"))
-
 		if not strng:
 			break
 
@@ -84,14 +74,10 @@ def upload_file(data):
 		msg["eof"]=0
 		msg["msg_id"]=i	
 		msg["ack"]=-1
+		msg["ts"]=ts
 		if(len(strng)!=(MAX_MSG_SIZE-100)):
 			msg["eof"]=1
 		#print('sending('+str(i)+') of '+path+'...')
-
-		if(trigger.TIMING_DEBUG):
-			td.append((time.time(),"b64 - gen msg"))
-			msg["td"]=td
-
 		msg_q.append(msg)
 		#msg=json.dumps(msg)	
 		#client_socket.send(msg.encode("UTF-8"))
@@ -154,7 +140,7 @@ while 1:
 	logged_in=0
 	client_socket=connect()	
 	while(client_socket!=""):
-		time.sleep(0.1)
+		#time.sleep(0.1)
 		#************* receiving start ******************#		
 		try:
 			ready_to_read, ready_to_write, in_error = select.select([client_socket,sys.stdin], [client_socket,], [], 5)
@@ -243,26 +229,19 @@ while 1:
 		if(len(file_q)>0):
 			file=file_q[0]
 			file_q.remove(file)
-			
-			if(trigger.TIMING_DEBUG):
-				file[1].append((time.time(),"dequeue"))
-
 			upload_file(file)
-
 		if(len(file_str_q)>0):
-			file=file_str_q[0]
-			file_str_q.remove(file)
-			
-			if(trigger.TIMING_DEBUG):
-				file[1].append((time.time(),"dequeue"))
-
-			upload_str_file(file)
+			print("dequeueing")
+			file_str=file_str_q[0]
+			file_str_q.remove(file_str)
+			upload_file_str(file_str)
+			print("msg should be in queue")
 		#************* file preperation end ******************#
 
 		#************* sending start ******************#
 		if(len(msg_q)>0 and (comm_wait==0 or logged_in!=1)):
 			msg=""
-			#print("We have "+str(len(msg_q))+" waiting...")
+			print("We have "+str(len(msg_q))+" msg_q waiting...")
 			if(logged_in!=1):
 				for msg_i in msg_q:
 					if(msg_i["cmd"]=="login"):
@@ -279,13 +258,14 @@ while 1:
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("sof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn"))
+						file_upload_start=time.time()
 				try:
 					client_socket.send(send_msg.encode("UTF-8"))
 				except:
 					client_socket=""
 					print("init reconnect")
 					break
-				#print("message send")
+				print("message send")
 				if(json.loads(send_msg).get("ack",0)==-1):
 					#print("waiting on response")
 					comm_wait=1
@@ -293,14 +273,8 @@ while 1:
 					if(json.loads(send_msg).get("eof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
 						#print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
-						if(trigger.TIMING_DEBUG):
-							msg["td"].append((time.time(),"upload done"))
-							old=msg["td"][0][0]
-							for a in msg["td"]:
-								print("[A "+time.strftime("%H:%M:%S")+"] -> event:"+a[1]+":"+str(int((a[0]-old)*1000))+"ms")
-								old=a[0]
-							os._exit(1)
-
+						print("[A "+time.strftime("%H:%M:%S")+"] -> ctime:"+str(time.time()-json.loads(send_msg).get("ts",0)))
+			print("end of send")
 
 		#else:
 		#************* sending end ******************#
