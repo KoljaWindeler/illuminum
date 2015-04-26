@@ -91,12 +91,9 @@ def m2m_msg_handle(data,cli):
 					else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
 						for v in cli.webcam:
 							#only update if last ts war more then interval ago
-							t_passed=time.time()-v.ts+0.1
-							if(t_passed>=v.interval):
+							if(time.time()>=v.ts+v.interval):
 								v.ts=time.time()
 								msg_q_ws.append((msg,v.ws))
-							else:
-								print("skipping "+str(v.ws.login)+": "+str(t_passed))
 					
 					des_location=cli.fp.name
 					tmp_loc=des_location.split('/')
@@ -346,18 +343,13 @@ def set_webcam_con(mid,interval,ws):
 			#print("habe die angeforderte MID in der clienten liste vom ws gefunden")
 			# thats our m2m cam
 			if(interval>0):
-				# scan if we are already in the webcam list, and remove us if so
-				for wcv in m2m.webcam:
-					if(wcv.ws==ws):
-						m2m.webcam.remove(wcv)
-
 				# put the ws on his list of webcam subscripters
 				viewer=webcam_viewer(ws)
 				viewer.interval=interval
 				viewer.ts=0 # deliver the next frame asap
-				m2m.webcam.append(viewer) 
+				m2m.webcam.append(viewer)
 
-				# find fastest webcam viewer
+				#find fastest webcam viewer
 				sm_interval=9999
 				for wcv in m2m.webcam:
 					if(wcv.interval<interval):
@@ -381,21 +373,20 @@ def set_webcam_con(mid,interval,ws):
 						#print("gefunden und entfernt")
 						m2m.webcam.remove(viewer)
 
+				#find fastest remaining webcam viewer
+				sm_interval=9999
+				for wcv in m2m.webcam:
+					if(wcv.interval<interval):
+						sm_interval=wcv.interval
+				
 	
 				# check if we shall switch of the feed
 				clients_remaining=len(m2m.webcam)
 				if(clients_remaining==0):
 					msg["interval"]=0
+					msg_q_m2m.append((msg,m2m))
 					#print("sende stop nachricht an m2m:"+str(m2m.mid))
-				else:
-					#find fastest webcam viewer
-					sm_interval=9999
-					for wcv in m2m.webcam:
-						if(wcv.interval<sm_interval):
-							sm_interval=wcv.interval
-					msg["interval"]=sm_interval
-
-				msg_q_m2m.append((msg,m2m))
+			
 				print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
 
 #******************************* common **********************#
@@ -421,7 +412,7 @@ while 1:
 		busy=1
 		#print(str(time.time())+' fire in the hole')
 		data=msg_q_m2m[0]
-		msg_q_m2m.remove(data)
+		msg_q_m2mk.remove(data)
 
 		msg=data[0]
 		cli=data[1]

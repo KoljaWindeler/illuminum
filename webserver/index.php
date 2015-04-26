@@ -73,6 +73,19 @@ if(!empty($output[0])){	// python serer is running add everything
 						button.text="Webcam on";
 						node.appendChild(button);
 
+						var button=document.createElement("A");
+						button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
+						button.onclick=function(){
+							var msg_int=msg_dec;
+							return function(){
+								set_interval(msg_int["mid"],5);
+							}
+						   }();
+						button.className="button";
+						button.text="Webcam slow";
+						node.appendChild(button);
+
+
 						button=document.createElement("A");
 						button.setAttribute("id",+msg_dec["mid"]+"_set_interval_0");
 						button.onclick=function(){

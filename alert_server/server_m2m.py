@@ -111,7 +111,7 @@ def send_data(client, data):
 		#print('-s-->'+str(msg))
 		client.conn.send(msg)
 	except:
-		print("failed")
+		print("m2m send data failed")
 		return -1
 
 	return 0
