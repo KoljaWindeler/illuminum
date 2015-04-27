@@ -87,10 +87,10 @@ def start_trigger():
 				busy=1
 				if(gpio_state == 1):
 					if(detection==0):				
-						print("[A "+time.strftime("%H:%M:%S")+"] -> offline, movement")
+						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline,movement state")
 						ex_state=3
 					else:
-						print("[A "+time.strftime("%H:%M:%S")+"] -> ALERT")
+						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to ALERT state")
 						ex_state=1
 						start = time.time()
 						webcam_capture_remaining=5
@@ -116,7 +116,6 @@ def start_trigger():
 			# set detection on / off
 			if(detection!=last_detection):
 				busy=1
-				print("detection change -> loop")
 				if(detection==0):
 					print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline state")
 					for callb in callback_action:

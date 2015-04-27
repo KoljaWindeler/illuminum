@@ -1,5 +1,7 @@
 # TCP client example
-import socket,os,time,json,base64,hashlib,select,trigger,uuid,sys
+import socket,os,time,json,base64
+import hashlib,select,trigger,uuid
+import sys,light
 
 MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
@@ -16,6 +18,7 @@ file_q=[]
 file_str_q=[]
 client_socket=""
 last_transfer=time.time()
+light_dimming_q=[]
 
 #******************************************************#
 def trigger_handle(event,data):
@@ -29,6 +32,12 @@ def trigger_handle(event,data):
 		msg["cmd"]=event
 		msg["state"]=data
 		msg_q.append(msg)
+		
+		# light dimming stuff
+		if(data==3): # deactive and motion
+			light_dimming_q.append((0,255,125,5,4000)) # 4 sec to dimm to warm orange - now
+		elif(data==4): # deactive and no motiona
+			light_dimming_q.append((time.time()+10*60,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 	elif(event=="uploading_str"):
 		file_str_q.append(data)
 
@@ -145,6 +154,8 @@ trigger.subscribe_callback(trigger_handle,"")
 #trigger.set_interval(10)
 #trigger.set_interval(1)
 
+light.start()
+
 comm_wait=0
 waiter=[]
 hb_out=0
@@ -168,6 +179,13 @@ while 1:
 			if(input[:1]=="q"):
 				print("Quit")
 				os._exit(1)
+	
+		## do some light dimming
+		if(len(light_dimming_q) > 0):
+			if(light_dimming_q[0][0]<=time.time()):
+				light_action=light_dimming_q[0]
+				light_dimming_q.remove(light_action)
+				light.dimm_to(light_action[1],light_action[2],light_action[3],light_action[4])
 				
 		## react on msg in
 		if(len(ready_to_read) > 0):
