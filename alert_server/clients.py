@@ -17,7 +17,7 @@ class m2m_clients:
 		self.account=" "			# the accout the device belongs to .. something like JKW even if there are two logins (kolja,caro) to the ACCOUNT
 		self.state=0				# what state is the cam in? 0=idle
 		self.webcam=[]				# list of webcam_viewer who are watching the webcam
-		self.state=-1				# state of the cam, 0=idle, 1=alert, 2=detection disabled
+		self.state=-1				# state of the cam, 0=idle, 1=alert, 2=detection disabled, idle, 3=detection disabled, movement
 
 # dies ist der WEBSOCKET client
 class ws_clients:
