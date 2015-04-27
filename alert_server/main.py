@@ -74,6 +74,7 @@ def m2m_msg_handle(data,cli):
 					msg={}
 					msg["mid"]=cli.mid
 					msg["cmd"]="rf"
+					msg["state"]=cli.state
 					# all image data
 					if(enc.get("sof",0)==1):
 						#send img, assuming this is a at once img
@@ -92,7 +93,7 @@ def m2m_msg_handle(data,cli):
 						for v in cli.webcam:
 							#only update if last ts war more then interval ago
 							t_passed=time.time()-v.ts+0.1
-							if(t_passed>=v.interval):
+							if(t_passed>=v.interval): #todo .. only if queue is not too full
 								v.ts=time.time()
 								msg_q_ws.append((msg,v.ws))
 							else:
