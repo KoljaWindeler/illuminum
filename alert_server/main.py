@@ -1,4 +1,4 @@
-import time,json,os,base64,hashlib
+import time,json,os,base64,hashlib,string,random
 from clients import webcam_viewer
 import server_m2m
 import server_ws
@@ -126,6 +126,16 @@ def m2m_msg_handle(data,cli):
 					msg["cmd"]=enc.get("cmd")
 					msg["ok"]=-2 # not logged in
 					msg_q_m2m.append((msg,cli))
+
+
+		#### pre login challange
+		elif(enc.get("cmd")=="prelogin"):
+			cli.challange=get_challange()
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["challange"]=cli.challange			
+			msg_q_m2m.append((msg,cli))
+			#print("received prelogin request, sending challange "+cli.challange)
 					
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="login"):
@@ -133,16 +143,16 @@ def m2m_msg_handle(data,cli):
 			msg["cmd"]=enc.get("cmd")
 
 			# data base has to give us this values based on enc.get("mid")
-			pw=str(124)
-			h = hashlib.new('ripemd160')
-			h.update(pw.encode("UTF-8"))
 			db={}
-			db["pw"]=h.hexdigest()
+			db["pw"]="124"
 			db["account"]="jkw"
 			db["area"]="home"
 
+			h = hashlib.new('ripemd160')
+			h.update(str(db["pw"]+cli.challange).encode("UTF-8"))
+
 			# check parameter
-			if(db["pw"]==enc.get("client_pw")):
+			if(h.hexdigest()==enc.get("client_pw")):
 				cli.logged_in=1
 				cli.mid=enc.get("mid")
 				msg["ok"]=1 # logged in
@@ -398,7 +408,9 @@ def set_webcam_con(mid,interval,ws):
 
 				msg_q_m2m.append((msg,m2m))
 				print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
-
+####################
+def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
+	return ''.join(random.choice(chars) for _ in range(size))
 #******************************* common **********************#
 	
 

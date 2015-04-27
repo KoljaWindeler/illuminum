@@ -18,6 +18,7 @@ class m2m_clients:
 		self.state=0				# what state is the cam in? 0=idle
 		self.webcam=[]				# list of webcam_viewer who are watching the webcam
 		self.state=-1				# state of the cam, 0=idle, 1=alert, 2=detection disabled, idle, 3=detection disabled, movement
+		self.challange=""			# challange for the login
 
 # dies ist der WEBSOCKET client
 class ws_clients:
