@@ -2,14 +2,16 @@
 import socket,os,time,json,base64
 import hashlib,select,trigger,uuid
 import sys,light
+from binascii import unhexlify, hexlify
+
 
 MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
 SERVER_PORT = 9875
 mid=str(uuid.getnode())
-pw=124
+
+pw="124"
 h = hashlib.new('ripemd160')
-h.update(str(pw).encode("UTF-8"))
 
 logged_in=0
 file_uploading=""
@@ -123,27 +125,13 @@ def connect():
 
 	print("[A "+time.strftime("%H:%M:%S")+"] -> connected. Loggin in...")
 
-	#### login 
+	#### prelogin
 	msg={}
 	msg["mid"]=mid
-	msg["client_pw"]=h.hexdigest()
-	msg["cmd"]="login"	
-	msg["ts"]=time.strftime("%d.%m.%Y || %H:%M:%S")
-	msg["ack"]=-1
+	msg["cmd"]="prelogin"
 	msg_q.append(msg)
-	#msg=json.dumps(msg)
-	#client_socket.send(msg.encode("UTF-8"))
-	#data=client_socket.recv(1024)
-	#try:
-	#	enc=json.loads(data.decode("UTF-8"))
-	#except:
-	#	enc=""
-	#if(type(enc) is dict):
-	#	if(enc.get("cmd")=="login"):
-	#		if(enc.get("ok")==1):
-	#			logged_in=1
-	#			print("logged in")
-	#### login 
+	#print("sending prelogin request")
+
 	return c_socket
 
 # Main programm
@@ -193,7 +181,7 @@ while 1:
 			try:
 				data = client_socket.recv(MAX_MSG_SIZE)
 				data_dec = data.decode("UTF-8")
-				#print("Data received:"+str(recv))
+				#print("Data received:"+str(data))
 			except:
 				print('client_socket.recv detected error')
 				break;
@@ -215,7 +203,20 @@ while 1:
 				if(type(enc) is dict):
 					#print("json decoded msg")
 					#print(enc)
-					if(enc.get("cmd")=="login"):
+					if(enc.get("cmd")=="prelogin"):
+						#### login 
+						#print("received challange "+enc.get("challange"))
+						h.update(str(pw+enc.get("challange")).encode("UTF-8"))
+						pw=h.hexdigest()
+
+						msg={}
+						msg["mid"]=mid
+						msg["client_pw"]=pw
+						msg["cmd"]="login"	
+						msg["ts"]=time.strftime("%d.%m.%Y || %H:%M:%S")
+						msg["ack"]=-1
+						msg_q.append(msg)
+					elif(enc.get("cmd")=="login"):
 						if(enc.get("ok")==1):
 							logged_in=1
 							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
@@ -283,10 +284,15 @@ while 1:
 			#print("We have "+str(len(msg_q))+" waiting...")
 			if(logged_in!=1):
 				for msg_i in msg_q:
+					if(msg_i["cmd"]=="prelogin"):
+						print("[A "+time.strftime("%H:%M:%S")+"] -> requesting challange")
+						msg=msg_i
+						msg_q.remove(msg_i)
 					if(msg_i["cmd"]=="login"):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> sending login")
 						msg=msg_i
 						msg_q.remove(msg_i)
+					
 			else:
 				msg=msg_q[0]
 				msg_q.remove(msg)
