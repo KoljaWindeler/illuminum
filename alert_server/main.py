@@ -92,9 +92,12 @@ def m2m_msg_handle(data,cli):
 					else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
 						for v in cli.webcam:
 							#only update if last ts war more then interval ago
-							t_passed=time.time()-v.ts+0.1
+							#try:
+							ts_photo=enc.get("td",0) 
+							ts_photo=ts_photo[1][0]
+							t_passed=ts_photo-v.ts+0.1
 							if(t_passed>=v.interval): #todo .. only if queue is not too full
-								v.ts=time.time()
+								v.ts=ts_photo
 								msg_q_ws.append((msg,v.ws))
 							else:
 								print("skipping "+str(v.ws.login)+": "+str(t_passed))
@@ -150,6 +153,8 @@ def m2m_msg_handle(data,cli):
 
 			h = hashlib.new('ripemd160')
 			h.update(str(db["pw"]+cli.challange).encode("UTF-8"))
+			#print("total to code="+(str(db["pw"]+cli.challange)))
+			#print("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
 
 			# check parameter
 			if(h.hexdigest()==enc.get("client_pw")):
@@ -171,7 +176,7 @@ def m2m_msg_handle(data,cli):
 						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
 			else:
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' log-in: failed")
+				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' log-in: failed")
 				msg["ok"]=-2 # not logged in
 			msg_q_m2m.append((msg,cli))
 
