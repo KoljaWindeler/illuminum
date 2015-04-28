@@ -11,7 +11,6 @@ SERVER_PORT = 9875
 mid=str(uuid.getnode())
 
 pw="124"
-h = hashlib.new('ripemd160')
 
 logged_in=0
 file_uploading=""
@@ -57,11 +56,13 @@ def upload_str_file(data):
 	msg["eof"]=1
 	msg["msg_id"]=0
 	msg["ack"]=-1
-	msg["ts"]=data[1]
+	msg["ts"]=td
 	msg["fn"]=""
+
 	if(trigger.TIMING_DEBUG):
 		td.append((time.time(),"b64 - gen msg"))
-		msg["td"]=td
+
+	msg["td"]=td
 	msg_q.append(msg)
 
 
@@ -94,16 +95,16 @@ def upload_file(data):
 			msg["sof"]=1
 		msg["eof"]=0
 		msg["msg_id"]=i	
-		msg["ack"]=-1
-		msg["ts"]=time.time()
+		msg["ack"]=0 #-1
+		msg["ts"]=td
 		if(len(strng)!=(MAX_MSG_SIZE-100)):
 			msg["eof"]=1
 		#print('sending('+str(i)+') of '+path+'...')
 
 		if(trigger.TIMING_DEBUG):
 			td.append((time.time(),"b64 - gen msg"))
-			msg["td"]=td
-
+		
+		msg["td"]=td
 		msg_q.append(msg)
 		#msg=json.dumps(msg)	
 		#client_socket.send(msg.encode("UTF-8"))
@@ -161,6 +162,10 @@ while 1:
 		except:
 			print("select detected a broken connection")
 			break
+	
+		# test
+		if(len(in_error)>0):
+			print("in error!")
 
 		## react on keydown
 		if sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
@@ -207,12 +212,15 @@ while 1:
 					if(enc.get("cmd")=="prelogin"):
 						#### login 
 						#print("received challange "+enc.get("challange"))
+						h = hashlib.new('ripemd160')
 						h.update(str(pw+enc.get("challange")).encode("UTF-8"))
-						pw=h.hexdigest()
+						#print("total to code="+str(pw+enc.get("challange")))
+						pw_c=h.hexdigest()
+						#print("result="+pw_c)
 
 						msg={}
 						msg["mid"]=mid
-						msg["client_pw"]=pw
+						msg["client_pw"]=pw_c
 						msg["cmd"]="login"	
 						msg["ts"]=time.strftime("%d.%m.%Y || %H:%M:%S")
 						msg["ack"]=-1

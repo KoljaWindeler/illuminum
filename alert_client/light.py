@@ -90,13 +90,15 @@ def dimm_to(r,g,b,ms):
 	l.t_r=r
 	l.t_g=g
 	l.t_b=b
-	l.s_t=time.time()
-	l.t_t=l.s_t+ms/1000
-	l.state=1 #dimm
-	l.ĺast_ts=0
-	l.ms_step=ms/max([abs(l.t_g-l.c_g),abs(l.t_r-l.c_r),abs(l.t_b-l.c_b)])
-	#print("ms:"+str(ms)+" ms_step:"+str(l.ms_step))
-	l.s_r = l.c_r
-	l.s_g = l.c_g
-	l.s_b = l.c_b
-	#print("start at "+str(time.time()))
+	max_diff=max([abs(l.t_g-l.c_g),abs(l.t_r-l.c_r),abs(l.t_b-l.c_b)])
+	if(max_diff>0):
+		l.s_t=time.time()
+		l.t_t=l.s_t+ms/1000
+		l.state=1 #dimm
+		l.ĺast_ts=0
+		l.ms_step=ms/max_diff
+		#print("ms:"+str(ms)+" ms_step:"+str(l.ms_step))
+		l.s_r = l.c_r
+		l.s_g = l.c_g
+		l.s_b = l.c_b
+		#print("start at "+str(time.time()))

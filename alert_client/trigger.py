@@ -137,9 +137,7 @@ def start_trigger():
 				last_webcam_ts=time.time()
 				img_q=[]
 				td=[]
-
-				if(TIMING_DEBUG):
-					td.append((time.time(),"start"))
+				td.append((time.time(),"start"))
 
 				# take as many shoots as in webcam_capture_remaining, place in buffer
 				for i in range(0,webcam_capture_remaining):
@@ -150,8 +148,8 @@ def start_trigger():
 						webcam_ok=0
 						break
 	
-					if(TIMING_DEBUG):
-						td.append((time.time(),"snapping"))
+					# to time dispaying
+					td.append((time.time(),"snapping"))
 
 					# saving to file
 					if(state==1):
@@ -166,8 +164,8 @@ def start_trigger():
 					draw=ImageDraw.Draw(img)
 					draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(10,10,10),font=f)
 
-					if(TIMING_DEBUG):
-						td.append((time.time(),"processing"))
+					# timing debug
+					td.append((time.time(),"processing"))
 
 					# appending to save later
 					img_q.append((img,path))
@@ -189,8 +187,8 @@ def start_trigger():
 						img.save(b, 'jpeg')
 						img_bytes = b.getvalue()
 
-					if(TIMING_DEBUG):
-						td.append((time.time(),"saving"))
+					# timinig
+					td.append((time.time(),"saving"))
 
 
 					print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
