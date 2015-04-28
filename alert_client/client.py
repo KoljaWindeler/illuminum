@@ -1,4 +1,3 @@
-# TCP client example
 import socket,os,time,json,base64
 import hashlib,select,trigger,uuid
 import sys,light
@@ -275,7 +274,10 @@ while 1:
 			if(trigger.TIMING_DEBUG):
 				file[1].append((time.time(),"dequeue"))
 
-			upload_file(file)
+			if(upload_file(file)!=0):
+				#error
+				client_socket=""
+				break
 
 		if(len(file_str_q)>0):
 			file=file_str_q[0]
@@ -288,6 +290,9 @@ while 1:
 		#************* file preperation end ******************#
 
 		#************* sending start ******************#
+		if(len(msg_q)>5):
+			print("msg_q: "+str(msg_q)+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in))
+
 		if(len(msg_q)>0 and (comm_wait==0 or logged_in!=1)):
 			msg=""
 			#print("We have "+str(len(msg_q))+" waiting...")
