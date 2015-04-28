@@ -110,7 +110,8 @@ def start_trigger():
 
 			elif(gpio_state == 1 and detection == 2): # the "send all photos until low mode"
 				busy=1
-				webcam_capture_remaining=1
+				if(time.time()>last_webcam_ts+1):
+					webcam_capture_remaining=1
 
 		
 			# set detection on / off
