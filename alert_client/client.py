@@ -95,6 +95,7 @@ def upload_file(data):
 		msg["eof"]=0
 		msg["msg_id"]=i	
 		msg["ack"]=-1
+		msg["ts"]=time.time()
 		if(len(strng)!=(MAX_MSG_SIZE-100)):
 			msg["eof"]=1
 		#print('sending('+str(i)+') of '+path+'...')
