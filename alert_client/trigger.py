@@ -49,7 +49,9 @@ def start_trigger():
 		GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 		#font
-		f=ImageFont.load_default()
+		#f=ImageFont.load_default()
+		#f=ImageFont.truetype("futureforces.ttf", 30)
+		f=ImageFont.truetype("Sans.ttf", 30)
 
 
 		global last_webcam_ts
@@ -162,7 +164,7 @@ def start_trigger():
 					img = Image.fromstring("RGBA",(cam_width,cam_height),pil_string_image)
 				
 					draw=ImageDraw.Draw(img)
-					draw.text((0, 0),path+" "+time.strftime("%H:%M:%S"),(10,10,10),font=f)
+					draw.text((5, 0),path+" /  "+time.strftime("%H:%M:%S"),(10,10,10),font=f)
 
 					# timing debug
 					td.append((time.time(),"processing"))
