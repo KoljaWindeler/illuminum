@@ -2,14 +2,16 @@ import socket,os,time,json,base64
 import hashlib,select,trigger,uuid
 import sys,light
 from binascii import unhexlify, hexlify
-
+from login import *
 
 MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
 SERVER_PORT = 9875
 mid=str(uuid.getnode())
 
-pw="124"
+# login
+l=login()
+pw=l.pw
 
 logged_in=0
 file_uploading=""
@@ -206,6 +208,7 @@ while 1:
 					break;
 			
 				if(type(enc) is dict):
+					last_transfer=time.time()
 					#print("json decoded msg")
 					#print(enc)
 					if(enc.get("cmd")=="prelogin"):
@@ -232,7 +235,6 @@ while 1:
 							logged_in=0
 							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
 					elif(enc.get("cmd")=="hb"):
-						last_transfer=time.time()
 						hb_out=0
 						print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
 					elif(enc.get("cmd")=="set_detection"):
