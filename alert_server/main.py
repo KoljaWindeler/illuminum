@@ -2,7 +2,7 @@ import time,json,os,base64,hashlib,string,random
 from clients import webcam_viewer
 import server_m2m
 import server_ws
-
+from sql import *
 
 #******************************* m2m **********************#
 #******************************************************#
@@ -146,13 +146,12 @@ def m2m_msg_handle(data,cli):
 			msg["cmd"]=enc.get("cmd")
 
 			# data base has to give us this values based on enc.get("mid")
-			db={}
-			db["pw"]="124"
-			db["account"]="jkw"
-			db["area"]="home"
+			db_r=db.get_data(enc.get("mid"))
+			if(db_r==-1 or db_r==''):
+				print("db error")
 
 			h = hashlib.new('ripemd160')
-			h.update(str(db["pw"]+cli.challange).encode("UTF-8"))
+			h.update(str(db_r["pw"]+cli.challange).encode("UTF-8"))
 			#print("total to code="+(str(db["pw"]+cli.challange)))
 			#print("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
 
@@ -162,8 +161,8 @@ def m2m_msg_handle(data,cli):
 				cli.mid=enc.get("mid")
 				msg["ok"]=1 # logged in
 				# get area and account based on database value for this mid
-				cli.account=db["account"]
-				cli.area=db["area"]
+				cli.account=db_r["account"]
+				cli.area=db_r["area"]
 				# search for all (active and logged-in) viewers for this client (same account)
 				info_viewer=0
 				#print("my m2m account is "+cli.account)
@@ -175,6 +174,7 @@ def m2m_msg_handle(data,cli):
 						info_viewer+=1
 						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
+				db.update_last_seen(cli.mid,cli.conn.getsockname()[0])
 			else:
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' log-in: failed")
 				msg["ok"]=-2 # not logged in
@@ -418,10 +418,8 @@ def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
 	return ''.join(random.choice(chars) for _ in range(size))
 #******************************* common **********************#
 	
-
-
-
-
+db=sql()
+db.connect()
 
 now = time.time()*2
 update_all=0
