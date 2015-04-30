@@ -1,497 +1,156 @@
-import time,json,os,base64,hashlib,string,random
-from clients import webcam_viewer
-import server_m2m
-import server_ws
-from sql import *
+package com.example.kolja.alert_app;
 
-#******************************* m2m **********************#
-#******************************************************#
-# this function handles all incoming messages, they are already decoded
-def m2m_msg_handle(data,cli):
-	global msg_q_m2m, msg_q_ws
-	# decode msg from string to dicc
-	try:
-		enc=json.loads(data)
-	except:	
-		enc=""
-		print("-d--> json decoding failed on:" + data)
-	
-	#print("cli:"+str(cli.port)+"/"+str(cli.ip))
-	if(type(enc) is dict):
-		# if the message would like to be debugged
-		if(enc.get("debug",0)==1):
-			for key, value in enc.items() :
-				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
-				
-		# set last_comm token
-		cli.last_comm=time.time()
-
-		#********* msg handling **************#
-		# assuming that we could decode the message from json to dicc: we have to distingush between the commands:
-		
-		#### sd -> shut the server down
-		if(enc.get("cmd")=="sd"):
-			print("[main] running shutdown")
-			server_m2m.stop_server()
-			exit()
-		
-		#### heartbeat
-		elif(enc.get("cmd")=="hb"):
-			# respond
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' HB updating "+str(len(cli.m2v))+" clients")
-			msg={}
-			msg["mid"]=cli.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=1
-			msg_q_m2m.append((msg,cli))
-
-			# tell subscribers
-			msg={}
-			msg["mid"]=cli.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["ts"]=time.time()
-			for subscriber in cli.m2v:
-				#print("Tell that to "+subscriber.login)
-				msg_q_ws.append((msg,subscriber))
-
-		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file
-		elif(enc.get("cmd")=="wf"):
-			if(cli.logged_in==1):
-				if(cli.openfile!=enc.get("fn")):
-					try:
-						cli.fp.close()
-					except:
-						cli.fp=""
-					cli.openfile = enc.get("fn")
-					des_location="../webserver/upload/"+str(int(time.time()))+"_"+cli.mid+"_"+cli.openfile
-					cli.fp = open(des_location,'wb')
-					#tmp_loc=des_location.split('/')
-					#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
-					cli.paket_count_per_file=0
-				cli.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
-				if(enc.get("eof")==1):
-					# inform all clients
-					msg={}
-					msg["mid"]=cli.mid
-					msg["cmd"]="rf"
-					msg["state"]=cli.state
-					# all image data
-					if(enc.get("sof",0)==1):
-						#send img, assuming this is a at once img
-						msg["img"]=enc.get("data")
-					else:
-						#send path if it was hacked ... not wise TODO: read img and send at once
-						tmp=cli.fp.name.split('/')
-						msg["path"]='upload/'+tmp[len(tmp)-1]
-
-					# select the ws to send to
-					if(cli.state==1): # alert -> inform everyone
-						# the m2v list has all viewer
-						for v in cli.m2v:
-							msg_q_ws.append((msg,v))
-					else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
-						for v in cli.webcam:
-							#only update if last ts war more then interval ago
-							#try:
-							ts_photo=enc.get("td",0) 
-							ts_photo=ts_photo[1][0]
-							t_passed=ts_photo-v.ts+0.1
-							if(t_passed>=v.interval): #todo .. only if queue is not too full
-								v.ts=ts_photo
-								msg_q_ws.append((msg,v.ws))
-							else:
-								print("skipping "+str(v.ws.login)+": "+str(t_passed))
-					
-					des_location=cli.fp.name
-					tmp_loc=des_location.split('/')
-					cli.fp.close()
-					cli.openfile=""
-					#print("Received "+str(cli.paket_count_per_file)+" parts for this file")
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1])	
-					# send good ack
-				if(enc.get("ack")==-1):
-					msg={}
-					msg["cmd"]=enc.get("cmd")
-					msg["fn"]=enc.get("fn")
-					msg["ok"]=1
-					msg_q_m2m.append((msg,cli))
-
-				cli.paket_count_per_file+=1
-				#print(str(time.time())+' enqueue')
-				#print("received:"+str(enc.get("msg_id")))
-				#print("sending ok")
-				#server.send_data(cli,json.dumps(msg).encode("UTF-8"))
-			else:
-				if(enc.get("eof")==1):
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] client tried to upload without beeing logged in")
-					# send bad ack
-					msg={}
-					msg["cmd"]=enc.get("cmd")
-					msg["ok"]=-2 # not logged in
-					msg_q_m2m.append((msg,cli))
+import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.app.Activity;
+import android.app.Fragment;
+import android.os.Build;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.TextView;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.net.URI;
+import java.net.URISyntaxException;
+import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.handshake.ServerHandshake;
 
 
-		#### pre login challange
-		elif(enc.get("cmd")=="prelogin"):
-			cli.challange=get_challange()
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["challange"]=cli.challange			
-			msg_q_m2m.append((msg,cli))
-			#print("received prelogin request, sending challange "+cli.challange)
-					
-		#### login try to set the logged_in to 1 to upload files etc
-		elif(enc.get("cmd")=="login"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
+public class MainActivity extends ActionBarActivity {
+    private WebSocketClient mWebSocketClient;
 
-			# data base has to give us this values based on enc.get("mid")
-			db_r=db.get_data(enc.get("mid"))
-			if(db_r==-1 or db_r==''):
-				print("db error")
-
-			h = hashlib.new('ripemd160')
-			h.update(str(db_r["pw"]+cli.challange).encode("UTF-8"))
-			#print("total to code="+(str(db["pw"]+cli.challange)))
-			#print("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
-
-			# check parameter
-			if(h.hexdigest()==enc.get("client_pw")):
-				cli.logged_in=1
-				cli.mid=enc.get("mid")
-				msg["ok"]=1 # logged in
-				# get area and account based on database value for this mid
-				cli.account=db_r["account"]
-				cli.area=db_r["area"]
-				# search for all (active and logged-in) viewers for this client (same account)
-				info_viewer=0
-				#print("my m2m account is "+cli.account)
-				for viewer in server_ws.clients:
-					#print("this client has account "+viewer.account)
-					if(viewer.account==cli.account):
-						# introduce them to each other
-						connect_ws_m2m(cli,viewer)
-						info_viewer+=1
-						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
-				db.update_last_seen(cli.mid,cli.conn.getpeername()[0])
-			else:
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' log-in: failed")
-				msg["ok"]=-2 # not logged in
-			msg_q_m2m.append((msg,cli))
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        connectWebSocket();
+    }
 
 
-		#### login try to set the logged_in to 1 to upload files etc
-		elif(enc.get("cmd")=="state_change"):
-			cli.state=enc.get("state")
-			# tell subscribers
-			msg={}
-			msg["mid"]=cli.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["state"]=enc.get("state")
-			informed=0
-			for subscriber in cli.m2v:
-				msg_q_ws.append((msg,subscriber))
-				informed+=1
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
 
-			# print on console
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' changed state to: "+str(enc.get("state"))+" (->"+str(informed)+" ws_clients)")
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
 
-				
-		#### unsupported command
-		else:
-				print("unsupported command: "+enc.get("cmd"))
-		#********* msg handling **************#
-	#### comm error
-	else: 		
-		print("-d--> json decode error")
-		msg={}
-		msg["cmd"]=enc.get("cmd")
-		msg["ok"]=-1 #comm error
-		msg_q_m2m.append((msg,cli))
-		
-#******************************************************#	
-#******************************************************#
-def m2m_con_handle(data,cli):
-	# this function is is used to be callen if a m2m disconnects, we have to update all ws clients
-	#print("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
-	if(data=="disconnect"):
-		print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' disconneted")
-		# try to find that m2m in all ws clients lists, so go through all clients and their lists	
-		for ws in server_ws.clients:
-			for viewer in ws.v2m:
-				if(viewer==cli):
-					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+ws.login+"' from "+cli.mid)
-					ws.v2m.remove(viewer)
-					msg={}
-					msg["cmd"]="disconnect"
-					msg["mid"]=cli.mid
-					msg["area"]=cli.area
-					msg["account"]=cli.account
-					msg_q_ws.append((msg,ws))
-		server_m2m.clients.remove(cli)
-#******************************************************#
-server_m2m.start()
-server_m2m.subscribe_callback(m2m_msg_handle,"msg")
-server_m2m.subscribe_callback(m2m_con_handle,"con")
-#******************************* m2m **********************#
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
 
 
-#******************************* WS clients **********************#
-#******************************************************#
-def ws_msg_handle(data,cli):
-	try:
-		enc=json.loads(data)
-	except:
-		enc=""
-		print("-d--> json decoding failed on:" + data)
+    private void connectWebSocket() {
+        URI uri;
+        try {
+            uri = new URI("ws://192.168.1.80:9876");
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            return;
+        }
 
-        #print("cli:"+str(cli.port)+"/"+str(cli.ip))
-	if(type(enc) is dict):
-		if(enc.get("debug",0)==1):
-			print("websocket_msg")
-			for key, value in enc.items() :
- 				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
-		## AREA CHANGE ##
-		if(enc.get("cmd"," ")=="area_change"):
-			print("websocket announced area change")
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-		## LOGIN from a viewer ##
-		elif(enc.get("cmd")=="login"):	
-			msg_ws={}
-			msg_ws["cmd"]=enc.get("cmd")
-			# data base has to give us this values
-			cli.login=enc.get("login")
-			pw2="124"
-			h = hashlib.new('ripemd160')
-			h.update(pw2.encode("UTF-8"))
-			db={}
-			db["pw"]=h.hexdigest()
-			db["account"]="jkw"
+        mWebSocketClient = new WebSocketClient(uri) {
+            @Override
+            public void onOpen(ServerHandshake serverHandshake) {
+                Log.i("Websocket", "Opened");
+                JSONObject object = new JSONObject();
+                try {
+                    object.put("cmd", "login");
+                    object.put("login", "kolja_android");
+                    object.put("pw", "pw");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                Log.i("websocket",object.toString());
+                //console.log(JSON.stringify(cmd_data));
+                mWebSocketClient.send(object.toString());
 
-			# check parameter
-			if(db["pw"]==enc.get("client_pw") or 1):
-				cli.logged_in=1
-				msg_ws["ok"]=1 # logged in
-				cli.account=db["account"]
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: OK, '"+cli.login+"'@'"+cli.account+"'")
-				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
-				# introduce them to each other
-				for m2m in server_m2m.clients:
-					if(m2m.account==cli.account):
-						connect_ws_m2m(m2m,cli)
-			else:
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: failed, '"+cli.login+"'")
-				msg_ws["ok"]=-2 # not logged in
-			msg_q_ws.append((msg_ws,cli))
+            }
 
-		## Detection on/off handle
-		elif(enc.get("cmd")=="detection"):
-			area=enc.get("area")
-			# check what m2m clients are in the list of this observer and what area they are in
-			clients_affected=0
-			for m2m in cli.v2m:
-				if(area==m2m.area):
-					msg={}
-					msg["cmd"]="set_detection"
-					msg["state"]=enc.get("state")
-					msg_q_m2m.append((msg,m2m))
-					clients_affected+=1
-			print("[A_ws  "+time.strftime("%H:%M:%S")+"] set detection of area '"+area+"' to '"+str(enc.get("state"))+"' (->"+str(clients_affected)+" m2m_clients)")
-		
-		## webcam interval -> sign in or out to webcam
-		elif(enc.get("cmd")=="set_interval"):
-			set_webcam_con(enc.get("mid"),enc.get("interval",0),cli)
-	
-
-		## unsupported cmd
-		else:
-			print("unsupported command: "+enc.get("cmd"))
+            @Override
+            public void onMessage(String s) {
+                final String message = s;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        TextView textView = (TextView)findViewById(R.id.messages);
+                        textView.setText(textView.getText() + "\n" + message);
+						
+			JSONObject object = new JSONObject();
+			object.fromString(message);
+			try {
+				cmd=object.getString("cmd");
+			} catch (e) {
+				cmd=""
+			}
 			
-
-def ws_con_handle(data,cli):
-	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients and their webcam lists
-	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
-	if(data=="disconnect"):
-		print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
-		# try to find that websockets in all client lists, so go through all clients and their lists	
-		for m2m in server_m2m.clients:
-			for viewer in m2m.m2v:
-				if(viewer==cli):
-					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+cli.login)
-					m2m.m2v.remove(viewer)
-					
-					# also check if that ws has been one of the watchers of the webfeed
-					set_webcam_con(m2m.mid,0,cli)
-
-		try:
-			server_ws.clients.remove(cli)
-		except:
-			ignore=1
-		
-#******************************************************#
-server_ws.start()
-server_ws.subscribe_callback(ws_msg_handle,"msg")
-server_ws.subscribe_callback(ws_con_handle,"con")
-#******************************* WS clients **********************#
-#******************************* common **********************#
-def connect_ws_m2m(m2m,ws):
-	# add us to their (machine to viewer) list, to be notified whats going on
-	m2m.m2v.append(ws) #<- geht das? das wäre jetzt gern ein pointer, vor allem sollten wir vielleicht mal checken ob die schon verbunden waren?
-	# and add them to us to give us the change to tell them if they should be sharp or not
-	ws.v2m.append(m2m) 
-	# send a nice and shiny message to the viewer to tell him what boxes are online, 
-	# TODO: how will the user get informed about boxes which are not online? List of db?
-	print("[A     "+time.strftime("%H:%M:%S")+"] MID '"+m2m.mid+"' <-> WS '"+ws.login+"'")
-	msg_ws2={}
-	msg_ws2["cmd"]="m2v_login" #enc.get("cmd")
-	msg_ws2["mid"]=m2m.mid
-	msg_ws2["area"]=m2m.area
-	msg_ws2["state"]=m2m.state
-	msg_ws2["account"]=m2m.account
-	msg_q_ws.append((msg_ws2,ws))
-#################
-def set_webcam_con(mid,interval,ws):
-	#print("--> change interval "+str(interval))
-	msg={}
-	msg["cmd"]="set_interval"
-	#search for the m2m module that shall upload the picture to the ws
-	for m2m in ws.v2m:
-		if(m2m.mid==mid):
-			#print("habe die angeforderte MID in der clienten liste vom ws gefunden")
-			# thats our m2m cam
-			if(interval>0):
-				# scan if we are already in the webcam list, and remove us if so
-				for wcv in m2m.webcam:
-					if(wcv.ws==ws):
-						m2m.webcam.remove(wcv)
-
-				# put the ws on his list of webcam subscripters
-				viewer=webcam_viewer(ws)
-				viewer.interval=interval
-				viewer.ts=0 # deliver the next frame asap
-				m2m.webcam.append(viewer) 
-
-				# find fastest webcam viewer
-				sm_interval=9999
-				for wcv in m2m.webcam:
-					if(wcv.interval<interval):
-						sm_interval=wcv.interval
-				#check if our interval is even faster
-				if(sm_interval>interval):
-					#we requesr a faster rate than every one else
-					msg["interval"]=interval
-					# inform the webcam that we are watching
-					msg_q_m2m.append((msg,m2m))
-
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+ws.login+" to webcam stream from "+mid)
-					
-			# this clients switched off 
-			else:
-				# remove us from the list 
-				# go through all elements in the webcam list 
-				#print("suche in der webcam liste nach unserem ws")
-				for viewer in m2m.webcam:
-					if(viewer.ws==ws):
-						#print("gefunden und entfernt")
-						m2m.webcam.remove(viewer)
-
-						# check if we shall switch of the feed
-						clients_remaining=len(m2m.webcam)
-						if(clients_remaining==0):
-							msg["interval"]=0
-							#print("sende stop nachricht an m2m:"+str(m2m.mid))
-						else:
-							#find fastest webcam viewer
-							sm_interval=9999
-							for wcv in m2m.webcam:
-								if(wcv.interval<sm_interval):
-									sm_interval=wcv.interval
-							msg["interval"]=sm_interval
-
-						msg_q_m2m.append((msg,m2m))
-						print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
-####################
-def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
-	return ''.join(random.choice(chars) for _ in range(size))
-#******************************* common **********************#
-	
-db=sql()
-db.connect()
-
-now = time.time()*2
-update_all=0
-msg_q_m2m=[]
-msg_q_ws=[]
-busy=1
-
-while 1:
-	# sleeping
-	if(busy==0):
-		time.sleep(0.03)
-	busy=0
-
-	while(len(msg_q_m2m)>0):
-		busy=1
-		#print(str(time.time())+' fire in the hole')
-		data=msg_q_m2m[0]
-		msg_q_m2m.remove(data)
-
-		msg=data[0]
-		cli=data[1]
-		if(0!=server_m2m.send_data(cli,json.dumps(msg).encode("UTF-8"))):
-			# the cam box m2m unit is not longer available .. obviously, remove it from every viewer and inform them
-			for ws in server_ws.clients:
-				for viewer in ws.v2m:
-					if(viewer==cli):
-						ws.v2m.remove(viewer)
-						msg={}
-						msg["cmd"]="m2m_disconnect"
-						msg["mid"]=cli.mid
-						msg_q_ws.append(msg)
-			try:
-				server_m2m.clients.remove(cli)
-			except:
-				ignore=1 #has already been removed
-
-
-
-	while(len(msg_q_ws)>0):
-		busy=1
-		#print(str(time.time())+' fire in the hole')
-		data=msg_q_ws[0]
-		msg=data[0]
-		cli=data[1]
-		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
-		msg_q_ws.remove(data)
-		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
-			ws_con_handle("disconnect",cli)
-
+			if(cmd=="rf"){					
+				try {
+					String encodedImage=object.getString("data");
+					Log.i("websocket","got str from obj");
+					byte[] decodedString = Base64.decode(encodedImage, Base64.URL_SAFE);
+					Log.i("websocket","decoded");
+					Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+					Log.i("websocket","loaded bitmap");
+					(Image)findViewById(R.id.img).setImageBitmap(decodedByte);
+					Log.i("websocket","bitmap set");
+				}	catch (e) {
+					int ignore=0;
+				}
+			}
 			
-	#if(time.time()-now>=1 or update_all):
-		# execute this once per second 
-		#now=time.time()
-		#msg={}
-		#msg["app"]="ws"
-		#msg["cmd"]="update_time"
-		#msg["data"]=time.strftime("%d.%m.%Y || %H:%M:%S") 
-		#msg=json.dumps(msg)
-		#server.send_data_all_clients(msg)
+			else if(cmd=="m2v_login"){
+				try {
+					// add an object that will hold the ID "mid", "area","state","account"
+					String mid=object.getString("mid");
+					String area=object.getString("area");
+					int state=object.getString("state");
+					String account=object.getString("account");
+					
+					// quick and dirty: add us to the list of webcams as soon as they sign up:
+					JSONObject object_send = new JSONObject();
+					object_send.put("cmd", "set_interval");
+					object_send.put("mid", mid);
+					object_send.put("interval", "3");
+					mWebSocketClient.send(object_send.toString());
+				}	catch (e) {
+					int ignore=0;
+				}
+			}
+						
+                    }
+                });
+            }
 
-	#for i in range(len(server.clients)):
-	#	print("send to client #%d/%d"%(i,len(server.clients)))
-	#	server.send_data(server.clients[i],msg)
+            @Override
+            public void onClose(int i, String s, boolean b) {
+                Log.i("Websocket", "Closed " + s);
+            }
 
-	#for client in server.clients:
-	#	if(time.time()-client.last_comm>10):
-	#		print("client "+client.mid+" timed out")
-	#		client.conn.close()
-	#		server.clients.remove(client)
-	
-	# clean up
-	#if(update_all):
-	#	update_all=0
-
-
-
+            @Override
+            public void onError(Exception e) {
+                Log.i("Websocket", "Error " + e.getMessage());
+            }
+        };
+        mWebSocketClient.connect();
+    }
+}
