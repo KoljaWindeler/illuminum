@@ -174,7 +174,7 @@ def m2m_msg_handle(data,cli):
 						info_viewer+=1
 						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
-				db.update_last_seen(cli.mid,cli.conn.getsockname()[0])
+				db.update_last_seen(cli.mid,cli.conn.getpeername()[0])
 			else:
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' log-in: failed")
 				msg["ok"]=-2 # not logged in
@@ -397,22 +397,21 @@ def set_webcam_con(mid,interval,ws):
 						#print("gefunden und entfernt")
 						m2m.webcam.remove(viewer)
 
-	
-				# check if we shall switch of the feed
-				clients_remaining=len(m2m.webcam)
-				if(clients_remaining==0):
-					msg["interval"]=0
-					#print("sende stop nachricht an m2m:"+str(m2m.mid))
-				else:
-					#find fastest webcam viewer
-					sm_interval=9999
-					for wcv in m2m.webcam:
-						if(wcv.interval<sm_interval):
-							sm_interval=wcv.interval
-					msg["interval"]=sm_interval
+						# check if we shall switch of the feed
+						clients_remaining=len(m2m.webcam)
+						if(clients_remaining==0):
+							msg["interval"]=0
+							#print("sende stop nachricht an m2m:"+str(m2m.mid))
+						else:
+							#find fastest webcam viewer
+							sm_interval=9999
+							for wcv in m2m.webcam:
+								if(wcv.interval<sm_interval):
+									sm_interval=wcv.interval
+							msg["interval"]=sm_interval
 
-				msg_q_m2m.append((msg,m2m))
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
+						msg_q_m2m.append((msg,m2m))
+						print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
 ####################
 def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
 	return ''.join(random.choice(chars) for _ in range(size))
