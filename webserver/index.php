@@ -195,7 +195,10 @@ if(!empty($output[0])){	// python serer is running add everything
 				var img=document.getElementById(mid+"_img");
 				if(client!=undefined){
 					if(img!=undefined){
-						client.removeChild(img);
+						setTimeout(function(){
+							//do what you need here
+							client.removeChild(img);
+						}, 1000)
 					}
 				}
 			} else {
