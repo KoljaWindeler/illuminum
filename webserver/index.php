@@ -57,57 +57,61 @@ if(!empty($output[0])){	// python serer is running add everything
 							area=node;
 						}
 
-						var node=document.createElement("P");
-						node.appendChild(document.createTextNode("client:"+msg_dec["mid"]));
-						node.setAttribute("id",msg_dec["mid"]);
+						var node=document.getElementById(msg_dec["mid"]);
+						if(node==undefined){
+							node=document.createElement("P");
+							node.appendChild(document.createTextNode("client:"+msg_dec["mid"]));
+							node.setAttribute("id",msg_dec["mid"]);
+							
 
-						var button=document.createElement("A");
-						button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
-						button.onclick=function(){
-							var msg_int=msg_dec;
-							return function(){
-								set_interval(msg_int["mid"],1);
-							}
-						   }();
-						button.className="button";
-						button.text="Webcam on";
-						node.appendChild(button);
+							var button=document.createElement("A");
+							button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
+							button.onclick=function(){
+								var msg_int=msg_dec;
+								return function(){
+									set_interval(msg_int["mid"],1);
+								}
+							   }();
+							button.className="button";
+							button.text="Webcam on";
+							node.appendChild(button);
 
-						var button=document.createElement("A");
-						button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
-						button.onclick=function(){
-							var msg_int=msg_dec;
-							return function(){
-								set_interval(msg_int["mid"],5);
-							}
-						   }();
-						button.className="button";
-						button.text="Webcam slow";
-						node.appendChild(button);
+							var button=document.createElement("A");
+							button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
+							button.onclick=function(){
+								var msg_int=msg_dec;
+								return function(){
+									set_interval(msg_int["mid"],5);
+								}
+							   }();
+							button.className="button";
+							button.text="Webcam slow";
+							node.appendChild(button);
 
 
-						button=document.createElement("A");
-						button.setAttribute("id",+msg_dec["mid"]+"_set_interval_0");
-						button.onclick=function(){
-							var msg_int=msg_dec;
-							return function(){
-								set_interval(msg_int["mid"],0);
-							}
-						   }();
-						button.className="button";
-						button.text="Webcam off";
-						node.appendChild(button);
+							button=document.createElement("A");
+							button.setAttribute("id",+msg_dec["mid"]+"_set_interval_0");
+							button.onclick=function(){
+								var msg_int=msg_dec;
+								return function(){
+									set_interval(msg_int["mid"],0);
+								}
+							   }();
+							button.className="button";
+							button.text="Webcam off";
+							node.appendChild(button);
 
-						var sub_node=document.createElement("P");
-						sub_node.setAttribute("id",msg_dec["mid"]+"_hb");
-						node.appendChild(sub_node);
+							var sub_node=document.createElement("P");
+							sub_node.setAttribute("id",msg_dec["mid"]+"_hb");
+							node.appendChild(sub_node);
 
-						sub_node=document.createElement("P");
-						sub_node.setAttribute("id",msg_dec["mid"]+"_state");
-						node.appendChild(sub_node);
+							sub_node=document.createElement("P");
+							sub_node.setAttribute("id",msg_dec["mid"]+"_state");
+							node.appendChild(sub_node);
 
-						area.appendChild(node);
-						console.log("hb feld in client angebaut");
+							area.appendChild(node);
+							console.log("hb feld in client angebaut");
+						}
 
 						document.getElementById(msg_dec["mid"]+"_state").innerHTML=state2str((msg_dec["state"]));
 					}
@@ -158,7 +162,8 @@ if(!empty($output[0])){	// python serer is running add everything
 						console.log("area gefunden");
 						if(client!=undefined){
 							console.log("client gefunden");
-							area.removeChild(client);
+							document.getElementById(msg_dec["mid"]+"_state").innerHTML="disconnected"
+							//area.removeChild(client);
 							console.log("entfernt");
 						}
 					}
@@ -177,6 +182,8 @@ if(!empty($output[0])){	// python serer is running add everything
 				return "disabled, idle";
 			} else if(state==3){
 				return "disabled, movement";
+			} else if(state==-1){
+				return "disconnected";
 			} else {
 				return state.toString();
 			};
