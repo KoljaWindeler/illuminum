@@ -4,7 +4,7 @@ import server_m2m
 import server_ws
 import send_mail
 from sql import *
-
+ 
 #***************************************************************************************#
 #***************************************** m2m *****************************************#
 #***************************************************************************************#
@@ -546,7 +546,12 @@ def connect_ws_m2m(m2m,ws):
 		all_m2m4account=db.get_m2m4account(ws.account) ##  "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip` FROM  `m2m` WHERE  `account` =  %s
 		# 2. loop through them and make sure that they are not part of the list, that the ws already knows
 		for m2m in all_m2m4account:
-			if(not(m2m in ws.v2m)):
+			found=0
+			for am2m in ws.v2m:
+				if(m2m["mid"]==am2m.mid):
+					found=1
+					break
+			if(not(found)):
 				msg_ws2={}
 				msg_ws2["cmd"]="m2v_login"
 				msg_ws2["mid"]=m2m["mid"]
