@@ -1,7 +1,8 @@
 import time,json,os,base64,hashlib,string,random
-from clients import webcam_viewer
+from clients import alert_event,webcam_viewer,m2m_state
 import server_m2m
 import server_ws
+import send_mail
 from sql import *
 
 #******************************* m2m **********************#
@@ -65,6 +66,17 @@ def m2m_msg_handle(data,cli):
 					cli.openfile = enc.get("fn")
 					des_location="../webserver/upload/"+str(int(time.time()))+"_"+cli.mid+"_"+cli.openfile
 					cli.fp = open(des_location,'wb')
+
+					# this is the start of a transmission
+					# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
+					# we'll put every alert file filename in the cli.alert_img list  and check in the loop if that list 
+					# has reached 5 pics, or hasn't been updated for > 20 sec. 
+					# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
+					# the given address. after that we set the cli.alert_mail_send to 1 state change to low should clear that
+					if(cli.state==1): # ALERT
+						if(cli.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
+							cli.alert.files.append(des_location)
+							cli.alert.last_upload = time.time()
 					#tmp_loc=des_location.split('/')
 					#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
 					cli.paket_count_per_file=0
@@ -159,6 +171,8 @@ def m2m_msg_handle(data,cli):
 			if(h.hexdigest()==enc.get("client_pw")):
 				cli.logged_in=1
 				cli.mid=enc.get("mid")
+				cli.alert=alert_event()
+				#cli.alert. TODO
 				msg["ok"]=1 # logged in
 				# get area and account based on database value for this mid
 				cli.account=db_r["account"]
@@ -193,9 +207,21 @@ def m2m_msg_handle(data,cli):
 			for subscriber in cli.m2v:
 				msg_q_ws.append((msg,subscriber))
 				informed+=1
+			
+			# prepare notification system, arm or disarm
+			if(cli.state==1): # state=1 means Alert!
+				cli.alert.ts=time.time()
+				cli.alert.files = []
+				cli.alert.notification_send_ts = -1 # indicates that this is a thing to be done
+				cli.alert.last_upload=0
+			elif(cli.state==2 or cli.state==3): #state 2 or 3 means: offline (+idle/+alert)
+				# assuming that the system was already triggered and right after that the switch off command arrived -> avoid notification
+				# check_alerts will search for cli with notification_send_ts==-1
+				cli.alert.notification_send_ts = 0 # indicate that this is done
+
 
 			# print on console
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' changed state to: "+str(enc.get("state"))+" (->"+str(informed)+" ws_clients)")
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' changed state to: '"+str(m2m_state[enc.get("state",4)])+"' (->"+str(informed)+" ws_clients)")
 
 				
 		#### unsupported command
@@ -246,12 +272,12 @@ def ws_msg_handle(data,cli):
 		enc=""
 		print("-d--> json decoding failed on:" + data)
 
-        #print("cli:"+str(cli.port)+"/"+str(cli.ip))
+		#print("cli:"+str(cli.port)+"/"+str(cli.ip))
 	if(type(enc) is dict):
 		if(enc.get("debug",0)==1):
 			print("websocket_msg")
 			for key, value in enc.items() :
- 				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
+				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
 		## AREA CHANGE ##
 		if(enc.get("cmd"," ")=="area_change"):
 			print("websocket announced area change")
@@ -413,8 +439,42 @@ def set_webcam_con(mid,interval,ws):
 						msg_q_m2m.append((msg,m2m))
 						print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
 ####################
+
 def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
 	return ''.join(random.choice(chars) for _ in range(size))
+
+###################
+
+def check_alerts():
+	ret=-1
+	for cli in server_m2m.clients:
+		if(cli.alert.notification_send_ts==-1):
+			send = 0
+			# if the gab between the last_upload and now is > timeout
+			if(cli.alert.last_upload!=0):
+				if(time.time()>cli.alert.last_upload+cli.alert.file_max_timeout_ms/1000):
+					#print("last upload ist old enough")
+					send=1
+			# or enough pictures have been uploaded
+			if(len(cli.alert.files)>=cli.alert.files_expected):
+				#print("found enough files")
+				send=1
+
+			# fire in the hole
+			if(send==1):
+				# email?
+				if(cli.alert.comm_path % 2 == 1):
+					#print("sending mail")
+					#send_mail.send( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost"):
+					send_mail.send("alert", "oho", cli.alert.files)
+					cli.alert.notification_send_ts=time.time()
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' triggered Email")
+					ret=0
+		return ret
+
+####################				
+			
+
 #******************************* common **********************#
 	
 db=sql()
@@ -432,7 +492,7 @@ while 1:
 		time.sleep(0.03)
 	busy=0
 
-	while(len(msg_q_m2m)>0):
+	if(len(msg_q_m2m)>0):
 		busy=1
 		#print(str(time.time())+' fire in the hole')
 		data=msg_q_m2m[0]
@@ -457,7 +517,7 @@ while 1:
 
 
 
-	while(len(msg_q_ws)>0):
+	if(len(msg_q_ws)>0):
 		busy=1
 		#print(str(time.time())+' fire in the hole')
 		data=msg_q_ws[0]
@@ -468,29 +528,9 @@ while 1:
 		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
 			ws_con_handle("disconnect",cli)
 
-			
-	#if(time.time()-now>=1 or update_all):
-		# execute this once per second 
-		#now=time.time()
-		#msg={}
-		#msg["app"]="ws"
-		#msg["cmd"]="update_time"
-		#msg["data"]=time.strftime("%d.%m.%Y || %H:%M:%S") 
-		#msg=json.dumps(msg)
-		#server.send_data_all_clients(msg)
-
-	#for i in range(len(server.clients)):
-	#	print("send to client #%d/%d"%(i,len(server.clients)))
-	#	server.send_data(server.clients[i],msg)
-
-	#for client in server.clients:
-	#	if(time.time()-client.last_comm>10):
-	#		print("client "+client.mid+" timed out")
-	#		client.conn.close()
-	#		server.clients.remove(client)
 	
-	# clean up
-	#if(update_all):
-	#	update_all=0
-
+	# check if we have clients in the alert state ready to send a mail or so
+	if(check_alerts()==0):
+		busy=1
+	
 
