@@ -69,7 +69,11 @@ def recv_m2m_con_handle(data,cli):
 					msg["area"]=cli.area
 					msg["account"]=cli.account
 					msg_q_ws.append((msg,ws))
-		server_m2m.clients.remove(cli)
+		try:
+			# should be done by the server .. we'll try anyway
+			server_m2m.clients.remove(cli)
+		except:
+			ignore=1
 		# update database
 		# TODO database shall set state to "disconnected" and last seen to time.time()
 		#sql.m2m_disconnect(cli.mid)
