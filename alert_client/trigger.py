@@ -18,7 +18,7 @@ HEIGHT=720
 #HEIGHT=480
 TIMING_DEBUG=0
 MS=1
-
+m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
 
 #******************************************************#
 def start():
@@ -88,22 +88,20 @@ def start_trigger():
 			if(gpio_state != state):
 				busy=1
 				if(gpio_state == 1):
-					if(detection==0):				
-						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline,movement state")
+					if(detection==0):
 						ex_state=3
 					else:
-						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to ALERT state")
 						ex_state=1
 						start = time.time()
 						webcam_capture_remaining=5
 
 				else:
 					if(detection==0):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline,idle state")
 						ex_state=2
 					else:
-						print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to idle state")
 						ex_state=0
+
+				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[ex_state]+"'")
 
 				for callb in callback_action:
 					callb("state_change",ex_state) 
@@ -119,12 +117,7 @@ def start_trigger():
 			# set detection on / off
 			if(detection!=last_detection):
 				busy=1
-				if(detection==0):
-					print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to offline state")
-					for callb in callback_action:
-						callb("state_change",2) # detection disabled
-				else:
-					state=-1 #to be refreshed by the part above
+				state=-1 #to be refreshed by the part above
 				last_detection=detection
 			
 			# interval photos
@@ -136,7 +129,7 @@ def start_trigger():
 			# capture photos!
 			if(webcam_capture_remaining>0):
 				busy=1
-				last_webcam_ts=time.time()
+				l_last_webcam_ts=time.time()
 				img_q=[]
 				td=[]
 				td.append((time.time(),"start"))
@@ -144,6 +137,9 @@ def start_trigger():
 				# take as many shoots as in webcam_capture_remaining, place in buffer
 				for i in range(0,webcam_capture_remaining):
 					try:
+						if(last_webcam_ts+5<=time.time()): # camera buffers two? frames, clear buffer
+							cam.get_image()
+							cam.get_image()
 						img = cam.get_image()
 					except:
 						print("trouble to get a picture from the cam, restarting")
@@ -202,6 +198,7 @@ def start_trigger():
 							callb("uploading_str",(img_bytes,td))
 
 				webcam_capture_remaining=0
+				last_webcam_ts=l_last_webcam_ts
 
 		GPIO.cleanup()
 
@@ -214,7 +211,7 @@ def subscribe_callback(fun,method):
 def set_detection(state):
 	global detection
 	detection=state
-	print("detection set to "+str(state))
+	print("[T "+time.strftime("%H:%M:%S")+"] detection set to "+str(state))
 
 def set_interval(interval):
 	global webcam_interval
@@ -240,6 +237,6 @@ webcam_interval=0
 change_res_event=0
 cam_width=WIDTH
 cam_height=HEIGHT
-last_webcam_ts=time.time()
+last_webcam_ts=0
 callback_action=[subscribe_callback]
-detection=0 # set to 1 for default
+detection=0 # set to 1 for default, 0=off,1=send just the first 5 shoots if alert, 2=send all shoots as long as pin is HIGH
