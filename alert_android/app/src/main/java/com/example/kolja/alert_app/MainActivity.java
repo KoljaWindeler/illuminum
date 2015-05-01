@@ -101,7 +101,7 @@ public class MainActivity extends ActionBarActivity {
                     @Override
                     public void run() {
                         TextView textView = (TextView)findViewById(R.id.KoljaText);
-                        textView.setText(textView.getText() + "\n" + message);
+                        //textView.setText(textView.getText() + "\n" + message);
                         String cmd;
                         JSONObject object = new JSONObject();
 
@@ -139,7 +139,7 @@ public class MainActivity extends ActionBarActivity {
                                 JSONObject object_send = new JSONObject();
                                 object_send.put("cmd", "set_interval");
                                 object_send.put("mid", mid);
-                                object_send.put("interval", 3);
+                                object_send.put("interval", 1);
                                 mWebSocketClient.send(object_send.toString());
                             }	catch (Exception e) {
                                 int ignore=0;
