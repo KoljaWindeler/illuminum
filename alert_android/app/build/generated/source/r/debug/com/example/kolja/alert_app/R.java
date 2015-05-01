@@ -1510,6 +1510,8 @@ containing a value of this type.
         public static final int abc_textfield_search_material=0x7f02003a;
     }
     public static final class id {
+        public static final int Foto=0x7f090050;
+        public static final int KoljaText=0x7f09004f;
         public static final int action_bar=0x7f090040;
         public static final int action_bar_activity_content=0x7f090000;
         public static final int action_bar_container=0x7f09003f;
@@ -1523,7 +1525,7 @@ containing a value of this type.
         public static final int action_mode_bar=0x7f09003d;
         public static final int action_mode_bar_stub=0x7f09003c;
         public static final int action_mode_close_button=0x7f090025;
-        public static final int action_settings=0x7f09004f;
+        public static final int action_settings=0x7f090051;
         public static final int activity_chooser_view_content=0x7f090026;
         public static final int alertTitle=0x7f090030;
         public static final int always=0x7f090016;
