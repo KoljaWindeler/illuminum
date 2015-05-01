@@ -52,3 +52,4 @@ class sql:
 				result = cursor.fetchall()
 		except:
 			result = -1
+		return result
