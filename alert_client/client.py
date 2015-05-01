@@ -8,11 +8,12 @@ MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
 SERVER_PORT = 9875
 mid=str(uuid.getnode())
+SERVER_TIMEOUT = 5
 
 # login
 l=login()
 pw=l.pw
-
+msg_out_ts=0
 logged_in=0
 file_uploading=""
 msg_q=[]
@@ -194,6 +195,7 @@ while 1:
 				break;
 			
 			comm_wait=0
+			msg_out_ts=0
 			data_dec=recv_buffer+data_dec
 			data_array=data_dec.split('}')
 		
@@ -238,7 +240,7 @@ while 1:
 						hb_out=0
 						print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
 					elif(enc.get("cmd")=="set_detection"):
-						print("setting detection to "+str(enc.get("state")))
+						print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("state")))
 						trigger.set_detection(enc.get("state"))
 					elif(enc.get("cmd")=="wf"):
 						ignore=1
@@ -329,6 +331,7 @@ while 1:
 				if(json.loads(send_msg).get("ack",0)==-1):
 					#print("waiting on response")
 					comm_wait=1
+					msg_out_ts=time.time()
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("eof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
@@ -342,7 +345,10 @@ while 1:
 							os._exit(1)
 
 
-		#else:
+		elif(comm_wait==1 and logged_in==1):
+			if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
+				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
+				comm_wait=0
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")		
 		
