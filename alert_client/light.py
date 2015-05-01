@@ -4,6 +4,8 @@ import time
 import RPi.GPIO as GPIO
 from neopixel import *
 
+LED_DEBUG=0
+
 class led: 
 	def __init__(self):
 		self.s_r = 0		# start red
@@ -68,6 +70,8 @@ def start_light():
 				else:
 					ratio=1
 				if(ratio<1):
+					if(LED_DEBUG):
+						print(".", end="")
 					l.c_r=int(l.s_r-ratio*differ_r)
 					l.c_g=int(l.s_g-ratio*differ_g)
 					l.c_b=int(l.s_b-ratio*differ_b)
@@ -77,7 +81,8 @@ def start_light():
 					l.c_g=int(l.t_g)
 					l.c_b=int(l.t_b)
 					l.state=0 #done
-					#print("LED stop at "+str(time.time())+" "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b))
+					if(LED_DEBUG):
+						print("LED stop at "+str(time.time())+" "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b))
 	
 				
 				l.c_r=max(min(255,l.c_r),0)
@@ -91,8 +96,9 @@ def start_light():
 				time.sleep(0.8*l.ms_step/1000)
 
 		else:
-			time.sleep(0.2)
-					
+			time.sleep(0.01)
+
+
 
 #******************************************************#
 def return_to_old(ms):
@@ -129,6 +135,7 @@ def dimm_to(r,g,b,ms):
 		l.s_r = l.c_r
 		l.s_g = l.c_g
 		l.s_b = l.c_b
-	#	print("start at "+str(time.time()))
+		if(LED_DEBUG):
+			print("start at "+str(time.time())+" to "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b)+" -> "+str(l.t_r)+"/"+str(l.t_g)+"/"+str(l.t_b)+" within "+str(ms))
 	#else:
 	#	print("no reason")
