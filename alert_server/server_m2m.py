@@ -60,7 +60,7 @@ def recv_data (client, length):
 		return -1;
 	#print("[S_m2m] -> Incoming")
 	if(len(data)==0):
-		print("[S_m2m] -> len=0 ==> disconnect")
+		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client disconnected!")
 		return -1
 	
 	data_dec=data.decode("UTF-8")
