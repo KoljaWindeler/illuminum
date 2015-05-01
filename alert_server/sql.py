@@ -18,9 +18,9 @@ class sql:
 			try:
 				with self.connection.cursor() as cursor:
 					# Read a single record
-					sql = "SELECT  `pw`, `area`, `account` FROM `m2m` WHERE `mid`=%s"
+					req = "SELECT  `pw`, `area`, `account` FROM `m2m` WHERE `mid`=%s"
 					#print(sql)
-					cursor.execute(sql, (str(mid)))
+					cursor.execute(req, (str(mid)))
 					result = cursor.fetchone()
 			except:
 				result = -1
@@ -30,8 +30,8 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				sql = "UPDATE  `m2m` SET  `last_seen` =  %s, `last_ip` = %s WHERE  `m2m`.`mid` =%s"
-				cursor.execute(sql, (str(time.time()), str(ip),str(mid)))
+				req = "UPDATE  `m2m` SET  `last_seen` =  %s, `last_ip` = %s WHERE  `m2m`.`mid` =%s"
+				cursor.execute(req, (str(time.time()), str(ip),str(mid)))
 			
 			self.connection.commit()
 			result=0
@@ -41,3 +41,14 @@ class sql:
 
 	def close(self):
 		self.connection.close()
+
+
+	def get_m2m4account(self,account):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip` FROM  `m2m` WHERE  `account` =  %s"
+				cursor.execute(req, (str(account)))
+				result = cursor.fetchall()
+		except:
+			result = -1
