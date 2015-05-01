@@ -38,9 +38,21 @@ def trigger_handle(event,data):
 		
 		# light dimming stuff
 		if(data==3): # deactive and motion
-			light_dimming_q.append((0,255,125,5,4000)) # 4 sec to dimm to warm orange - now
-		elif(data==4): # deactive and no motiona
+			light_dimming_q.append((time.time()    ,100,0,0,500)) # 4 sec to dimm to warm orange - now
+			light_dimming_q.append((time.time()+0.6,0,0,0,100)) # 4 sec to dimm to warm orange - now
+			light_dimming_q.append((time.time()+0.8,0,0,100,500)) # 4 sec to dimm to warm orange - now
+			light_dimming_q.append((time.time()+1.4,0,0,0,100)) # 4 sec to dimm to warm orange - now
+
+			light_dimming_q.append((time.time()+1.4,100,0,0,500)) # 4 sec to dimm to warm orange - now
+			light_dimming_q.append((time.time()+2.2,0,0,0,100)) # 4 sec to dimm to warm orange - now
+
+			light_dimming_q.append((time.time()+2.4,0,0,100,500)) # 4 sec to dimm to warm orange - now
+			light_dimming_q.append((time.time()+2.9,0,0,0,100)) # 4 sec to dimm to warm orange - now
+
+			light_dimming_q.append((time.time()+3.8,100,70,2,4000)) # 4 sec to dimm to warm orange - now
+		elif(data==2): # deactive and no motiona
 			light_dimming_q.append((time.time()+10*60,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
+			#light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 	elif(event=="uploading_str"):
 		file_str_q.append(data)
 
@@ -178,10 +190,14 @@ while 1:
 	
 		## do some light dimming
 		if(len(light_dimming_q) > 0):
-			if(light_dimming_q[0][0]<=time.time()):
-				light_action=light_dimming_q[0]
-				light_dimming_q.remove(light_action)
-				light.dimm_to(light_action[1],light_action[2],light_action[3],light_action[4])
+			for data in light_dimming_q:
+				if(data[0]<=time.time()):
+					light_action=data
+					light_dimming_q.remove(data)
+					if(light_action[1]==-1 and light_action[2]==-1 and light_action[3]==-1):
+						light.return_to_old(light_action[4])
+					else:
+						light.dimm_to(light_action[1],light_action[2],light_action[3],light_action[4])
 				
 		## react on msg in
 		if(len(ready_to_read) > 0):
@@ -247,6 +263,12 @@ while 1:
 					elif(enc.get("cmd")=="set_interval"):
 						print("setting interval to "+str(int(enc.get("interval",0))))
 						trigger.set_interval(int(enc.get("interval",0)))
+						if(enc.get("interval",0)>0):
+							light_dimming_q.append((time.time(),0,100,0,1000)) # 4 sec to dimm to off - in 10 min from now
+						else:
+							light_dimming_q.append((time.time(),-1,-1,-1,1000)) # 4 sec to dimm to off - in 10 min from now
+
+
 					else:
 						print("unsopported command:"+enc.get("cmd"))
 				#end of "if"
