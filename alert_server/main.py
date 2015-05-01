@@ -70,7 +70,6 @@ def recv_m2m_con_handle(data,cli):
 					msg["account"]=cli.account
 					msg_q_ws.append((msg,ws))
 		try:
-			# should be done by the server .. we'll try anyway
 			server_m2m.clients.remove(cli)
 		except:
 			ignore=1
@@ -542,18 +541,18 @@ def connect_ws_m2m(m2m,ws):
 	#else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# TODO: how will the user get informed about boxes which are not online? List of db?
 		# 1. get all boxed with the same account
-		#all_m2m4account=db.get_m2m(ws.account)
+		all_m2m4account=db.get_m2m4account(ws.account) ##  "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip` FROM  `m2m` WHERE  `account` =  %s
 		# 2. loop through them and make sure that they are not part of the list, that the ws already knows
-		# for m2m in all_m2m4account:
-		# 	if(not(m2m in ws.v2m)):
-		# 		msg_ws2={}
-		# 		msg_ws2["cmd"]="m2v_login"
-		# 		msg_ws2["mid"]=m2m.mid
-		# 		msg_ws2["area"]=m2m.area
-		# 		msg_ws2["state"]=m2m.state
-		# 		msg_ws2["last_seen"]=m2m.last_comm
+		for m2m in all_m2m4account:
+			if(not(m2m in ws.v2m)):
+				msg_ws2={}
+				msg_ws2["cmd"]="m2v_login"
+				msg_ws2["mid"]=m2m["mid"]
+				msg_ws2["area"]=m2m["area"]
+				msg_ws2["state"]=-1
+				msg_ws2["last_seen"]=m2m["last_seen"]
 		# 3. send data to the websocket
-		#		msg_q_ws.append((msg_ws2,ws))
+				msg_q_ws.append((msg_ws2,ws))
 #******************************************************#
 
 #******************************************************#
