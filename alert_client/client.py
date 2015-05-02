@@ -38,15 +38,16 @@ def trigger_handle(event,data):
 		
 		# light dimming stuff
 		if(data==3): # deactive and motion
-			light_dimming_q.append((time.time()+0.0,100,0,0,500)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+0.5,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+0.7,0,0,100,500)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+1.2,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+1.3,100,0,0,500)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+1.9,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+2.1,0,0,100,500)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+2.6,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			light_dimming_q.append((time.time()+2.8,100,70,2,4000)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+0.0,100,0,0,500)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+0.5,0,0,0,200)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+0.7,0,0,100,500)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+1.2,0,0,0,200)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+1.3,100,0,0,500)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+1.9,0,0,0,200)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+2.1,0,0,100,500)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+2.6,0,0,0,200)) # 4 sec to dimm to warm orange - now
+			#light_dimming_q.append((time.time()+2.8,100,70,2,4000)) # 4 sec to dimm to warm orange - now
+			light_dimming_q.append((time.time(),100,70,2,4000)) # 4 sec to dimm to warm orange - now
 		elif(data==2): # deactive and no motion
 			light_dimming_q.append((time.time()+10*60,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			#light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
