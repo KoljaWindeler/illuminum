@@ -171,8 +171,10 @@ while 1:
 		#************* receiving start ******************#		
 		try:
 			ready_to_read, ready_to_write, in_error = select.select([client_socket,sys.stdin], [client_socket,], [], 5)
+			#print(str(len(ready_to_read))+"/"+str(len(ready_to_write))+"/"+str(len(in_error)))
 		except:
 			print("select detected a broken connection")
+			client_socket=""
 			break
 	
 		# test
@@ -185,6 +187,8 @@ while 1:
 			if(input[:1]=="q"):
 				print("Quit")
 				os._exit(1)
+			else:
+				print("what do you mean by: "+input)
 	
 		## do some light dimming
 		if(len(light_dimming_q) > 0):
@@ -202,6 +206,10 @@ while 1:
 			#print("one process is ready")
 			try:
 				data = client_socket.recv(MAX_MSG_SIZE)
+				if(len(data)==0):
+					print("disconnect")
+					client_socket=""
+					break;
 				data_dec = data.decode("UTF-8")
 				#print("Data received:"+str(data))
 			except:
