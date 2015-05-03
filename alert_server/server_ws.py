@@ -11,7 +11,10 @@ MAX_CLIENTS=5
 #******************************************************#
 def recv_data (client, length):
 	#print("Wait on data")
-	data = bytearray(client.conn.recv(MAX_SIZE_RECV))
+	try:
+		data = bytearray(client.conn.recv(MAX_SIZE_RECV))
+	except:
+		data=""
 	#print("[ws] -> Incoming")
 	if(len(data)==0):
 		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
