@@ -22,6 +22,7 @@ class m2m_clients:
 		self.state=-1				# state of the cam, 0=idle, 1=alert, 2=detection disabled, idle, 3=detection disabled, movement
 		self.challange=""			# challange for the login
 		self.alert=alert_event()	# event structure
+		self.alias = ""				# it might be easiser to give each device a nickname
 
 # dies ist der WEBSOCKET client
 class ws_clients:
@@ -36,6 +37,7 @@ class ws_clients:
 		self.v2m=[]				# list of all active subscribers. those will get a message for e.g. alert->sharp
 		self.login=" "				# the login that has been used to connect to the DB
 		self.accunt=" "				# the account the login belongs to .. something like JKW even if there are two logins (kolja,caro) to the account. multiple login for one account
+		self.snd_q_len=0			# messages in queue for this ws
 
 
 class webcam_viewer:

@@ -195,7 +195,9 @@ def recv_m2m_msg_handle(data,cli):
 					if(cli.state==1): # alert -> inform everyone
 						# the m2v list has all viewer
 						for v in cli.m2v:
-							msg_q_ws.append((msg,v))
+							if(v.ws.snd_q_len<10):
+								msg_q_ws.append((msg,v))
+								v.ws.snd_q_len+=1
 					else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
 						for v in cli.webcam:
 							#only update if last ts war more then interval ago
@@ -203,11 +205,12 @@ def recv_m2m_msg_handle(data,cli):
 							ts_photo=enc.get("td",0)
 							ts_photo=ts_photo[1][0]
 							t_passed=ts_photo-v.ts+0.1
-							if(t_passed>=v.interval): #todo .. only if queue is not too full
+							if(t_passed>=v.interval and v.ws.snd_q_len<10): #todo .. only if queue is not too full
 								v.ts=ts_photo
+								v.ws.snd_q_len+=1
 								msg_q_ws.append((msg,v.ws))
 							else:
-								print("skipping "+str(v.ws.login)+": "+str(t_passed))
+								print("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len))
 
 					des_location=cli.fp.name
 					tmp_loc=des_location.split('/')
@@ -254,38 +257,46 @@ def recv_m2m_msg_handle(data,cli):
 
 			# data base has to give us this values based on enc.get("mid")
 			db_r=db.get_data(enc.get("mid"))
-			if(db_r==-1 or db_r==''):
-				print("db error")
+			#print("Ergebniss der datenbank:")
+			#print(db_r)
 
-			h = hashlib.new('ripemd160')
-			h.update(str(db_r["pw"]+cli.challange).encode("UTF-8"))
-			#print("total to code="+(str(db["pw"]+cli.challange)))
-			#print("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
-
-			# check parameter
-			if(h.hexdigest()==enc.get("client_pw")):
-				cli.logged_in=1
-				cli.mid=enc.get("mid")
-				cli.alert=alert_event()
-				msg["ok"]=1 # logged in
-				# get area and account based on database value for this mid
-				cli.account=db_r["account"]
-				cli.area=db_r["area"]
-				# search for all (active and logged-in) viewers for this client (same account)
-				info_viewer=0
-				#print("my m2m account is "+cli.account)
-				for viewer in server_ws.clients:
-					#print("this client has account "+viewer.account)
-					if(viewer.account==cli.account):
-						# introduce them to each other
-						connect_ws_m2m(cli,viewer)
-						info_viewer+=1
-						# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
-				db.update_last_seen(cli.mid,cli.conn.getpeername()[0])
+			if(db_r==-1): #user not found
+				#print("db error")
+				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("mid"))+"' not found in DB, log-in: failed")
+				msg["ok"]=-3 # not logged in
 			else:
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' log-in: failed")
-				msg["ok"]=-2 # not logged in
+				h = hashlib.new('ripemd160')
+				h.update(str(db_r["pw"]+cli.challange).encode("UTF-8"))
+				#print("total to code="+(str(db["pw"]+cli.challange)))
+				#print("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
+
+				# check parameter
+				if(h.hexdigest()==enc.get("client_pw")):
+					cli.logged_in=1
+					cli.mid=enc.get("mid")
+					cli.state=enc.get("state")
+					cli.alert=alert_event()
+					msg["ok"]=1 # logged in
+					# get area and account based on database value for this mid
+					cli.account=db_r["account"]
+					cli.area=db_r["area"]
+					cli.alias=db_r["alias"]
+					# search for all (active and logged-in) viewers for this client (same account)
+					info_viewer=0
+					#print("my m2m account is "+cli.account)
+					for viewer in server_ws.clients:
+						#print("this client has account "+viewer.account)
+						if(viewer.account==cli.account):
+							# introduce them to each other
+							connect_ws_m2m(cli,viewer)
+							info_viewer+=1
+							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
+					db.update_last_seen(cli.mid,cli.conn.getpeername()[0])
+				else:
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' log-in: failed")
+					msg["ok"]=-2 # not logged in
+			# send message in any case
 			msg_q_m2m.append((msg,cli))
 
 
@@ -507,6 +518,7 @@ def snd_ws_msg_dq_handle():
 		cli=data[1]
 		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
 		msg_q_ws.remove(data)
+		cli.snd_q_len=max(0,cli.snd_q_len-1)
 		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
 			recv_ws_con_handle("disconnect",cli)
 	return ret
@@ -538,29 +550,33 @@ def connect_ws_m2m(m2m,ws):
 		msg_ws2["area"]=m2m.area
 		msg_ws2["state"]=m2m.state
 		msg_ws2["account"]=m2m.account
+		msg_ws2["alias"]=m2m.alias
 		msg_ws2["last_seen"]=m2m.last_comm
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# TODO: how will the user get informed about boxes which are not online? List of db?
 		# 1. get all boxed with the same account
-		all_m2m4account=db.get_m2m4account(ws.account) ##  "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip` FROM  `m2m` WHERE  `account` =  %s
-		# 2. loop through them and make sure that they are not part of the list, that the ws already knows
-		for m2m in all_m2m4account:
-			found=0
-			for am2m in ws.v2m:
-				if(m2m["mid"]==am2m.mid):
-					found=1
-					break
-			if(not(found)):
-				msg_ws2={}
-				msg_ws2["cmd"]="m2v_login"
-				msg_ws2["mid"]=m2m["mid"]
-				msg_ws2["area"]=m2m["area"]
-				msg_ws2["state"]=-1
-				msg_ws2["account"]=ws.account
-				msg_ws2["last_seen"]=m2m["last_seen"]
-		# 3. send data to the websocket
-				msg_q_ws.append((msg_ws2,ws))
+		all_m2m4account=db.get_m2m4account(ws.account)
+		if(all_m2m4account==-1):
+			print("Error getting data for account "+ws.account)
+		else:
+			# 2. loop through them and make sure that they are not part of the list, that the ws already knows
+			for m2m in all_m2m4account:
+				found=0
+				for am2m in ws.v2m:
+					if(m2m["mid"]==am2m.mid):
+						found=1
+						break
+				if(not(found)):
+					msg_ws2={}
+					msg_ws2["cmd"]="m2v_login"
+					msg_ws2["mid"]=m2m["mid"]
+					msg_ws2["area"]=m2m["area"]
+					msg_ws2["state"]=-1
+					msg_ws2["account"]=ws.account
+					msg_ws2["last_seen"]=m2m["last_seen"]
+			# 3. send data to the websocket
+					msg_q_ws.append((msg_ws2,ws))
 #******************************************************#
 
 #******************************************************#
