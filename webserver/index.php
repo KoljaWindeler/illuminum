@@ -23,8 +23,10 @@ if(!empty($output[0])){	// python serer is running add everything
 
 				if(msg_dec["cmd"]=="m2v_login"){
 					if(document.getElementById("clients")!=undefined){
+					    console.log("suche nach gruppe "+msg_dec["account"]+"_"+msg_dec["area"]);
 						var area=document.getElementById(msg_dec["account"]+"_"+msg_dec["area"]);
 						if(area==undefined){
+						    console.log("nicht gefunden, lege sie an");
 							var node=document.createElement("P");
 							node.appendChild(document.createTextNode("Area:"+msg_dec["account"]+"_"+msg_dec["area"]+""));
 							node.setAttribute("id",msg_dec["account"]+"_"+msg_dec["area"]);
@@ -59,8 +61,9 @@ if(!empty($output[0])){	// python serer is running add everything
 
 						var node=document.getElementById(msg_dec["mid"]);
 						if(node==undefined){
+						    console.log("knoten! nicht gefunden, lege ihn an");
 							node=document.createElement("P");
-							node.appendChild(document.createTextNode("client:"+msg_dec["mid"]));
+							node.appendChild(document.createTextNode("client:"+msg_dec["alias"]+" / "+msg_dec["mid"]));
 							node.setAttribute("id",msg_dec["mid"]);
 							
 
