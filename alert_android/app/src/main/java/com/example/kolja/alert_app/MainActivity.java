@@ -9,6 +9,7 @@ import android.app.Fragment;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,6 +19,15 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.media.Image;
+import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+import android.widget.Toast;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -58,31 +68,146 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.app.ListActivity;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Toast;
 
 
 public class MainActivity extends Activity implements android.view.View.OnClickListener {
-    private WebSocketClient mWebSocketClient;
+
     Vector<ListContainer> res_data = new Vector<ListContainer>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        connectWebSocket();
+
+        Intent intent = new Intent(this, bg_service.class);
+        startService(intent);
     }
 
     @Override
     public void onClick(View arg0) {
         Intent intent;
-        //switch (arg0.getId()) {
-        //    case R.id.scenario_create:
-        //        break;
-        //};
+    };
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(receiver, new IntentFilter(bg_service.NOTIFICATION));
+    }
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(receiver);
+    }
+
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Bundle bundle = intent.getExtras();
+            if (bundle != null) {
+                String data = bundle.getString(bg_service.JSON);
+                String cmd;
+                //int resultCode = bundle.getInt(DownloadService.RESULT);
+                TextView textView = (TextView)findViewById(R.id.log);
+                //textView.setText(textView.getText() + "\n" + data);
+
+                try {
+                    String log = bundle.getString(bg_service.LOG);
+                    if(log.equals("log")) {
+                        textView.setText(String.valueOf(bundle.getFloat(bg_service.JSON)) + "\n" + textView.getText());
+                    }
+                }
+                catch(Exception e){
+                    int ignore=1;
+                }
+
+                JSONObject object = new JSONObject();
+
+                try {
+                    object = new JSONObject(data);
+                    cmd=object.getString("cmd");
+                } catch (Exception e) {
+                    cmd="";
+                }
+
+                if(cmd.equals("rf")){
+                    try {
+                        Long tsLong = System.currentTimeMillis();
+
+
+                        String encodedImage=object.getString("img");
+                        Log.i("websocket","got str from obj");
+                        byte[] decodedString = Base64.decode(encodedImage, Base64.NO_OPTIONS);
+                        Log.i("websocket","decoded");
+                        Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                        Log.i("websocket","loaded bitmap");
+
+                        int id=-1;
+                        for(int i=0;i<res_data.size();i++){
+                            if(res_data.elementAt(i).name.equals(object.getString("mid"))){
+                                id=i;
+                            }
+                        }
+                        if(id>-1) {
+                            ListView WebcamView = (ListView) findViewById(R.id.listScroller);
+                            View v = WebcamView.getChildAt(id);
+                            ((ImageView) v.findViewById(R.id.webcam)).setImageBitmap(decodedByte);
+                        }
+
+                        //((ImageView)findViewById(R.id.Foto)).setImageBitmap(decodedByte);
+                        Log.i("websocket","bitmap set");
+
+                        Long tsLong2 = System.currentTimeMillis()-tsLong;
+                        String ts = tsLong2.toString();
+                        //textView.setText(textView.getText() + "\n" + ts);
+
+                    }	catch (Exception e) {
+                        int ignore=0;
+                    }
+                }
+
+                else if(cmd.equals("m2v_login")){
+                    try {
+                        // add an object that will hold the ID "mid", "area","state","account"
+                        String mid=object.getString("mid");
+                        String area=object.getString("area");
+                        int state=object.getInt("state");
+                        String account=object.getString("account");
+
+                        prepare_adapter(mid);
+
+                        // quick and dirty: add us to the list of webcams as soon as they sign up:
+//                        JSONObject object_send = new JSONObject();
+//                        object_send.put("cmd", "set_interval");
+//                        object_send.put("mid", mid);
+//                        object_send.put("interval", 1);
+//
+//                        Intent send_intent = new Intent(bg_service.SENDER);
+//                        send_intent.putExtra(bg_service.JSON, object_send.toString());
+//                        sendBroadcast(send_intent);
+
+                    }	catch (Exception e) {
+                        int ignore=0;
+                    }
+                }
+
+            }
+        }
     };
 
     private void prepare_adapter(String mid){
-        ListView lichter_listView = (ListView)findViewById(R.id.listScroller);
-        if(lichter_listView!=null){
+        ListView liste = (ListView)findViewById(R.id.listScroller);
+        if(liste!=null){
             res_data.add(new ListContainer(mid,0,true,0));
 
             // darstellen
@@ -93,7 +218,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
             }
 
             ListAdapter adapter = new ListAdapter(this,R.layout.listentry,temp_array);
-            lichter_listView.setAdapter(adapter);
+            liste.setAdapter(adapter);
         }
     }
 
@@ -121,122 +246,5 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
     }
 
 
-    private void connectWebSocket() {
-        URI uri;
-        try {
-            uri = new URI("ws://192.168.1.80:9876");
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-            return;
-        }
 
-        mWebSocketClient = new WebSocketClient(uri) {
-            @Override
-            public void onOpen(ServerHandshake serverHandshake) {
-                Log.i("Websocket", "Opened");
-                JSONObject object = new JSONObject();
-                try {
-                    object.put("cmd", "login");
-                    object.put("login", "kolja_android");
-                    object.put("pw", "pw");
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                Log.i("websocket",object.toString());
-                //console.log(JSON.stringify(cmd_data));
-                mWebSocketClient.send(object.toString());
-
-            }
-
-            @Override
-            public void onMessage(String s) {
-                final String message = s;
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        //TextView textView = (TextView)findViewById(R.id.log);
-                        //textView.setText(textView.getText() + "\n" + message);
-                        String cmd;
-                        JSONObject object = new JSONObject();
-
-                        try {
-                            object = new JSONObject(message);
-                            cmd=object.getString("cmd");
-                        } catch (Exception e) {
-                            cmd="";
-                        }
-
-                        if(cmd.equals("rf")){
-                            try {
-                                Long tsLong = System.currentTimeMillis();
-
-
-                                String encodedImage=object.getString("img");
-                                Log.i("websocket","got str from obj");
-                                byte[] decodedString = Base64.decode(encodedImage, Base64.NO_OPTIONS);
-                                Log.i("websocket","decoded");
-                                Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                                Log.i("websocket","loaded bitmap");
-
-                                int id=-1;
-                                for(int i=0;i<res_data.size();i++){
-                                    if(res_data.elementAt(i).name.equals(object.getString("mid"))){
-                                        id=i;
-                                    }
-                                }
-                                if(id>-1) {
-                                    ListView WebcamView = (ListView) findViewById(R.id.listScroller);
-                                    View v = WebcamView.getChildAt(id);
-                                    ((ImageView) v.findViewById(R.id.webcam)).setImageBitmap(decodedByte);
-                                }
-
-                                //((ImageView)findViewById(R.id.Foto)).setImageBitmap(decodedByte);
-                                Log.i("websocket","bitmap set");
-
-                                Long tsLong2 = System.currentTimeMillis()-tsLong;
-                                String ts = tsLong2.toString();
-                                //textView.setText(textView.getText() + "\n" + ts);
-
-                            }	catch (Exception e) {
-                                int ignore=0;
-                            }
-                        }
-
-                        else if(cmd.equals("m2v_login")){
-                            try {
-                                // add an object that will hold the ID "mid", "area","state","account"
-                                String mid=object.getString("mid");
-                                String area=object.getString("area");
-                                int state=object.getInt("state");
-                                String account=object.getString("account");
-
-                                prepare_adapter(mid);
-
-                                // quick and dirty: add us to the list of webcams as soon as they sign up:
-                                JSONObject object_send = new JSONObject();
-                                object_send.put("cmd", "set_interval");
-                                object_send.put("mid", mid);
-                                object_send.put("interval", 1);
-                                mWebSocketClient.send(object_send.toString());
-                            }	catch (Exception e) {
-                                int ignore=0;
-                            }
-                        }
-
-                    }
-                });
-            }
-
-            @Override
-            public void onClose(int i, String s, boolean b) {
-                Log.i("Websocket", "Closed " + s);
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.i("Websocket", "Error " + e.getMessage());
-            }
-        };
-        mWebSocketClient.connect();
-    }
 }

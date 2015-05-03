@@ -7,17 +7,17 @@
     <TextView
         android:id="@+id/log"
         android:layout_width="fill_parent"
-        android:layout_height="185dp"
+        android:layout_height="wrap_content"
         android:layout_weight="0.375"
         android:gravity="right"
         android:text=""
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="#FFFFFFFF" />
+        android:textColor="#22222222" />
 
     <ListView
         android:id="@+id/listScroller"
         android:layout_width="match_parent"
-        android:layout_height="500dp"
+        android:layout_height="300dp"
         android:cacheColorHint="#00000000" >
     </ListView>
 
