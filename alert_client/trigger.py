@@ -187,7 +187,7 @@ def start_trigger():
 					else:
 						# saving to stream
 						b = io.BytesIO() 
-						img.save(b, 'jpeg')
+						img.save(b, 'jpeg',	quality=80)
 						img_bytes = b.getvalue()
 
 					# timinig
@@ -220,11 +220,11 @@ def set_detection(state):
 def set_interval(interval):
 	global webcam_interval
 	webcam_interval=interval
-	if(interval>0):
-		change_res((1280,720))
+	#if(interval>0):
+	#	change_res((1280,720))
 		#change_res((640,480))
-	else:
-		change_res((1280,720))
+	#else:
+	#	change_res((1280,720))
 	
 def change_res(res):
 	global change_res_event
