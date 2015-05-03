@@ -1,5 +1,5 @@
 import time,json,os,base64,hashlib,string,random
-from clients import alert_event,webcam_viewer,m2m_state
+from clients import alert_event,webcam_viewer,m2m_state,det_state
 import server_m2m
 import server_ws
 import send_mail
@@ -32,8 +32,8 @@ from sql import *
 #******************************************************#
 # recv_m2m_con_q_handle will be called by the server structure and shall just append
 # the message to the queue
-def recv_m2m_con_q_handle(data,cli):
-	recv_m2m_con_q.append((data,cli))
+def recv_m2m_con_q_handle(data,m2m):
+	recv_m2m_con_q.append((data,m2m))
 #******************************************************#
 
 #******************************************************#
@@ -52,30 +52,30 @@ def recv_m2m_con_dq_handle():
 #******************************************************#
 # recv_m2m_con_handle will be called by the dequeue handle above.
 # it shall handle disconnect situations to avoid that we are talking to dead sockets
-def recv_m2m_con_handle(data,cli):
+def recv_m2m_con_handle(data,m2m):
 	# this function is is used to be callen if a m2m disconnects, we have to update all ws clients
 	#print("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
-		print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' disconneted")
+		print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' disconneted")
 		# try to find that m2m in all ws clients lists, so go through all clients and their lists
 		for ws in server_ws.clients:
 			for viewer in ws.v2m:
-				if(viewer==cli):
-					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+ws.login+"' from "+cli.mid)
+				if(viewer==m2m):
+					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+ws.login+"' from "+m2m.mid)
 					ws.v2m.remove(viewer)
 					msg={}
 					msg["cmd"]="disconnect"
-					msg["mid"]=cli.mid
-					msg["area"]=cli.area
-					msg["account"]=cli.account
+					msg["mid"]=m2m.mid
+					msg["area"]=m2m.area
+					msg["account"]=m2m.account
 					msg_q_ws.append((msg,ws))
 		try:
-			server_m2m.clients.remove(cli)
+			server_m2m.clients.remove(m2m)
 		except:
 			ignore=1
 		# update database
 		# TODO database shall set state to "disconnected" and last seen to time.time()
-		#sql.m2m_disconnect(cli.mid)
+		#sql.m2m_disconnect(m2m.mid)
 #******************************************************#
 ################## M2M CONNECTION #########################
 
@@ -83,8 +83,8 @@ def recv_m2m_con_handle(data,cli):
 #******************************************************#
 # recv_m2m_msg_q_handle will be called by the server structure shall just append
 # the message to the queue
-def recv_m2m_msg_q_handle(data,cli):
-	recv_m2m_msg_q.append((data,cli))
+def recv_m2m_msg_q_handle(data,m2m):
+	recv_m2m_msg_q.append((data,m2m))
 #******************************************************#
 
 #******************************************************#
@@ -103,7 +103,7 @@ def recv_m2m_msg_dq_handle():
 #******************************************************#
 # this function, called by the dequeue above will handles all
 # incoming messages and generate responses, which will be stored in the msg_q_m2m
-def recv_m2m_msg_handle(data,cli):
+def recv_m2m_msg_handle(data,m2m):
 	global msg_q_m2m, msg_q_ws
 	# decode msg from string to dicc
 	try:
@@ -112,7 +112,7 @@ def recv_m2m_msg_handle(data,cli):
 		enc=""
 		print("-d--> json decoding failed on:" + data)
 
-	#print("cli:"+str(cli.port)+"/"+str(cli.ip))
+	#print("m2m:"+str(m2m.port)+"/"+str(m2m.ip))
 	if(type(enc) is dict):
 		# if the message would like to be debugged
 		if(enc.get("debug",0)==1):
@@ -120,7 +120,7 @@ def recv_m2m_msg_handle(data,cli):
 				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
 
 		# set last_comm token
-		cli.last_comm=time.time()
+		m2m.last_comm=time.time()
 
 		#********* msg handling **************#
 		# assuming that we could decode the message from json to dicc: we have to distingush between the commands:
@@ -134,72 +134,72 @@ def recv_m2m_msg_handle(data,cli):
 		#### heartbeat
 		elif(enc.get("cmd")=="hb"):
 			# respond
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' HB updating "+str(len(cli.m2v))+" clients")
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' HB updating "+str(len(m2m.m2v))+" clients")
 			msg={}
-			msg["mid"]=cli.mid
+			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
-			msg_q_m2m.append((msg,cli))
+			msg_q_m2m.append((msg,m2m))
 
 			# tell subscribers
 			msg={}
-			msg["mid"]=cli.mid
+			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
 			msg["ts"]=time.time()
-			for subscriber in cli.m2v:
+			for subscriber in m2m.m2v:
 				#print("Tell that to "+subscriber.login)
 				msg_q_ws.append((msg,subscriber))
 
 		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file
 		elif(enc.get("cmd")=="wf"):
-			if(cli.logged_in==1):
-				if(cli.openfile!=enc.get("fn")):
+			if(m2m.logged_in==1):
+				if(m2m.openfile!=enc.get("fn")):
 					try:
-						cli.fp.close()
+						m2m.fp.close()
 					except:
-						cli.fp=""
-					cli.openfile = enc.get("fn")
-					des_location="../webserver/upload/"+str(int(time.time()))+"_"+cli.mid+"_"+cli.openfile
-					cli.fp = open(des_location,'wb')
+						m2m.fp=""
+					m2m.openfile = enc.get("fn")
+					des_location="../webserver/upload/"+str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
+					m2m.fp = open(des_location,'wb')
 
 					# this is the start of a transmission
 					# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
-					# we'll put every alert file filename in the cli.alert_img list  and check in the loop if that list
+					# we'll put every alert file filename in the m2m.alert_img list  and check in the loop if that list
 					# has reached 5 pics, or hasn't been updated for > 20 sec.
 					# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
-					# the given address. after that we set the cli.alert_mail_send to 1 state change to low should clear that
-					if(cli.state==1): # ALERT
-						if(cli.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
-							cli.alert.files.append(des_location)
-							cli.alert.last_upload = time.time()
+					# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
+					if(m2m.state==1): # ALERT
+						if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
+							m2m.alert.files.append(des_location)
+							m2m.alert.last_upload = time.time()
 					#tmp_loc=des_location.split('/')
-					#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
-					cli.paket_count_per_file=0
-				cli.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
+					#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
+					m2m.paket_count_per_file=0
+				m2m.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
 				if(enc.get("eof")==1):
 					# inform all clients
 					msg={}
-					msg["mid"]=cli.mid
+					msg["mid"]=m2m.mid
 					msg["cmd"]="rf"
-					msg["state"]=cli.state
+					msg["state"]=m2m.state
 					# all image data
 					if(enc.get("sof",0)==1):
 						#send img, assuming this is a at once img
 						msg["img"]=enc.get("data")
 					else:
 						#send path if it was hacked ... not wise TODO: read img and send at once
-						tmp=cli.fp.name.split('/')
+						tmp=m2m.fp.name.split('/')
 						msg["path"]='upload/'+tmp[len(tmp)-1]
 
 					# select the ws to send to
-					if(cli.state==1): # alert -> inform everyone
+					if(m2m.state==1): # alert -> inform everyone
 						# the m2v list has all viewer
-						for v in cli.m2v:
-							if(v.ws.snd_q_len<10):
+						for v in m2m.m2v:
+							if(v.snd_q_len<10):
 								msg_q_ws.append((msg,v))
-								v.ws.snd_q_len+=1
+								v.snd_q_len+=1
 					else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
-						for v in cli.webcam:
+						for v in m2m.webcam:
 							#only update if last ts war more then interval ago
 							#try:
 							ts_photo=enc.get("td",0)
@@ -212,25 +212,25 @@ def recv_m2m_msg_handle(data,cli):
 							else:
 								print("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len))
 
-					des_location=cli.fp.name
+					des_location=m2m.fp.name
 					tmp_loc=des_location.split('/')
-					cli.fp.close()
-					cli.openfile=""
-					#print("Received "+str(cli.paket_count_per_file)+" parts for this file")
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1])
+					m2m.fp.close()
+					m2m.openfile=""
+					#print("Received "+str(m2m.paket_count_per_file)+" parts for this file")
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1])
 					# send good ack
 				if(enc.get("ack")==-1):
 					msg={}
 					msg["cmd"]=enc.get("cmd")
 					msg["fn"]=enc.get("fn")
 					msg["ok"]=1
-					msg_q_m2m.append((msg,cli))
+					msg_q_m2m.append((msg,m2m))
 
-				cli.paket_count_per_file+=1
+				m2m.paket_count_per_file+=1
 				#print(str(time.time())+' enqueue')
 				#print("received:"+str(enc.get("msg_id")))
 				#print("sending ok")
-				#server.send_data(cli,json.dumps(msg).encode("UTF-8"))
+				#server.send_data(m2m,json.dumps(msg).encode("UTF-8"))
 			else:
 				if(enc.get("eof")==1):
 					print("[A_m2m "+time.strftime("%H:%M:%S")+"] client tried to upload without beeing logged in")
@@ -238,17 +238,17 @@ def recv_m2m_msg_handle(data,cli):
 					msg={}
 					msg["cmd"]=enc.get("cmd")
 					msg["ok"]=-2 # not logged in
-					msg_q_m2m.append((msg,cli))
+					msg_q_m2m.append((msg,m2m))
 
 
 		#### pre login challange
 		elif(enc.get("cmd")=="prelogin"):
-			cli.challange=get_challange()
+			m2m.challange=get_challange()
 			msg={}
 			msg["cmd"]=enc.get("cmd")
-			msg["challange"]=cli.challange
-			msg_q_m2m.append((msg,cli))
-			#print("received prelogin request, sending challange "+cli.challange)
+			msg["challange"]=m2m.challange
+			msg_q_m2m.append((msg,m2m))
+			#print("received prelogin request, sending challange "+m2m.challange)
 
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="login"):
@@ -266,67 +266,73 @@ def recv_m2m_msg_handle(data,cli):
 				msg["ok"]=-3 # not logged in
 			else:
 				h = hashlib.new('ripemd160')
-				h.update(str(db_r["pw"]+cli.challange).encode("UTF-8"))
-				#print("total to code="+(str(db["pw"]+cli.challange)))
+				h.update(str(db_r["pw"]+m2m.challange).encode("UTF-8"))
+				#print("total to code="+(str(db["pw"]+m2m.challange)))
 				#print("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
 
 				# check parameter
 				if(h.hexdigest()==enc.get("client_pw")):
-					cli.logged_in=1
-					cli.mid=enc.get("mid")
-					cli.state=enc.get("state")
-					cli.alert=alert_event()
+					m2m.logged_in=1
+					m2m.mid=enc.get("mid")
+					m2m.state=enc.get("state")
+					m2m.alert=alert_event()
 					msg["ok"]=1 # logged in
+
 					# get area and account based on database value for this mid
-					cli.account=db_r["account"]
-					cli.area=db_r["area"]
-					cli.alias=db_r["alias"]
+					m2m.account=db_r["account"]
+					m2m.area=db_r["area"]
+					m2m.alias=db_r["alias"]
+
+					# get detecion state based on db
+					db_r2=db.get_state(m2m.area,m2m.account)
+					msg["detection"]=int(db_r2["state"])
+
 					# search for all (active and logged-in) viewers for this client (same account)
 					info_viewer=0
-					#print("my m2m account is "+cli.account)
+					#print("my m2m account is "+m2m.account)
 					for viewer in server_ws.clients:
 						#print("this client has account "+viewer.account)
-						if(viewer.account==cli.account):
+						if(viewer.account==m2m.account):
 							# introduce them to each other
-							connect_ws_m2m(cli,viewer)
+							connect_ws_m2m(m2m,viewer)
 							info_viewer+=1
 							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"'@'"+cli.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
-					db.update_last_seen(cli.mid,cli.conn.getpeername()[0])
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"'@'"+m2m.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
+					db.update_last_seen(m2m.mid,m2m.conn.getpeername()[0])
 				else:
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' log-in: failed")
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' log-in: failed")
 					msg["ok"]=-2 # not logged in
 			# send message in any case
-			msg_q_m2m.append((msg,cli))
+			msg_q_m2m.append((msg,m2m))
 
 
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="state_change"):
-			cli.state=enc.get("state")
+			m2m.state=enc.get("state")
 			# tell subscribers
 			msg={}
-			msg["mid"]=cli.mid
+			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
 			msg["state"]=enc.get("state")
 			informed=0
-			for subscriber in cli.m2v:
+			for subscriber in m2m.m2v:
 				msg_q_ws.append((msg,subscriber))
 				informed+=1
 
 			# prepare notification system, arm or disarm
-			if(cli.state==1): # state=1 means Alert!
-				cli.alert.ts=time.time()
-				cli.alert.files = []
-				cli.alert.notification_send_ts = -1 # indicates that this is a thing to be done
-				cli.alert.last_upload=0
-			elif(cli.state==2 or cli.state==3): #state 2 or 3 means: offline (+idle/+alert)
+			if(m2m.state==1): # state=1 means Alert!
+				m2m.alert.ts=time.time()
+				m2m.alert.files = []
+				m2m.alert.notification_send_ts = -1 # indicates that this is a thing to be done
+				m2m.alert.last_upload=0
+			elif(m2m.state==2 or m2m.state==3): #state 2 or 3 means: offline (+idle/+alert)
 				# assuming that the system was already triggered and right after that the switch off command arrived -> avoid notification
-				# check_alerts will search for cli with notification_send_ts==-1
-				cli.alert.notification_send_ts = 0 # indicate that this is done
+				# check_alerts will search for m2m with notification_send_ts==-1
+				m2m.alert.notification_send_ts = 0 # indicate that this is done
 
 
 			# print on console
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+cli.mid+"' changed state to: '"+str(m2m_state[enc.get("state",4)])+"' (->"+str(informed)+" ws_clients)")
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' changed state to: '"+str(m2m_state[enc.get("state",4)])+"' (->"+str(informed)+" ws_clients)")
 
 
 		#### unsupported command
@@ -339,7 +345,7 @@ def recv_m2m_msg_handle(data,cli):
 		msg={}
 		msg["cmd"]=enc.get("cmd")
 		msg["ok"]=-1 #comm error
-		msg_q_m2m.append((msg,cli))
+		msg_q_m2m.append((msg,m2m))
 #******************************************************#
 
 #******************************************************#
@@ -355,10 +361,10 @@ def snd_m2m_msg_dq_handle():
 		msg_q_m2m.remove(data)
 
 		msg=data[0]
-		cli=data[1]
-		if(0!=server_m2m.send_data(cli,json.dumps(msg).encode("UTF-8"))):
+		m2m=data[1]
+		if(0!=server_m2m.send_data(m2m,json.dumps(msg).encode("UTF-8"))):
 			# the cam box m2m unit is not longer available .. obviously, remove it from every viewer and inform them
-			recv_m2m_con_handle("disconnect",cli)
+			recv_m2m_con_handle("disconnect",m2m)
 	return ret
 #******************************************************#
 #***************************************************************************************#
@@ -373,8 +379,8 @@ def snd_m2m_msg_dq_handle():
 
 #******************************************************#
 # the websocket server will call this funcion to put new incoming connection in the queue
-def recv_ws_con_q_handle(data,cli):
-	recv_ws_con_q.append((data,cli))
+def recv_ws_con_q_handle(data,ws):
+	recv_ws_con_q.append((data,ws))
 #******************************************************#
 
 #******************************************************#
@@ -391,7 +397,7 @@ def recv_ws_con_dq_handle():
 
 #******************************************************#
 # dequeue above will call us to process the new connection
-def recv_ws_con_handle(data,cli):
+def recv_ws_con_handle(data,ws):
 	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients and their webcam lists
 	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
@@ -399,15 +405,15 @@ def recv_ws_con_handle(data,cli):
 		# try to find that websockets in all client lists, so go through all clients and their lists
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
-				if(viewer==cli):
-					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+cli.login)
+				if(viewer==ws):
+					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+ws.login)
 					m2m.m2v.remove(viewer)
 
 					# also check if that ws has been one of the watchers of the webfeed
-					set_webcam_con(m2m.mid,0,cli)
+					set_webcam_con(m2m.mid,0,ws)
 
 		try:
-			server_ws.clients.remove(cli)
+			server_ws.clients.remove(ws)
 		except:
 			ignore=1
 #******************************************************#
@@ -415,8 +421,8 @@ def recv_ws_con_handle(data,cli):
 #******************************************************#
 # websocket server will call this function if new websocket messages arrived
 # we will store them in the queue
-def recv_ws_msg_q_handle(data,cli):
-	recv_ws_msg_q.append((data,cli));
+def recv_ws_msg_q_handle(data,ws):
+	recv_ws_msg_q.append((data,ws));
 #******************************************************#
 
 #******************************************************#
@@ -433,14 +439,15 @@ def recv_ws_msg_dq_handle():
 
 #******************************************************#
 # callen by the dequeue above
-def recv_ws_msg_handle(data,cli):
+def recv_ws_msg_handle(data,ws):
+	global db
 	try:
 		enc=json.loads(data)
 	except:
 		enc=""
 		print("-d--> json decoding failed on:" + data)
 
-		#print("cli:"+str(cli.port)+"/"+str(cli.ip))
+		#print("ws:"+str(ws.port)+"/"+str(ws.ip))
 	if(type(enc) is dict):
 		if(enc.get("debug",0)==1):
 			print("websocket_msg")
@@ -456,38 +463,40 @@ def recv_ws_msg_handle(data,cli):
 			msg_ws={}
 			msg_ws["cmd"]=enc.get("cmd")
 			# data base has to give us this values
-			cli.login=enc.get("login")
+			ws.login=enc.get("login")
 			pw2="124"
 			h = hashlib.new('ripemd160')
 			h.update(pw2.encode("UTF-8"))
-			db={}
-			db["pw"]=h.hexdigest() # todo get those data from sql
-			db["account"]="jkw"
+			db_f={}
+			db_f["pw"]=h.hexdigest() # todo get those data from sql
+			db_f["account"]="jkw"
 
 			# check parameter
-			if(db["pw"]==enc.get("client_pw") or 1):
-				cli.logged_in=1
+			if(db_f["pw"]==enc.get("client_pw") or 1):
+				ws.logged_in=1
 				msg_ws["ok"]=1 # logged in
-				cli.account=db["account"]
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: OK, '"+cli.login+"'@'"+cli.account+"'")
+				ws.account=db_f["account"]
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: OK, '"+ws.login+"'@'"+ws.account+"'")
 				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
 				# introduce them to each other
 				for m2m in server_m2m.clients:
-					if(m2m.account==cli.account):
-						connect_ws_m2m(m2m,cli)
+					if(m2m.account==ws.account):
+						connect_ws_m2m(m2m,ws)
 				# and finally connect all disconnected m2m to the ws
-				connect_ws_m2m("",cli)
+				connect_ws_m2m("",ws)
 			else:
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: failed, '"+cli.login+"'")
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: failed, '"+ws.login+"'")
 				msg_ws["ok"]=-2 # not logged in
-			msg_q_ws.append((msg_ws,cli))
+			msg_q_ws.append((msg_ws,ws))
 
 		## Detection on/off handle
 		elif(enc.get("cmd")=="detection"):
 			area=enc.get("area")
+			# step 1: update database
+			db.update_det(ws.login,ws.account,area,enc.get("state"))
 			# check what m2m clients are in the list of this observer and what area they are in
 			clients_affected=0
-			for m2m in cli.v2m:
+			for m2m in ws.v2m:
 				if(area==m2m.area):
 					msg={}
 					msg["cmd"]="set_detection"
@@ -498,7 +507,55 @@ def recv_ws_msg_handle(data,cli):
 
 		## webcam interval -> sign in or out to webcam
 		elif(enc.get("cmd")=="set_interval"):
-			set_webcam_con(enc.get("mid"),enc.get("interval",0),cli)
+			set_webcam_con(enc.get("mid"),enc.get("interval",0),ws)
+
+		## if a ws client supports location grabbing it can send location updates to switch on/off the detection
+		elif(enc.get("cmd")=="update_location"):
+			print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' moved to '"+enc.get("loc")+"'")
+			# step 1: update database location for this login
+			db_r=db.update_location(ws.login,enc.get("loc"))
+			# step 2: get all possible areas for this user
+			db_r=db.get_areas_for_account(ws.account)
+			# step 3: for each possible area get all usercounts with location
+			for entry in db_r:
+				area=entry["area"]
+				# step 4: check if the area is on "automatic?" TODO
+				# assume so
+				#print("looking for "+str(area))
+				user_count=db.user_count_on_area(ws.account,area)
+				#print("user_count_on_area gave us:")
+				#print(user_count)
+				#print("eoo")
+				user_count=user_count["COUNT(*)"]
+				#print("meaning")
+				#print(user_count)
+				#print("eoo")
+
+				# step 5: if user count == 0 set active, else set inactive
+				# assume deactivation of alarm system
+				detection_state=0
+				if(user_count==0):
+					# start alarm system
+					detection_state=2
+
+				# step 6: update database
+				db.update_det(ws.login,ws.account,area,detection_state)
+
+				# step 7: go through all connected units and check which of them is in the current area
+				clients_affected=0
+				#print("suche durch alle v2m, len="+str(len(ws.v2m)))
+				for m2m in ws.v2m:
+					#print("client "+m2m.alias+" sitzt in area "+m2m.area)
+					if(area==m2m.area):
+						#print("die suchen wir!")
+						msg={}
+						msg["cmd"]="set_detection"
+						msg["state"]=detection_state
+						# step 8 append message for this m2m client to go sharp ;)
+						msg_q_m2m.append((msg,m2m))
+
+						clients_affected+=1
+				print("[A_ws  "+time.strftime("%H:%M:%S")+"] set detection of area '"+area+"' to '"+str(det_state[detection_state])+"' (->"+str(clients_affected)+" m2m_clients)")
 
 
 		## unsupported cmd
@@ -572,6 +629,7 @@ def connect_ws_m2m(m2m,ws):
 					msg_ws2["cmd"]="m2v_login"
 					msg_ws2["mid"]=m2m["mid"]
 					msg_ws2["area"]=m2m["area"]
+					msg_ws2["alias"]=m2m["alias"]
 					msg_ws2["state"]=-1
 					msg_ws2["account"]=ws.account
 					msg_ws2["last_seen"]=m2m["last_seen"]
