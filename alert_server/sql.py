@@ -11,18 +11,32 @@ class sql:
 		#print("connect done")
 
 	def get_data(self,mid):
+		#print("get data mid:"+mid)
 		if(self.connection==''):
 			print("sql has to be called with connect() first")
 			result = -1
 		else:
+			#print("connection existing")
 			try:
+				#print("try:")
 				with self.connection.cursor() as cursor:
 					# Read a single record
-					req = "SELECT  `pw`, `area`, `account` FROM `m2m` WHERE `mid`=%s"
-					#print(sql)
-					cursor.execute(req, (str(mid)))
+					#print("gen req:")
+					req = "SELECT COUNT(*) FROM m2m WHERE mid="+str(mid)
+					cursor.execute(req,)
 					result = cursor.fetchone()
+					#print(result)
+					if(result["COUNT(*)"]==1):
+						req = "SELECT  pw, area, account, alias FROM m2m WHERE mid="+str(mid)
+						#print(req)
+						cursor.execute(req,)
+						#print("setting result to ")
+						result = cursor.fetchone()
+					else:
+						result=-1
+					#print(result)
 			except:
+				#print("failed!")
 				result = -1
 		return result
 
@@ -47,7 +61,7 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip` FROM  `m2m` WHERE  `account` =  %s"
+				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias` FROM  `m2m` WHERE  `account` =  %s"
 				cursor.execute(req, (str(account)))
 				result = cursor.fetchall()
 		except:
