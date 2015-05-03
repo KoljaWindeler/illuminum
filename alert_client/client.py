@@ -22,10 +22,13 @@ file_str_q=[]
 client_socket=""
 last_transfer=time.time()
 light_dimming_q=[]
+my_state=-1
 
 #******************************************************#
 def trigger_handle(event,data):
 	global msg_q
+	global my_state
+
 	if(event=="uploading"):
 		#avoi overloading
 		if(len(file_q)<5):
@@ -34,6 +37,7 @@ def trigger_handle(event,data):
 		msg={}
 		msg["cmd"]=event
 		msg["state"]=data
+		my_state=data
 		msg_q.append(msg)
 		
 		# light dimming stuff
@@ -247,7 +251,8 @@ while 1:
 						msg={}
 						msg["mid"]=mid
 						msg["client_pw"]=pw_c
-						msg["cmd"]="login"	
+						msg["cmd"]="login"
+						msg["state"]=my_state
 						msg["ts"]=time.strftime("%d.%m.%Y || %H:%M:%S")
 						msg["ack"]=-1
 						msg_q.append(msg)
