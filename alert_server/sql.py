@@ -4,12 +4,12 @@ class sql:
 	def __init__(self):
 		self.connection=''
 		#print("init done")
-
+	#############################################################
 	def connect(self):
 		# Connect to the database
 		self.connection = pymysql.connect(host='localhost',user='root',passwd='123',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
 		#print("connect done")
-
+	#############################################################
 	def get_data(self,mid):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
@@ -39,7 +39,65 @@ class sql:
 				#print("failed!")
 				result = -1
 		return result
-
+	#############################################################
+	def update_location(self,login,location):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "UPDATE  `ws` SET  `location` = '"+location+"' WHERE  `ws`.`login` = '"+login+"'"
+				cursor.execute(req, )
+			self.connection.commit()
+			result=0
+		except:
+			result = -1
+		return result
+	#############################################################
+	def update_det(self,login,account,area,state):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "UPDATE  `area_state` SET  `state` = '"+str(state)+"', `login` = '"+str(login)+"', `updated` = '"+str(time.time())+"'  WHERE  `account` = '"+account+"' AND `area` = '"+area+"'"
+				#print(req)
+				cursor.execute(req, )
+			self.connection.commit()
+			result=0
+		except:
+			result = -1
+	#############################################################
+	def get_areas_for_account(self,account):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT distinct `area` FROM  `m2m` WHERE  `account` = '"+str(account)+"'"
+				cursor.execute(req)
+				result = cursor.fetchall()
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_state(self,area,account):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT `state` FROM  `area_state` WHERE  `account` = '"+str(account)+"' AND `area`='"+str(area)+"'"
+				cursor.execute(req)
+				result = cursor.fetchone()
+		except:
+			result = -1
+		return result
+	#############################################################
+	def user_count_on_area(self,account,area):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT COUNT(*) FROM  `ws` WHERE  `account` = '"+str(account)+"' and `location` = '"+str(area)+"'"
+				#print(req)
+				cursor.execute(req)
+				result = cursor.fetchone()
+		except:
+			result = -1
+		return result
+	#############################################################
 	def update_last_seen(self,mid,ip):
 		try:
 			with self.connection.cursor() as cursor:
@@ -52,11 +110,10 @@ class sql:
 		except:
 			result = -1
 		return result
-
+	#############################################################
 	def close(self):
 		self.connection.close()
-
-
+	#############################################################
 	def get_m2m4account(self,account):
 		try:
 			with self.connection.cursor() as cursor:
