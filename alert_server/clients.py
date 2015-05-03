@@ -1,5 +1,6 @@
 #A info container for each camera client
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
+det_state = ["off","on,single","on,permanent","error"]
 
 
 class m2m_clients: 
