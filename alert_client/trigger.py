@@ -1,6 +1,6 @@
 import RPi.GPIO as GPIO
 import subprocess
-import time
+import time,datetime
 import threading
 import os
 import io
@@ -160,8 +160,12 @@ def start_trigger():
 					img = Image.fromstring("RGBA",(cam_width,cam_height),pil_string_image)
 				
 					draw=ImageDraw.Draw(img)
-					draw.text((6, 1),path+" /  "+time.strftime("%H:%M:%S"),(0,0,0),font=f)
-					draw.text((5, 0),path+" /  "+time.strftime("%H:%M:%S"),(250,250,250),font=f)
+					#draw.text((6, 1),path+" /  "+time.strftime("%H:%M:%S"),(0,0,0),font=f)
+					#draw.text((5, 0),path+" /  "+time.strftime("%H:%M:%S"),(250,250,250),font=f)
+					now=datetime.datetime.now().strftime("%H:%M:%S.%f")
+					now=now[0:10]
+					draw.text((6, 1),path+" /  "+now,(0,0,0),font=f)
+					draw.text((5, 0),path+" /  "+now,(250,250,250),font=f)
 
 					# timing debug
 					td.append((time.time(),"processing"))
