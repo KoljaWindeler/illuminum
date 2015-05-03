@@ -267,8 +267,8 @@ while 1:
 					elif(enc.get("cmd")=="wf"):
 						ignore=1
 					elif(enc.get("cmd")=="set_interval"):
-						print("setting interval to "+str(int(enc.get("interval",0))))
-						trigger.set_interval(int(enc.get("interval",0)))
+						print("setting interval to "+str(enc.get("interval",0)))
+						trigger.set_interval(enc.get("interval",0))
 						if(enc.get("interval",0)>0):
 							light_dimming_q.append((time.time(),0,100,0,1000)) # 4 sec to dimm to off - in 10 min from now
 						else:
