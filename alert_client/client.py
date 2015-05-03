@@ -260,6 +260,8 @@ while 1:
 						if(enc.get("ok")==1):
 							logged_in=1
 							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
+							print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("detection")))
+							trigger.set_detection(int(enc.get("detection")))
 						else:
 							logged_in=0
 							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
