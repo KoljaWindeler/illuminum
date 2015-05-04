@@ -10,6 +10,26 @@ class sql:
 		self.connection = pymysql.connect(host='localhost',user='root',passwd='123',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
 		#print("connect done")
 	#############################################################
+	def load_rules(self,area,account,sub_rules):
+		#print("get data mid:"+mid)
+		if(self.connection==''):
+			print("sql has to be called with connect() first")
+			result = -1
+		else:
+			#print("connection existing")
+			try:
+				#print("try:")
+				with self.connection.cursor() as cursor:
+					# Read a single record
+					#print("gen req:")
+					req = "SELECT `id`, `conn`, `arg1`, `arg2` FROM `rules` WHERE `area` ='"+str(area)+"' and `account` = '"+str(account)+"' and `sub_rule` = '"+str(sub_rules)+"'"
+					#print(req)
+					cursor.execute(req)
+					result = cursor.fetchall()
+			except:
+				print("failed")
+		return result
+	#############################################################
 	def get_data(self,mid):
 		#print("get data mid:"+mid)
 		if(self.connection==''):

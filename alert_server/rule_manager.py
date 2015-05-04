@@ -1,5 +1,5 @@
 __author__ = 'kolja'
-
+import time, datetime
 
 # 4 # rule_manager, used to hold multiple rule_accounts
 # .data																			list of all "rule_accounts"
@@ -33,7 +33,7 @@ __author__ = 'kolja'
 
 # 1 # rules, a simple rule data container without logic
 # .id																				to be identified and found
-# .connector																string connecting arg1 and arg2
+# .conn																string connecting arg1 and arg2
 # .arg1														 					argument 1 for rule
 # .arg2 																			argument 2 for rule
 
@@ -56,7 +56,7 @@ class rule_manager:
 		self.data = []
 		
 	def add_account(self, account):
-		self.data = account
+		self.data.append(account)
 		
 	def is_account(self, account):
 		for a in self.data:
@@ -85,6 +85,21 @@ class rule_manager:
 				break
 		return 0
 
+	def print_all(self):
+		print("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered")
+		i=1
+		for a in self.data:
+			print("")
+			print("|+ Account "+str(i)+"/"+str(len(self.data)))
+			a.print_account()
+			i+=1
+	
+	def get_account(self,account):
+		for a in self.data:
+			if(a.account==account):
+				return a
+		return -1	
+
 class rule_account:
 	def __init__(self,account):
 		self.account=account
@@ -107,6 +122,15 @@ class rule_account:
 				break
 		return 0
 
+	def print_account(self):
+		print("|+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:")
+		i=1
+		for a in self.areas:
+			print("||+ Area "+str(i)+"/"+str(len(self.areas)))
+			a.print_rules()
+			i+=1
+	
+
 class rule:
 	def __init__(self, id, conn, arg1, arg2):
 		self.id = id
@@ -121,7 +145,7 @@ class area:
 		self.db = db
 		self.rules = []
 		self.sub_rules = []
-		reload_rules()
+		self.reload_rules()
 		
 
 	def add_sub_rule(self, id, conn, arg1, arg2):
@@ -140,31 +164,46 @@ class area:
 		# load new sets from database
 		db_rules=self.db.load_rules(self.area,self.account,0) 				# 0=rules, 1=sub_rules
 		db_sub_rules=self.db.load_rules(self.area,self.account,1)	# 0=rules, 1=sub_rules
+		#print(db_rules)
 		# add them
 		for r in db_rules:
-			self.add_rule(r)
+			self.add_rule(r["id"],r["conn"],r["arg1"],r["arg2"])
 		for r in db_sub_rules:
-			self.add_sub_rules(r)
+			self.add_sub_rule(r['id'],r['conn'],r['arg1'],r['arg2'])
 		# print for debugging
-		self.print_rules()
+		#self.print_rules()
 		return 0
 		
 	def print_rules(self):
-		print("This is area "+self.area+" on account "+self.account+". I have "+str(len(self.rules)))+" active rules + "+str(len(self.sub_rules))+" subrules")
+		print("|||+ This is area '"+self.area+"' on account '"+self.account+"'. I have "+str(len(self.rules))+" active rules + "+str(len(self.sub_rules))+" subrules")
 		i=1
-		print("Rules:")
+		print("|||+ Rules:")
 		for r in self.rules:
-			print((str(i)+"/"+str(len(self.rules))+" conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
+			print("||||- "+str(i)+"/"+str(len(self.rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10)):
+				print("|||||- status: true")
+			else:
+				print("|||||- status: false")
 			i+=1
+		if(len(self.rules)==0):
+			print("||||- none")
+
 		i=1
-		print("Sub-Rules:")
+		print("|||+ Sub-Rules:")
 		for r in self.sub_rules:
-			print((str(i)+"/"+str(len(self.sub_rules))+" conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
+			print("||||- "+str(i)+"/"+str(len(self.sub_rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10)):
+				print("|||||- status: true")
+			else:
+				print("|||||- status: false")
+
 			i+=1
+		if(len(self.sub_rules)==0):
+			print("||||- none")
 		
 	def check_rules(self):
 		for r in self.rules:
-			if(self.eval_rule(r.connector, r.arg1, r.arg2,10))
+			if(self.eval_rule(r.conn, r.arg1, r.arg2,10)):
 				return 1
 		return 0
 		
@@ -173,8 +212,9 @@ class area:
 		arg1=""
 		arg2=""
 		for sr in self.sub_rules:
-			if(sr.id==rule_id):
-				conn=sr.connector
+			#print("vergleiche "+str(sr.id)+" mit "+str(rule_id))
+			if(int(sr.id)==int(rule_id)):
+				conn=sr.conn
 				arg1=sr.arg1
 				arg2=sr.arg2
 		return (conn,arg1,arg2)
@@ -187,8 +227,10 @@ class area:
 		if(conn=="AND"):
 			(conn_1,arg1_1,arg2_1) = self.get_sub_rule(arg1)
 			(conn_2,arg1_2,arg2_2) = self.get_sub_rule(arg2)
-			res_1=eval_rule(conn_1,arg1_1,arg2_1,depth-1)
-			res_2=eval_rule(conn_2,arg1_2,arg2_2,depth-1)
+			#print("fetched for subrule "+str(arg1)+" this:"+str(conn_1)+"/"+str(arg1_1)+"/"+str(arg2_1))
+			#print("fetched for subrule "+str(arg2)+" this:"+str(conn_2)+"/"+str(arg1_2)+"/"+str(arg2_2))
+			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1)
+			res_2=self.eval_rule(conn_2,arg1_2,arg2_2,depth-1)
 			if(res_1 and res_2):
 				return 1
 		## AND  sub rule based
@@ -196,7 +238,7 @@ class area:
 		## NOT sub rule based
 		elif(conn=="NOT"):
 			(conn_1,arg1_1,arg2_1) = self.get_sub_rule(arg1)
-			res_1=eval_rule(conn_1,arg1_1,arg2_1,depth-1)
+			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1)
 			if(not(res_1)):
 				return 1
 		## NOT sub rule based
@@ -208,7 +250,8 @@ class area:
 		
 		## time based
 		elif(conn=="time"):
-			now=time.mktime(datetime.datetime.strptime(time.strftime("%H:%M:%S", time.time()),"%H:%M:%S").timetuple())
+			#this now is timezoned cleared (the niklas way)
+			now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
 			if(int(arg2)>int(arg1)): # meaning the user defined in the rule something like between 06:00 and 18:00
 				if(now>int(arg1) and now<int(arg2)):
 					return 1
@@ -219,9 +262,9 @@ class area:
 		
 		## week day based
 		elif(conn=="day"):
-			today=time.strftime("%w", time.time())
-			condition=time.strftime("%w", int(arg1))
-			if(today==condition):
+			today=datetime.datetime.today().weekday()
+			#print("heute ist:"+str(today)+" arg1: "+str(arg1))
+			if(int(today)==int(arg1)):
 				return 1
 		## week day based
 		
