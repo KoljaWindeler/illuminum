@@ -560,7 +560,7 @@ def recv_ws_msg_handle(data,ws):
 
 		## unsupported cmd
 		else:
-			print("unsupported command: "+enc.get("cmd"))
+			print("[A     "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd"))
 #******************************************************#
 
 #******************************************************#
