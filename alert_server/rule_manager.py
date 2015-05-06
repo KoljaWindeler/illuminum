@@ -28,8 +28,8 @@ import time, datetime
 # .print_rules(self)													debug
 # .reload_rules(self)												reloads all rules via the db handle
 # .get_sub_rule(self, rule_id)							return conn,arg1 and arg2 for the given rule_id and empty if not found
-# .eval_rule(self,conn, arg1, arg2,depth)		return 1 if rule applies
-# .check_rules(self)												returns 1 if any of the rules applies 
+# .eval_rule(self,conn, arg1, arg2,depth, use_db)		return 1 if rule applies
+# .check_rules(self,use_db)												returns 1 if any of the rules applies
 
 # 1 # rules, a simple rule data container without logic
 # .id																				to be identified and found
@@ -41,14 +41,16 @@ import time, datetime
 ## create rule manager
 #rm = rule_manager()
 
-## for every box coming up
-#if(not(rm.is_account("jkw"))):
-#	new_rule_account=rule_account("jkw")
-#	rm.append(new_account_rules)
-
-#if(not(rm.is_area_in_account("jkw","home"))):
-#	new_area=area("home","jkw",db) # will load rule set on its own
-#	rm.add_area_to_account(new_area,"jkw")
+#if(not(rm.is_account(m2m.account))):
+#	print("account did not exist, adding")
+#	new_rule_account=rule_account(m2m.account)
+#	rm.add_account(new_rule_account)
+#
+# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
+#if(not(rm.is_area_in_account(m2m.account,m2m.area))):
+#	print("area did not exist, adding")
+#	new_area=area(m2m.area,m2m.account,db) # will load rule set on its own from the database
+#	rm.add_area_to_account(m2m.account,new_area)
 
 
 class rule_manager:
@@ -180,7 +182,7 @@ class area:
 		print("|||+ Rules:")
 		for r in self.rules:
 			print("||||- "+str(i)+"/"+str(len(self.rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10)):
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,0,1)):
 				print("|||||- status: true")
 			else:
 				print("|||||- status: false")
@@ -192,7 +194,7 @@ class area:
 		print("|||+ Sub-Rules:")
 		for r in self.sub_rules:
 			print("||||- "+str(i)+"/"+str(len(self.sub_rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10)):
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,0,1)):
 				print("|||||- status: true")
 			else:
 				print("|||||- status: false")
@@ -201,9 +203,9 @@ class area:
 		if(len(self.sub_rules)==0):
 			print("||||- none")
 		
-	def check_rules(self):
+	def check_rules(self,use_db):
 		for r in self.rules:
-			if(self.eval_rule(r.conn, r.arg1, r.arg2,10)):
+			if(self.eval_rule(r.conn, r.arg1, r.arg2,10,use_db)):
 				return 1
 		return 0
 		
@@ -219,7 +221,7 @@ class area:
 				arg2=sr.arg2
 		return (conn,arg1,arg2)
 
-	def eval_rule(self,conn, arg1, arg2,depth):
+	def eval_rule(self,conn, arg1, arg2, depth, use_db):
 		if(depth<0):
 			return 0
 			
@@ -229,8 +231,8 @@ class area:
 			(conn_2,arg1_2,arg2_2) = self.get_sub_rule(arg2)
 			#print("fetched for subrule "+str(arg1)+" this:"+str(conn_1)+"/"+str(arg1_1)+"/"+str(arg2_1))
 			#print("fetched for subrule "+str(arg2)+" this:"+str(conn_2)+"/"+str(arg1_2)+"/"+str(arg2_2))
-			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1)
-			res_2=self.eval_rule(conn_2,arg1_2,arg2_2,depth-1)
+			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1,use_db)
+			res_2=self.eval_rule(conn_2,arg1_2,arg2_2,depth-1,use_db)
 			if(res_1 and res_2):
 				return 1
 		## AND  sub rule based
@@ -238,7 +240,7 @@ class area:
 		## NOT sub rule based
 		elif(conn=="NOT"):
 			(conn_1,arg1_1,arg2_1) = self.get_sub_rule(arg1)
-			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1)
+			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1,use_db)
 			if(not(res_1)):
 				return 1
 		## NOT sub rule based
@@ -256,7 +258,7 @@ class area:
 				if(now>int(arg1) and now<int(arg2)):
 					return 1
 			elif(int(arg2)<int(arg1)): # meaning alert active between 18:00 and 06:00
-				if (now>int(arg2) and now<(int(arg1)+86400)): 
+				if (now>int(arg1) and now<(int(arg2)+86400)):
 					return 1
 		## time based
 		
@@ -269,24 +271,28 @@ class area:
 		## week day based
 		
 		## GEO location based
-		elif(conn=="nobody_at_geo_area"):
-			# Step 0: our area is known, it is "self.area"
-			# Step 1: count user from this account, being logged on to this  (our) area
-			try:
-				user_count=self.db.user_count_on_area(self.account, self.area)
-				#print("user_count_on_area gave us:")
-				#print(user_count)
-				#print("eoo")
-				if(user_count!=-1): # no db problem
-					user_count=int(user_count["COUNT(*)"])
-				#print("meaning")
-				#print(user_count)
-				#print("eoo")
-				
-				# step 2: if user count == 0 the rule "nobody at geo area" is true
-					if(user_count==0):
-						return 1
-			except:
+		elif(conn=="nobody_at_my_geo_area"):
+			if(use_db):
+				# Step 0: our area is known, it is "self.area"
+				# Step 1: count user from this account, being logged on to this  (our) area
+				try:
+					user_count=self.db.user_count_on_area(self.account, self.area)
+					#print("user_count_on_area gave us:")
+					#print(user_count)
+					#print("eoo")
+					if(user_count!=-1): # no db problem
+						user_count=int(user_count["COUNT(*)"])
+					#print("meaning")
+					#print(user_count)
+					#print("eoo")
+
+					# step 2: if user count == 0 the rule "nobody at geo area" is true
+						if(user_count==0):
+							return 1
+				except:
+					return 0
+			else:
+				#print("skipped")
 				return 0
 		## GEO location based
 		
