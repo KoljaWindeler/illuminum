@@ -40,7 +40,7 @@ class ws_clients:
 		self.last_comm=0			# timestamp of the last incoming msg
 		self.v2m=[]				# list of all active subscribers. those will get a message for e.g. alert->sharp
 		self.login=" "				# the login that has been used to connect to the DB
-		self.accunt=" "				# the account the login belongs to .. something like JKW even if there are two logins (kolja,caro) to the account. multiple login for one account
+		self.account=" "				# the account the login belongs to .. something like JKW even if there are two logins (kolja,caro) to the account. multiple login for one account
 		self.snd_q_len=0			# messages in queue for this ws
 
 
