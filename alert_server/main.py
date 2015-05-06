@@ -3,8 +3,9 @@ from clients import alert_event,webcam_viewer,m2m_state,det_state
 import server_m2m
 import server_ws
 import send_mail
+from rule_manager import *
 from sql import *
- 
+
 #***************************************************************************************#
 #***************************************** m2m *****************************************#
 #***************************************************************************************#
@@ -260,7 +261,7 @@ def recv_m2m_msg_handle(data,m2m):
 			#print("Ergebniss der datenbank:")
 			#print(db_r)
 
-			if(db_r==-1): #user not found
+			if(type(db_r) is int): #user not found
 				#print("db error")
 				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("mid"))+"' not found in DB, log-in: failed")
 				msg["ok"]=-3 # not logged in
@@ -282,6 +283,42 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.account=db_r["account"]
 					m2m.area=db_r["area"]
 					m2m.alias=db_r["alias"]
+					m2m.longitude=db_r["longitude"]
+					m2m.latitude=db_r["latitude"]
+
+					# add rules to the rule manager for this area if it wasn there before
+					# first check if the account is known to the rule manager at all and add it if not
+					#print("### rm debug ###")
+					#rm.print_all()
+					#print("### rm debug ###")
+
+					if(not(rm.is_account(m2m.account))):
+						#print("account did not exist, adding")
+						new_rule_account=rule_account(m2m.account)
+						rm.add_account(new_rule_account)
+
+					# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
+					if(not(rm.is_area_in_account(m2m.account,m2m.area))):
+						#print("area did not exist, adding")
+						new_area=area(m2m.area,m2m.account,db) # will load rule set on its own from the database
+						rm.add_area_to_account(m2m.account,new_area)
+
+						# if the area wasn in the rule manager we have to
+						# check the state, as there could be a time based trigger that wasn executed
+						# lets do it for all areas for this account (kind of a waste but its is very quick)
+						#print("### rm debug ###")
+						#rm.print_all()
+						#print("### rm debug ###")
+						#print("checking for this account")
+						acc=rm.get_account(m2m.account)
+						if(acc!=-1):
+							for b in acc.areas:
+								detection_state=b.check_rules(1) 	# get the state, check and use db
+								db.update_det("m2m",m2m.account,m2m.area,detection_state)
+
+								#print("area "+str(b.area)+" should be")
+								#print(detection_state)
+
 
 					# get detecion state based on db
 					db_r2=db.get_state(m2m.area,m2m.account)
@@ -297,7 +334,7 @@ def recv_m2m_msg_handle(data,m2m):
 							connect_ws_m2m(m2m,viewer)
 							info_viewer+=1
 							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"'@'"+m2m.account+"' log-in: OK (->"+str(info_viewer)+" ws_clients)")
+					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"/"+m2m.alias+"'@'"+m2m.account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(db_r2["state"])])+"' (->"+str(info_viewer)+" ws_clients)")
 					db.update_last_seen(m2m.mid,m2m.conn.getpeername()[0])
 				else:
 					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' log-in: failed")
@@ -308,7 +345,8 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### login try to set the logged_in to 1 to upload files etc
 		elif(enc.get("cmd")=="state_change"):
-			m2m.state=enc.get("state")
+			m2m.state=enc.get("state",4)
+			m2m.detection=enc.get("detection",-1)
 			# tell subscribers
 			msg={}
 			msg["mid"]=m2m.mid
@@ -332,7 +370,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 
 			# print on console
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' changed state to: '"+str(m2m_state[enc.get("state",4)])+"' (->"+str(informed)+" ws_clients)")
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' changed state to: '"+str(m2m_state[m2m.state])+"', detection: '"+str(det_state[m2m.detection])+"' (->"+str(informed)+" ws_clients)")
 
 
 		#### unsupported command
@@ -514,49 +552,10 @@ def recv_ws_msg_handle(data,ws):
 			print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' moved to '"+enc.get("loc")+"'")
 			# step 1: update database location for this login
 			db_r=db.update_location(ws.login,enc.get("loc"))
-			# step 2: get all possible areas for this user
-			db_r=db.get_areas_for_account(ws.account)
-			# step 3: for each possible area get all usercounts with location
-			for entry in db_r:
-				area=entry["area"]
-				# step 4: check if the area is on "automatic?" TODO
-				# assume so
-				#print("looking for "+str(area))
-				user_count=db.user_count_on_area(ws.account,area)
-				#print("user_count_on_area gave us:")
-				#print(user_count)
-				#print("eoo")
-				user_count=user_count["COUNT(*)"]
-				#print("meaning")
-				#print(user_count)
-				#print("eoo")
-
-				# step 5: if user count == 0 set active, else set inactive
-				# assume deactivation of alarm system
-				detection_state=0
-				if(user_count==0):
-					# start alarm system
-					detection_state=2
-
-				# step 6: update database
-				db.update_det(ws.login,ws.account,area,detection_state)
-
-				# step 7: go through all connected units and check which of them is in the current area
-				clients_affected=0
-				#print("suche durch alle v2m, len="+str(len(ws.v2m)))
-				for m2m in ws.v2m:
-					#print("client "+m2m.alias+" sitzt in area "+m2m.area)
-					if(area==m2m.area):
-						#print("die suchen wir!")
-						msg={}
-						msg["cmd"]="set_detection"
-						msg["state"]=detection_state
-						# step 8 append message for this m2m client to go sharp ;)
-						msg_q_m2m.append((msg,m2m))
-
-						clients_affected+=1
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] set detection of area '"+area+"' to '"+str(det_state[detection_state])+"' (->"+str(clients_affected)+" m2m_clients)")
-
+			# step 2: run all rule checks and update every box on the account
+			t=time.time()
+			rm_check_rules(ws.account,ws.login,1)	# check and use db
+			print(time.time()-t)
 
 		## unsupported cmd
 		else:
@@ -605,16 +604,17 @@ def connect_ws_m2m(m2m,ws):
 		msg_ws2["cmd"]="m2v_login"
 		msg_ws2["mid"]=m2m.mid
 		msg_ws2["area"]=m2m.area
+		msg_ws2["longitude"]=m2m.longitude
+		msg_ws2["latitude"]=m2m.latitude
 		msg_ws2["state"]=m2m.state
 		msg_ws2["account"]=m2m.account
 		msg_ws2["alias"]=m2m.alias
 		msg_ws2["last_seen"]=m2m.last_comm
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
-		# TODO: how will the user get informed about boxes which are not online? List of db?
 		# 1. get all boxed with the same account
 		all_m2m4account=db.get_m2m4account(ws.account)
-		if(all_m2m4account==-1):
+		if(type(all_m2m4account) is int):
 			print("Error getting data for account "+ws.account)
 		else:
 			# 2. loop through them and make sure that they are not part of the list, that the ws already knows
@@ -630,6 +630,8 @@ def connect_ws_m2m(m2m,ws):
 					msg_ws2["mid"]=m2m["mid"]
 					msg_ws2["area"]=m2m["area"]
 					msg_ws2["alias"]=m2m["alias"]
+					msg_ws2["longitude"]=m2m["longitude"]
+					msg_ws2["latitude"]=m2m["latitude"]
 					msg_ws2["state"]=-1
 					msg_ws2["account"]=ws.account
 					msg_ws2["last_seen"]=m2m["last_seen"]
@@ -742,6 +744,52 @@ def check_alerts():
 					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' triggered Email")
 					ret=0
 		return ret
+#******************************************************#
+
+#******************************************************#
+# this fuction shall be called if the environment changes. E.g. if a ws client change the location.
+# it will load the rule_account from the rule manager by  the given "account" string and go through all areas,
+# associated the this account. it will evaluate the rules for each area of the account and write the status to the database.
+# after that it will go through the complete m2m_client list and grab every box that has the same accont, reload the status
+# of the box from the database and send it to the box.
+# the login argument is used to keep track what ws client has triggered all that changes
+def rm_check_rules(account,login,use_db):
+	global rm
+	global db
+
+	#print("### rm debug ###")
+	#rm.print_all()
+	#print("### rm debug ###")
+
+	acc=rm.get_account(account)
+	if(acc!=-1):
+		# run the rule check for every area in this account
+		#print("running rule check on every area of this account")
+		for b in acc.areas:
+			detection_state=b.check_rules(use_db) 	# get the state, TODO, this will just return 1 if the rules say that at least one is true. it will never say 2 .. which we might need!
+			db.update_det(login,account,b.area,detection_state)
+			#print("updateing to db that detection of area "+str(b.area)+" should be")
+			#print(detection_state)
+
+		# send an update to every box in this account ## TODO: only the boxes which changed the status?
+		#print("now we have to check for every box what there detection status shall be and send it to them")
+		for m2m in server_m2m.clients:
+			if(m2m.account==account):
+				#print("checkin for box "+m2m.alias+" in area "+m2m.area)
+				db_r2=db.get_state(m2m.area,account)
+				if(type(db_r2)!=int):
+					#print("will I send that detection state should be "+str(db_r2["state"])+"?")
+					#print("because m2m.detection is: "+str(m2m.detection))
+					detection=int(db_r2["state"])
+					if(m2m.detection!=detection):
+						m2m.detection=detection
+						msg={}
+						msg["cmd"]="set_detection"
+						msg["state"]=detection
+						# step 8 append message for this m2m client to go sharp ;)
+						msg_q_m2m.append((msg,m2m))
+						print("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"'")
+
 
 ####################				
 #***************************************************************************************#
@@ -771,8 +819,12 @@ server_ws.subscribe_callback(recv_ws_con_q_handle,"con")
 db=sql()
 db.connect()
 
+# our rule set maanger for all clients. Argument is the callback function
+rm = rule_manager()
+
 # else
 busy=1
+last_rulecheck_ts=0
 
 #***************************************************************************************#
 #********************************** End of Variables ***********************************#
@@ -811,7 +863,17 @@ while 1:
 	# check if we have clients in the alert state ready to send a mail or so
 	if(check_alerts()==0):
 		busy=1
-	
+
+	# check the rules
+	if(time.time()>last_rulecheck_ts+60):
+		busy=1
+		last_rulecheck_ts=time.time()
+		print("[A_RM  "+time.strftime("%H:%M:%S")+"] checking")
+		#print(time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5])
+		for acc in rm.data:
+			rm_check_rules(acc.account,"timetrigger",0) # check but use no database
+		debug_ts=time.time()-last_rulecheck_ts
+		print("Check took "+str(debug_ts))
 #***************************************************************************************#
 #********************************** End of Main loop ***********************************#
 #***************************************************************************************#
