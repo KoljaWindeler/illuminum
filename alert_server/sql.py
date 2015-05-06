@@ -10,6 +10,17 @@ class sql:
 		self.connection = pymysql.connect(host='localhost',user='root',passwd='123',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
 		#print("connect done")
 	#############################################################
+	def connection_check(self):
+		try:
+			#print("try:")
+			with self.connection.cursor() as cursor:
+				req = "SELECT now()"
+				cursor.execure(req)
+				result = cursor.fetchall()
+				return 0
+		except:
+			return -1
+	#############################################################
 	def load_rules(self,area,account,sub_rules):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
@@ -27,7 +38,13 @@ class sql:
 					cursor.execute(req)
 					result = cursor.fetchall()
 			except:
-				print("failed")
+				if(self.connection_check()==0):
+					print("failed") # failure based on the command, connection ok
+					result =-2
+				else:
+					self.connection=""
+					self.connect()
+					return self.load_rules(area,account,sub_rules)
 		return result
 	#############################################################
 	def get_data(self,mid):
@@ -47,7 +64,7 @@ class sql:
 					result = cursor.fetchone()
 					#print(result)
 					if(result["COUNT(*)"]==1):
-						req = "SELECT  pw, area, account, alias FROM m2m WHERE mid="+str(mid)
+						req = "SELECT  pw, area, account, alias, longitude, latitude FROM m2m WHERE mid="+str(mid)
 						#print(req)
 						cursor.execute(req,)
 						#print("setting result to ")
@@ -56,8 +73,13 @@ class sql:
 						result=-1
 					#print(result)
 			except:
+				if(self.connection_check()==0):
+					result = -2
+				else:
+					self.connection=""
+					self.connect()
+					result=self.get_data(mid)
 				#print("failed!")
-				result = -1
 		return result
 	#############################################################
 	def update_location(self,login,location):
@@ -69,7 +91,12 @@ class sql:
 			self.connection.commit()
 			result=0
 		except:
-			result = -1
+			if(self.connection_check()==0):
+				result = -2
+			else:
+				self.connection=""
+				self.connect()
+				result=self.update_location(login,location)
 		return result
 	#############################################################
 	def update_det(self,login,account,area,state):
@@ -138,7 +165,7 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias` FROM  `m2m` WHERE  `account` =  %s"
+				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias`, `longitude`, `latitude` FROM  `m2m` WHERE  `account` =  %s"
 				cursor.execute(req, (str(account)))
 				result = cursor.fetchall()
 		except:
