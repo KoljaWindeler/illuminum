@@ -17,12 +17,12 @@ def recv_data (client, length):
 		data=""
 	#print("[ws] -> Incoming")
 	if(len(data)==0):
-		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
+		#print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
 		for callb in callback_con:
 			callb("disconnect",client)
 		return -1
 	elif(data[0]!=129):
-		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> regular disconnect")
+		#print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> regular disconnect")
 		for callb in callback_con:
 			callb("disconnect",client)
 		return -1
