@@ -28,6 +28,7 @@ my_state=-1
 def trigger_handle(event,data):
 	global msg_q
 	global my_state
+	global trigger
 
 	if(event=="uploading"):
 		#avoi overloading
@@ -37,6 +38,7 @@ def trigger_handle(event,data):
 		msg={}
 		msg["cmd"]=event
 		msg["state"]=data
+		msg["detection"]=trigger.detection
 		my_state=data
 		msg_q.append(msg)
 		
