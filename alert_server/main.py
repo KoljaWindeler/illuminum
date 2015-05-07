@@ -3,7 +3,7 @@ from clients import alert_event,webcam_viewer,m2m_state,det_state
 import server_m2m
 import server_ws
 import send_mail
-import std_input
+import p
 from rule_manager import *
 from sql import *
 
@@ -59,6 +59,8 @@ def recv_m2m_con_handle(data,m2m):
 	#print("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
 		print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' disconneted")
+		db.update_last_seen(m2m.mid,"")
+
 		# try to find that m2m in all ws clients lists, so go through all clients and their lists
 		for ws in server_ws.clients:
 			for viewer in ws.v2m:
@@ -126,17 +128,18 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#********* msg handling **************#
 		# assuming that we could decode the message from json to dicc: we have to distingush between the commands:
-
-		#### sd -> shut the server down
-		if(enc.get("cmd")=="sd"):
-			print("[main] running shutdown")
-			server_m2m.stop_server()
-			exit()
-
+		if(m2m.logged_in==0 and enc.get("cmd")!="login" and enc.get("cmd")!="prelogin"):
+			print("[A_m2m "+time.strftime("%H:%M:%S")+"] A client tried to interact without beeing logged in")
+			# send bad ack
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=-2 # not logged in
+			msg_q_m2m.append((msg,m2m))
+						
 		#### heartbeat
 		elif(enc.get("cmd")=="hb"):
 			# respond
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' HB updating "+str(len(m2m.m2v))+" clients")
+			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' HB updating "+str(len(m2m.m2v))+" clients","h")
 			msg={}
 			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
@@ -154,93 +157,93 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file
 		elif(enc.get("cmd")=="wf"):
-			if(m2m.logged_in==1):
-				if(m2m.openfile!=enc.get("fn")):
+			# handle new file
+			if(m2m.openfile!=enc.get("fn")):
+				if(m2m.fp!=""):
 					try:
 						m2m.fp.close()
 					except:
 						m2m.fp=""
-					m2m.openfile = enc.get("fn")
-					des_location="../webserver/upload/"+str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
-					m2m.fp = open(des_location,'wb')
+				m2m.openfile = enc.get("fn")
+				des_location="../webserver/upload/"+str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
+				m2m.fp = open(des_location,'wb')
+				# this is the start of a transmission
+				# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
+				# we'll put every alert file filename in the m2m.alert_img list  and check in the loop if that list
+				# has reached 5 pics, or hasn't been updated for > 20 sec.
+				# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
+				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
+				if(m2m.state==1): # ALERT
+					if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
+						m2m.alert.files.append(des_location)
+						m2m.alert.last_upload = time.time()
+				#tmp_loc=des_location.split('/')
+				#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
+				m2m.paket_count_per_file=0
 
-					# this is the start of a transmission
-					# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
-					# we'll put every alert file filename in the m2m.alert_img list  and check in the loop if that list
-					# has reached 5 pics, or hasn't been updated for > 20 sec.
-					# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
-					# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
-					if(m2m.state==1): # ALERT
-						if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
-							m2m.alert.files.append(des_location)
-							m2m.alert.last_upload = time.time()
-					#tmp_loc=des_location.split('/')
-					#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
-					m2m.paket_count_per_file=0
-				m2m.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
-				if(enc.get("eof")==1):
-					# inform all clients
-					msg={}
-					msg["mid"]=m2m.mid
-					msg["cmd"]="rf"
-					msg["state"]=m2m.state
-					# all image data
-					if(enc.get("sof",0)==1):
-						#send img, assuming this is a at once img
-						msg["img"]=enc.get("data")
-					else:
-						#send path if it was hacked ... not wise TODO: read img and send at once
-						tmp=m2m.fp.name.split('/')
-						msg["path"]='upload/'+tmp[len(tmp)-1]
+			# write this file
+			m2m.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
 
-					# select the ws to send to
-					if(m2m.state==1): # alert -> inform everyone
-						# the m2v list has all viewer
-						for v in m2m.m2v:
-							if(v.snd_q_len<10):
-								msg_q_ws.append((msg,v))
-								v.snd_q_len+=1
-					else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
-						for v in m2m.webcam:
-							#only update if last ts war more then interval ago
-							#try:
-							ts_photo=enc.get("td",0)
-							ts_photo=ts_photo[1][0]
-							t_passed=ts_photo-v.ts+0.1
-							if(t_passed>=v.interval and v.ws.snd_q_len<10): #todo .. only if queue is not too full
-								v.ts=ts_photo
-								v.ws.snd_q_len+=1
-								msg_q_ws.append((msg,v.ws))
-							else:
-								print("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len))
-
-					des_location=m2m.fp.name
-					tmp_loc=des_location.split('/')
+			# check if this packet contained the end of file
+			if(enc.get("eof")==1):
+				# end of file, close it
+				this_file=m2m.openfile #store the name just in case we have to read it again
+				try:
 					m2m.fp.close()
-					m2m.openfile=""
-					#print("Received "+str(m2m.paket_count_per_file)+" parts for this file")
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1])
-					# send good ack
-				if(enc.get("ack")==-1):
-					msg={}
-					msg["cmd"]=enc.get("cmd")
-					msg["fn"]=enc.get("fn")
-					msg["ok"]=1
-					msg_q_m2m.append((msg,m2m))
+				except:
+					m2m.fp=""
+				m2m.openfile=""	
 
-				m2m.paket_count_per_file+=1
-				#print(str(time.time())+' enqueue')
-				#print("received:"+str(enc.get("msg_id")))
-				#print("sending ok")
-				#server.send_data(m2m,json.dumps(msg).encode("UTF-8"))
-			else:
-				if(enc.get("eof")==1):
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] client tried to upload without beeing logged in")
-					# send bad ack
-					msg={}
-					msg["cmd"]=enc.get("cmd")
-					msg["ok"]=-2 # not logged in
-					msg_q_m2m.append((msg,m2m))
+				# prepare client message
+				msg={}
+				msg["mid"]=m2m.mid
+				msg["cmd"]="rf"
+				msg["state"]=m2m.state
+
+				# all image data in one packet
+				if(enc.get("sof",0)==1):
+					#send img, assuming this is a at once img
+					msg["img"]=enc.get("data")
+				else:
+					#read img and send at once, close this file pointer as it is writing only
+					try:
+						m2m.fp = open(this_file,'rb')
+						msg["img"]=m2m.fp.read()
+						m2m.fp.close()
+					except:
+						m2m.fp=""
+					
+				# select the ws to send to
+				if(m2m.state==1): # alert -> inform everyone
+					# the m2v list has all viewer
+					for v in m2m.m2v:
+						if(v.snd_q_len<10): # just send it if their queue is not to full
+							msg_q_ws.append((msg,v))
+							v.snd_q_len+=1
+				else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
+					for v in m2m.webcam:
+						#only update if last ts war more then interval ago
+						ts_photo=enc.get("td",0) # td tells us when this photo was taken
+						ts_photo=ts_photo[1][0]
+						t_passed=ts_photo-v.ts+0.1
+						if(t_passed>=v.interval and v.ws.snd_q_len<10): # send only if queue is not too full
+							v.ts=ts_photo
+							v.ws.snd_q_len+=1
+							msg_q_ws.append((msg,v.ws))
+						else:
+							p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
+
+				tmp_loc=this_file.split('/')
+				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
+				# send good ack
+			if(enc.get("ack")==-1):
+				msg={}
+				msg["cmd"]=enc.get("cmd")
+				msg["fn"]=enc.get("fn")
+				msg["ok"]=1
+				msg_q_m2m.append((msg,m2m))
+
+			m2m.paket_count_per_file+=1
 
 
 		#### pre login challange
@@ -277,7 +280,7 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.logged_in=1
 					m2m.mid=enc.get("mid")
 					m2m.state=enc.get("state")
-					m2m.alert=alert_event()
+					m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
 					msg["ok"]=1 # logged in
 
 					# get area and account based on database value for this mid
@@ -292,7 +295,6 @@ def recv_m2m_msg_handle(data,m2m):
 					#print("### rm debug ###")
 					#rm.print_all()
 					#print("### rm debug ###")
-
 					if(not(rm.is_account(m2m.account))):
 						#print("account did not exist, adding")
 						new_rule_account=rule_account(m2m.account)
@@ -316,13 +318,13 @@ def recv_m2m_msg_handle(data,m2m):
 							for b in acc.areas:
 								detection_state=b.check_rules(1) 	# get the state, check and use db
 								db.update_det("m2m",m2m.account,m2m.area,detection_state)
-
 								#print("area "+str(b.area)+" should be")
 								#print(detection_state)
 
 					# get detecion state based on db
 					db_r2=db.get_state(m2m.area,m2m.account)
-					msg["detection"]=int(db_r2["state"])
+					m2m.detection=int(db_r2["state"])
+					msg["detection"]=m2m.detection
 
 					# search for all (active and logged-in) viewers for this client (same account)
 					info_viewer=0
@@ -351,19 +353,21 @@ def recv_m2m_msg_handle(data,m2m):
 			msg={}
 			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
-			msg["state"]=enc.get("state")
+			msg["state"]=m2m.state
+			msg["area"]=m2m.area
+			msg["detection"]=m2m.detection
 			informed=0
 			for subscriber in m2m.m2v:
 				msg_q_ws.append((msg,subscriber))
 				informed+=1
 
 			# prepare notification system, arm or disarm
-			if(m2m.state==1): # state=1 means Alert!
+			if(m2m.state==1 and m2m.detection==1): # state=1 means Alert!
 				m2m.alert.ts=time.time()
 				m2m.alert.files = []
 				m2m.alert.notification_send_ts = -1 # indicates that this is a thing to be done
 				m2m.alert.last_upload=0
-			elif(m2m.state==2 or m2m.state==3): #state 2 or 3 means: offline (+idle/+alert)
+			elif(m2m.detection==0): #state 2 or 3 means: offline (+idle/+alert)
 				# assuming that the system was already triggered and right after that the switch off command arrived -> avoid notification
 				# check_alerts will search for m2m with notification_send_ts==-1
 				m2m.alert.notification_send_ts = 0 # indicate that this is done
@@ -607,6 +611,7 @@ def connect_ws_m2m(m2m,ws):
 		msg_ws2["longitude"]=m2m.longitude
 		msg_ws2["latitude"]=m2m.latitude
 		msg_ws2["state"]=m2m.state
+		msg_ws2["detection"]=m2m.detection
 		msg_ws2["account"]=m2m.account
 		msg_ws2["alias"]=m2m.alias
 		msg_ws2["last_seen"]=m2m.last_comm
@@ -625,6 +630,13 @@ def connect_ws_m2m(m2m,ws):
 						found=1
 						break
 				if(not(found)):
+					# get the state from the DB for this box, eventhough it is not online
+					db_r2=db.get_state(m2m["area"],ws.account)
+					if(type(db_r2)!=int):
+						detection=int(db_r2["state"])
+					else:
+						detection=-1
+
 					msg_ws2={}
 					msg_ws2["cmd"]="m2v_login"
 					msg_ws2["mid"]=m2m["mid"]
@@ -633,6 +645,7 @@ def connect_ws_m2m(m2m,ws):
 					msg_ws2["longitude"]=m2m["longitude"]
 					msg_ws2["latitude"]=m2m["latitude"]
 					msg_ws2["state"]=-1
+					msg_ws2["detection"]=detection
 					msg_ws2["account"]=ws.account
 					msg_ws2["last_seen"]=m2m["last_seen"]
 			# 3. send data to the websocket
@@ -720,10 +733,11 @@ def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
 def check_alerts():
 	ret=-1
 	for cli in server_m2m.clients:
-		if(cli.alert.notification_send_ts==-1):
+		if(cli.alert.notification_send_ts==-1): # -1 = we switch to alert, we haven't switched back to "no alert" otherwise send_ts=0 and we haven't send the mail for this alert, otherwise this would be a timestamp
+			#print("check cli.alias as he is in -1, files:"+str(len(cli.alert.files))+"/"+str(cli.alert.files_expected)+" last upload "+str(cli.alert.last_upload)+"/"+str(cli.alert.last_upload+cli.alert.file_max_timeout_ms/1000)) ## ULTRA TODO BUG
 			# found client in "alert but not yet notified" state, see if it is time to notify
 			send = 0
-			# if the gab between the last_upload and now is > timeout
+			# if the gab between the last_upload and now is > timeout, last_upload will be set every time a file arrives, and initialized to 0 once the state changes to alert
 			if(cli.alert.last_upload!=0):
 				if(time.time()>cli.alert.last_upload+cli.alert.file_max_timeout_ms/1000):
 					#print("last upload ist old enough")
@@ -761,6 +775,7 @@ def rm_check_rules(account,login,use_db):
 	#rm.print_all()
 	#print("### rm debug ###")
 
+	# get account from rulemanager
 	acc=rm.get_account(account)
 	if(acc!=-1):
 		# run the rule check for every area in this account
@@ -788,30 +803,39 @@ def rm_check_rules(account,login,use_db):
 						msg["state"]=detection
 						# step 8 append message for this m2m client to go sharp ;)
 						msg_q_m2m.append((msg,m2m))
-						print("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"'")
+						# step 9 tell the watching ws that it went sharp		
+						affected_ws_clients=0
+						for ws in m2m.m2v:
+							msg2={}
+							msg2["cmd"]="detection_changed"	
+							msg2["area"]=m2m.area
+							msg2["detection"]=m2m.detection
+							msg_q_ws.append((msg2,ws))
+							affected_ws_clients+=1
+						print("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"' (-> "+str(affected_ws_clients)+" ws clients)")
 
 #******************************************************#
 
 #******************************************************#
-# this fuction shall be called if the environment changes. E.g. if a ws client change the location.
-# it will load the rule_account from the rule manager by  the given "account" string and go through all areas,
-# associated the this account. it will evaluate the rules for each area of the account and write the status to the database.
-# after that it will go through the complete m2m_client list and grab every box that has the same accont, reload the status
-# of the box from the database and send it to the box.
-# the login argument is used to keep track what ws client has triggered all that changes
+# this is the call back function that the p process uses whenever the user typed "ENTER". we'll react by putting some debug output on the terminal.
+# as this code has all the variables we just call the Displaying function in p with our variables ..
 def helper_output(input):
-	input=input[0:len(input)-1]
+	print("")
 	if(input=="rm"):
+		p.show_m2m(1,0,0)
 		rm.print_all()
+		p.show_m2m(1,0,0)
 	elif(input=="ws"):
 		print("we got "+str(len(server_ws.clients))+" ws clients connected")
 		for ws in server_ws.clients:
 			print("IP:"+str(ws.ip)+", port:"+str(ws.port)+", logged in:"+str(ws.logged_in)+", last_comm:"+str(ws.last_comm)+", login:"+str(ws.login)+", account:"+str(ws.account)+", send_q_len:"+str(ws.snd_q_len))
 
 	elif(input=="m2m"):
-		print("we got "+str(len(server_m2m.clients))+" m2m clients connected")
+		p.show_m2m(-2,len(server_m2m.clients),0)
+		p.show_m2m(-1,0,0)
 		for m2m in server_m2m.clients:
-			print("IP:"+str(m2m.ip)+", logged in:"+str(m2m.logged_in)+", last_comm:"+str(m2m.last_comm)+", mid:"+str(m2m.mid)+", account:"+str(m2m.account)+", area:"+str(m2m.area)+", state:"+str(m2m.state)+", alias:"+str(m2m.alias)+", coords:"+str(m2m.latitude)+"/"+str(m2m.longitude)+", detection:"+str(m2m.detection))
+			p.show_m2m(0,0,m2m)
+		p.show_m2m(1,0,0)
 	else:
 		print("whoot? ->"+input+"<-")
 		print("your choices are:")
@@ -819,7 +843,8 @@ def helper_output(input):
 		print("ws: to print informations about the connected websocket clients")
 		print("rm: to print informations about the rule manager")
 
-####################				
+	print("")
+#******************************************************#
 #***************************************************************************************#
 #************************************ End of Common  ***********************************#
 #***************************************************************************************#
@@ -851,8 +876,9 @@ db.connect()
 rm = rule_manager()
 
 # our helper for the console
-std_input.start()
-std_input.subscribe_callback(helper_output)
+p.start()
+p.subscribe_callback(helper_output)
+
 
 # else
 busy=1
@@ -897,15 +923,18 @@ while 1:
 		busy=1
 
 	# check the rules
-	if(time.time()>last_rulecheck_ts+60):
+	if(time.time()>last_rulecheck_ts+60): # this is not a good way .. we should know when we have to call it for a timebased change, not guess it
 		busy=1
 		last_rulecheck_ts=time.time()
-		print("[A_RM  "+time.strftime("%H:%M:%S")+"] checking")
+		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] checking","r")
+		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
 		#print(time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5])
 		for acc in rm.data:
-			rm_check_rules(acc.account,"timetrigger",0) # check but use no database
+			if(now>acc.next_ts or acc.check_day_jump()): # next_ts hold the time when a rule will change
+				p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] full rule_check for account "+acc.account+" required","r")
+				rm_check_rules(acc.account,"timetrigger",1) # check with database
 		debug_ts=time.time()-last_rulecheck_ts
-		print("Check took "+str(debug_ts))
+		p.rint("Check took "+str(debug_ts),"r")
 
 #***************************************************************************************#
 #********************************** End of Main loop ***********************************#
