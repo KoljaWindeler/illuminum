@@ -34,6 +34,8 @@ def start_listen():
 	while(1):
 		input=sys.stdin.readline()
 		input=input[0:len(input)-1] # strip newline
+		if(len(input)==0):
+			continue
 		
 		if(input[0]=="_" and len(input)>=3): #activate or deactivate outputs
 			found=0
