@@ -88,13 +88,15 @@ class rule_manager:
 		return 0
 
 	def print_all(self):
-		print("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered")
+		print("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered ==")
 		i=1
 		for a in self.data:
 			print("")
 			print("|+ Account "+str(i)+"/"+str(len(self.data)))
 			a.print_account()
 			i+=1
+		print()
+		print("== End of rule manager output ==")
 	
 	def get_account(self,account):
 		for a in self.data:
@@ -182,7 +184,7 @@ class area:
 		print("|||+ Rules:")
 		for r in self.rules:
 			print("||||- "+str(i)+"/"+str(len(self.rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,0,1)):
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1)):
 				print("|||||- status: true")
 			else:
 				print("|||||- status: false")
@@ -194,7 +196,7 @@ class area:
 		print("|||+ Sub-Rules:")
 		for r in self.sub_rules:
 			print("||||- "+str(i)+"/"+str(len(self.sub_rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,0,1)):
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1)):
 				print("|||||- status: true")
 			else:
 				print("|||||- status: false")

@@ -1,8 +1,9 @@
-import time,json,os,base64,hashlib,string,random
+import time,json,os,base64,hashlib,string,random,sys,select
 from clients import alert_event,webcam_viewer,m2m_state,det_state
 import server_m2m
 import server_ws
 import send_mail
+import std_input
 from rule_manager import *
 from sql import *
 
@@ -318,7 +319,6 @@ def recv_m2m_msg_handle(data,m2m):
 
 								#print("area "+str(b.area)+" should be")
 								#print(detection_state)
-
 
 					# get detecion state based on db
 					db_r2=db.get_state(m2m.area,m2m.account)
@@ -790,6 +790,34 @@ def rm_check_rules(account,login,use_db):
 						msg_q_m2m.append((msg,m2m))
 						print("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"'")
 
+#******************************************************#
+
+#******************************************************#
+# this fuction shall be called if the environment changes. E.g. if a ws client change the location.
+# it will load the rule_account from the rule manager by  the given "account" string and go through all areas,
+# associated the this account. it will evaluate the rules for each area of the account and write the status to the database.
+# after that it will go through the complete m2m_client list and grab every box that has the same accont, reload the status
+# of the box from the database and send it to the box.
+# the login argument is used to keep track what ws client has triggered all that changes
+def helper_output(input):
+	input=input[0:len(input)-1]
+	if(input=="rm"):
+		rm.print_all()
+	elif(input=="ws"):
+		print("we got "+str(len(server_ws.clients))+" ws clients connected")
+		for ws in server_ws.clients:
+			print("IP:"+str(ws.ip)+", port:"+str(ws.port)+", logged in:"+str(ws.logged_in)+", last_comm:"+str(ws.last_comm)+", login:"+str(ws.login)+", account:"+str(ws.account)+", send_q_len:"+str(ws.snd_q_len))
+
+	elif(input=="m2m"):
+		print("we got "+str(len(server_m2m.clients))+" m2m clients connected")
+		for m2m in server_m2m.clients:
+			print("IP:"+str(m2m.ip)+", logged in:"+str(m2m.logged_in)+", last_comm:"+str(m2m.last_comm)+", mid:"+str(m2m.mid)+", account:"+str(m2m.account)+", area:"+str(m2m.area)+", state:"+str(m2m.state)+", alias:"+str(m2m.alias)+", coords:"+str(m2m.latitude)+"/"+str(m2m.longitude)+", detection:"+str(m2m.detection))
+	else:
+		print("whoot? ->"+input+"<-")
+		print("your choices are:")
+		print("m2m: to print informations about the connected camera clients")
+		print("ws: to print informations about the connected websocket clients")
+		print("rm: to print informations about the rule manager")
 
 ####################				
 #***************************************************************************************#
@@ -821,6 +849,10 @@ db.connect()
 
 # our rule set maanger for all clients. Argument is the callback function
 rm = rule_manager()
+
+# our helper for the console
+std_input.start()
+std_input.subscribe_callback(helper_output)
 
 # else
 busy=1
@@ -874,6 +906,7 @@ while 1:
 			rm_check_rules(acc.account,"timetrigger",0) # check but use no database
 		debug_ts=time.time()-last_rulecheck_ts
 		print("Check took "+str(debug_ts))
+
 #***************************************************************************************#
 #********************************** End of Main loop ***********************************#
 #***************************************************************************************#
