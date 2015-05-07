@@ -29,6 +29,7 @@ def start_trigger():
 		global cam_width
 		global cam_heigh
 		global change_res_event
+		global change_det_event
 	
 		try:
 			print("[A "+time.strftime("%H:%M:%S")+"] -> Starting Camera Interface ("+str(cam_width)+"/"+str(cam_height)+")")
@@ -83,48 +84,38 @@ def start_trigger():
 				cam.stop()
 				cam=pygame.camera.Camera("/dev/video0",(cam_width,cam_height))
 				cam.start()
+
+			# set detection on / off
+			if(change_det_event):
+				busy=1
+				state=-1 #to be refreshed by the part above
+				change_det_event=0
 				
 			# react on pin state change
 			if(gpio_state != state):
+				state=gpio_state
 				busy=1
-				if(gpio_state == 1):
-					if(detection==0):
-						ex_state=3
-					else:
-						ex_state=1
-						start = time.time()
-						webcam_capture_remaining=5
+				if(state == 1 and detection!=0): #alarm conditions
+					start = time.time()
+					webcam_capture_remaining=5
 
-				else:
-					if(detection==0):
-						ex_state=2
-					else:
-						ex_state=0
-
-				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[ex_state]+"'")
+				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[state]+"'")
 
 				for callb in callback_action:
-					callb("state_change",ex_state) 
-	
-				state=gpio_state
+					callb("state_change",(state,detection))
 
 			elif(gpio_state == 1 and detection == 2): # the "send all photos until low mode"
 				busy=1
 				if(time.time()>last_webcam_ts+1):
 					webcam_capture_remaining=1
 
-		
-			# set detection on / off
-			if(detection!=last_detection):
-				busy=1
-				state=-1 #to be refreshed by the part above
-				last_detection=detection
 			
 			# interval photos
 			if(webcam_interval!=0):
 				if(time.time()>last_webcam_ts+webcam_interval):
 					webcam_capture_remaining=1
 					#print("taking a snap")
+
 
 			# capture photos!
 			if(webcam_capture_remaining>0):
@@ -213,7 +204,9 @@ def subscribe_callback(fun,method):
 		callback_action.append(fun)
 
 def set_detection(state):
+	global change_det_event
 	global detection
+	change_det_event=1
 	detection=state
 	print("[T "+time.strftime("%H:%M:%S")+"] detection set to "+str(state))
 
@@ -238,6 +231,7 @@ def change_res(res):
 
 ##########################################
 webcam_interval=0
+change_det_event=0
 change_res_event=0
 cam_width=WIDTH
 cam_height=HEIGHT

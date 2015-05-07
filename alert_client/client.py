@@ -23,11 +23,13 @@ client_socket=""
 last_transfer=time.time()
 light_dimming_q=[]
 my_state=-1
+my_detection=-1
 
 #******************************************************#
 def trigger_handle(event,data):
 	global msg_q
 	global my_state
+	global my_detection
 	global trigger
 
 	if(event=="uploading"):
@@ -37,13 +39,14 @@ def trigger_handle(event,data):
 	elif(event=="state_change"):
 		msg={}
 		msg["cmd"]=event
-		msg["state"]=data
-		msg["detection"]=trigger.detection
-		my_state=data
+		msg["state"]=data[0]
+		msg["detection"]=data[1]
+		my_state=data[0]
+		my_detection=data[1]
 		msg_q.append(msg)
 		
 		# light dimming stuff
-		if(data==3): # deactive and motion
+		if(my_detection==0 and my_state==1): # deactive and motion
 			#light_dimming_q.append((time.time()+0.0,100,0,0,500)) # 4 sec to dimm to warm orange - now
 			#light_dimming_q.append((time.time()+0.5,0,0,0,200)) # 4 sec to dimm to warm orange - now
 			#light_dimming_q.append((time.time()+0.7,0,0,100,500)) # 4 sec to dimm to warm orange - now
@@ -54,7 +57,7 @@ def trigger_handle(event,data):
 			#light_dimming_q.append((time.time()+2.6,0,0,0,200)) # 4 sec to dimm to warm orange - now
 			#light_dimming_q.append((time.time()+2.8,100,70,2,4000)) # 4 sec to dimm to warm orange - now
 			light_dimming_q.append((time.time(),100,70,2,4000)) # 4 sec to dimm to warm orange - now
-		elif(data==2): # deactive and no motion
+		elif(my_detection==0 and my_state==0): # deactive and no motion
 			light_dimming_q.append((time.time()+10*60,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			#light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 	elif(event=="uploading_str"):
@@ -154,6 +157,11 @@ def connect():
 
 	return c_socket
 
+#def helper_output(input):
+#	input=input[0:len(input)-1]
+#	if(input=="rm"):
+
+
 # Main programm
 #******************************************************#
 
@@ -164,6 +172,10 @@ trigger.subscribe_callback(trigger_handle,"")
 
 light.start()
 
+# our helper for the console
+#std_input.start()
+#std_input.subscribe_callback(helper_output)
+
 comm_wait=0
 waiter=[]
 hb_out=0
@@ -173,10 +185,9 @@ while 1:
 	logged_in=0
 	client_socket=connect()	
 	while(client_socket!=""):
-		time.sleep(0.1)
 		#************* receiving start ******************#		
 		try:
-			ready_to_read, ready_to_write, in_error = select.select([client_socket,sys.stdin], [client_socket,], [], 5)
+			ready_to_read, ready_to_write, in_error = select.select([client_socket,sys.stdin], [client_socket,], [], .1)
 			#print(str(len(ready_to_read))+"/"+str(len(ready_to_write))+"/"+str(len(in_error)))
 		except:
 			print("select detected a broken connection")
@@ -255,6 +266,7 @@ while 1:
 						msg["client_pw"]=pw_c
 						msg["cmd"]="login"
 						msg["state"]=my_state
+						msg["detection"]=my_detection
 						msg["ts"]=time.strftime("%d.%m.%Y || %H:%M:%S")
 						msg["ack"]=-1
 						msg_q.append(msg)
