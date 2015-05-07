@@ -13,8 +13,8 @@ SERVER_TIMEOUT = 5
 # login
 l=login()
 pw=l.pw
-msg_out_ts=0
-logged_in=0
+msg_out_ts=0			# used to save the time when the last message, requesting a ACK was send
+logged_in=0			# avoiding that we send stuff without beeing logged in
 file_uploading=""
 msg_q=[]
 file_q=[]
@@ -60,35 +60,20 @@ def trigger_handle(event,data):
 		elif(my_detection==0 and my_state==0): # deactive and no motion
 			light_dimming_q.append((time.time()+10*60,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			#light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
+		elif(my_detection==1 and my_state==1):
+			light_dimming_q.append((time.time(),100,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
+		elif(my_detection==1 and my_state==0):
+			light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
+			
 	elif(event=="uploading_str"):
 		file_str_q.append(data)
 
 #******************************************************#
-def upload_str_file(data):
-	global logged_in
-	if(logged_in!=1):
-		print("We can't upload as we are not logged in")
-		return -1
-	td=data[1]
-	msg={}
-	msg["cmd"]="wf"
-	msg["data"]=base64.b64encode(data[0]).decode('utf-8')
-	msg["sof"]=1
-	msg["eof"]=1
-	msg["msg_id"]=0
-	msg["ack"]=-1
-	msg["ts"]=td
-	msg["fn"]=""
-
-	if(trigger.TIMING_DEBUG):
-		td.append((time.time(),"b64 - gen msg"))
-
-	msg["td"]=td
-	msg_q.append(msg)
-
-
 def upload_file(data):
 	#print(str(time.time())+" -> this is upload_file with "+path)
+	if(len(msg_q)>10):
+		return 1
+
 	path=data[0]
 	td=data[1]
 
@@ -331,15 +316,6 @@ while 1:
 				#error
 				client_socket=""
 				break
-
-		if(len(file_str_q)>0):
-			file=file_str_q[0]
-			file_str_q.remove(file)
-			
-			if(trigger.TIMING_DEBUG):
-				file[1].append((time.time(),"dequeue"))
-
-			upload_str_file(file)
 		#************* file preperation end ******************#
 
 		#************* sending start ******************#
