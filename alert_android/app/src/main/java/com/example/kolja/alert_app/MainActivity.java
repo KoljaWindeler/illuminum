@@ -115,78 +115,76 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         public void onReceive(Context context, Intent intent) {
             Bundle bundle = intent.getExtras();
             if (bundle != null) {
-                String data = bundle.getString(bg_service.JSON);
-                String cmd;
-                //int resultCode = bundle.getInt(DownloadService.RESULT);
-                TextView textView = (TextView)findViewById(R.id.log);
-                //textView.setText(textView.getText() + "\n" + data);
+                if(bundle.containsKey(bg_service.JSON)) {
+                    String data = bundle.getString(bg_service.JSON);
+                    String cmd;
+                    //int resultCode = bundle.getInt(DownloadService.RESULT);
+                    TextView textView = (TextView) findViewById(R.id.log);
+                    //textView.setText(textView.getText() + "\n" + data);
 
-                try {
-                    String log = bundle.getString(bg_service.LOG);
-                    if(log.equals("log")) {
-                        textView.setText(String.valueOf(bundle.getFloat(bg_service.JSON)) + "\n" + textView.getText());
-                    }
-                }
-                catch(Exception e){
-                    int ignore=1;
-                }
-
-                JSONObject object = new JSONObject();
-
-                try {
-                    object = new JSONObject(data);
-                    cmd=object.getString("cmd");
-                } catch (Exception e) {
-                    cmd="";
-                }
-
-                if(cmd.equals("rf")){
                     try {
-                        Long tsLong = System.currentTimeMillis();
+                        String log = bundle.getString(bg_service.LOG);
+                        if (log.equals("log")) {
+                            textView.setText(String.valueOf(bundle.getFloat(bg_service.JSON)) + "\n" + textView.getText());
+                        }
+                    } catch (Exception e) {
+                        int ignore = 1;
+                    }
+
+                    JSONObject object = new JSONObject();
+
+                    try {
+                        object = new JSONObject(data);
+                        cmd = object.getString("cmd");
+                    } catch (Exception e) {
+                        cmd = "";
+                    }
+
+                    if (cmd.equals("rf")) {
+                        try {
+                            Long tsLong = System.currentTimeMillis();
 
 
-                        String encodedImage=object.getString("img");
-                        Log.i("websocket","got str from obj");
-                        byte[] decodedString = Base64.decode(encodedImage, Base64.NO_OPTIONS);
-                        Log.i("websocket","decoded");
-                        Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-                        Log.i("websocket","loaded bitmap");
+                            String encodedImage = object.getString("img");
+                            Log.i("websocket", "got str from obj");
+                            byte[] decodedString = Base64.decode(encodedImage, Base64.NO_OPTIONS);
+                            Log.i("websocket", "decoded");
+                            Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+                            Log.i("websocket", "loaded bitmap");
 
-                        int id=-1;
-                        for(int i=0;i<res_data.size();i++){
-                            if(res_data.elementAt(i).name.equals(object.getString("mid"))){
-                                id=i;
+                            int id = -1;
+                            for (int i = 0; i < res_data.size(); i++) {
+                                if (res_data.elementAt(i).name.equals(object.getString("mid"))) {
+                                    id = i;
+                                }
                             }
+                            if (id > -1) {
+                                ListView WebcamView = (ListView) findViewById(R.id.listScroller);
+                                View v = WebcamView.getChildAt(id);
+                                ((ImageView) v.findViewById(R.id.webcam)).setImageBitmap(decodedByte);
+                            }
+
+                            //((ImageView)findViewById(R.id.Foto)).setImageBitmap(decodedByte);
+                            Log.i("websocket", "bitmap set");
+
+                            Long tsLong2 = System.currentTimeMillis() - tsLong;
+                            String ts = tsLong2.toString();
+                            //textView.setText(textView.getText() + "\n" + ts);
+
+                        } catch (Exception e) {
+                            int ignore = 0;
                         }
-                        if(id>-1) {
-                            ListView WebcamView = (ListView) findViewById(R.id.listScroller);
-                            View v = WebcamView.getChildAt(id);
-                            ((ImageView) v.findViewById(R.id.webcam)).setImageBitmap(decodedByte);
-                        }
+                    } else if (cmd.equals("m2v_login")) {
+                        try {
+                            // add an object that will hold the ID "mid", "area","state","account"
+                            String mid = object.getString("mid");
+                            String area = object.getString("area");
+                            int state = object.getInt("state");
+                            String account = object.getString("account");
 
-                        //((ImageView)findViewById(R.id.Foto)).setImageBitmap(decodedByte);
-                        Log.i("websocket","bitmap set");
+                            prepare_adapter(mid);
 
-                        Long tsLong2 = System.currentTimeMillis()-tsLong;
-                        String ts = tsLong2.toString();
-                        //textView.setText(textView.getText() + "\n" + ts);
-
-                    }	catch (Exception e) {
-                        int ignore=0;
-                    }
-                }
-
-                else if(cmd.equals("m2v_login")){
-                    try {
-                        // add an object that will hold the ID "mid", "area","state","account"
-                        String mid=object.getString("mid");
-                        String area=object.getString("area");
-                        int state=object.getInt("state");
-                        String account=object.getString("account");
-
-                        prepare_adapter(mid);
-
-                        // quick and dirty: add us to the list of webcams as soon as they sign up:
+                            // quick and dirty: add us to the list of webcams as soon as they sign up:
 //                        JSONObject object_send = new JSONObject();
 //                        object_send.put("cmd", "set_interval");
 //                        object_send.put("mid", mid);
@@ -196,8 +194,9 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
 //                        send_intent.putExtra(bg_service.JSON, object_send.toString());
 //                        sendBroadcast(send_intent);
 
-                    }	catch (Exception e) {
-                        int ignore=0;
+                        } catch (Exception e) {
+                            int ignore = 0;
+                        }
                     }
                 }
 

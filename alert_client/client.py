@@ -400,5 +400,6 @@ while 1:
 				comm_wait=0
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")		
+	trigger.set_interval(0) # switch off the webstream, we wouldn't have ws beeing connected to us anyway after resign on
 		
 #exit()
