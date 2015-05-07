@@ -119,7 +119,8 @@ class rule_manager:
 		return 0
 
 	def print_all(self):
-		print("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered ==")
+		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
+		print("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered at ts: "+str(now)+"==")
 		i=1
 		for a in self.data:
 			print("")
@@ -217,12 +218,12 @@ class area:
 		for c_rules in [self.rules,self.sub_rules]:
 			for r in c_rules:
 				if(r.conn=="time"):
-					if(r.arg1>now and (closest_event==-1 or r.arg1<closest_event)):
-						closest_event=r.arg1
-					if(r.arg2>now and (closest_event==-1 or r.arg2<closest_event)):
-						closest_event=r.arg2
+					if(int(r.arg1)>now and (closest_event==-1 or int(r.arg1)<closest_event)):
+						closest_event=int(r.arg1)
+					if(int(r.arg2)>now and (closest_event==-1 or int(r.arg2)<closest_event)):
+						closest_event=int(r.arg2)
 				elif(r.conn=="day"):
-					if(closest_event==-1):
+					if(closest_event==-1 or now>closest_event):
 						closest_event=86400
 
 		return closest_event
