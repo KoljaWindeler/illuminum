@@ -12,6 +12,7 @@ import time, datetime
 # 3 # rule_account, used to hold multiple areas in one account
 # .account																	string that holds the account name for easy identification
 # .areas		 																list of class "area"
+# .next_ts															this ts should tell us when we should run a check again
 # .is_area(self,area)												returns 1 if the given area is already part of the areas list
 # .add_area(self, area)											adds an object of class "area" to the list areas, this will trigger the reload_rules of the added area
 # .rem_area(self, area) 										removes an object of class "area" from the list areas
@@ -22,6 +23,7 @@ import time, datetime
 # .rules																			list of class "rules"
 # .sub_rules																list of class "rules"
 # .db																				handle to the mysql db
+# .get_next_ts(self)													get the next time base alert for this area
 # .clear_rules(self)													clears rules and sub_rules
 # .add_rule(self, id, conn, arg1, arg2)				adds a new rule, this function is used by the reload_rules
 # .add_sub_rule(self, id, conn, arg1, arg2)	adds a new sub_rule, this function is used by the reload_rules
@@ -38,21 +40,50 @@ import time, datetime
 # .arg2 																			argument 2 for rule
 
 
+#*********************************** THIS IS HOW IT SHOULD WORK ******************************#
+
 ## create rule manager
 #rm = rule_manager()
 
+# add an account but check first if it is already there
 #if(not(rm.is_account(m2m.account))):
 #	print("account did not exist, adding")
 #	new_rule_account=rule_account(m2m.account)
 #	rm.add_account(new_rule_account)
 #
-# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
+# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should be there
 #if(not(rm.is_area_in_account(m2m.account,m2m.area))):
 #	print("area did not exist, adding")
 #	new_area=area(m2m.area,m2m.account,db) # will load rule set on its own from the database
 #	rm.add_area_to_account(m2m.account,new_area)
+#
+# when ever a environment change (like a ws changed his location or wifi SSID) happens do this:
+# acc=rm.get_account(account) # where account is the string of the account
+# for b in acc.areas:
+# 	detection_state=b.check_rules(use_db) 	# get the state
+#	db.update_det(login,account,b.area,detection_state)
+# after that you may want to tell your clients to change state
+#
+# to check if a time_based trigger occurred do this:
+# acc=rm.get_account(account) # where account is the string of the account
+# if(now>acc.next_ts or acc.check_day_jump()):	#check_day_jump will return 1 if there was a day_based_rule and we've checked last yesterday
+#	acc.update_next_ts()
+#	# at least one rule indicated that we should recheck the account
+#	# at this point you should call the function that handles the environment changes or at least to this
+# 	for b in acc.areas:
+# 		detection_state=b.check_rules(use_db) 	# get the state
+#		db.update_det(login,account,b.area,detection_state)
+# after that you may want to tell your clients to change state
 
 
+#*************************************#
+# this is the manager, the highest class
+# its purpose is to hold and manage all
+# accounts!
+# it can add, remove and check if a account exists
+# and even return it back for more details work
+# it can also check/add a area to an account
+#*************************************#
 class rule_manager:
 	def __init__(self):
 		self.data = []
@@ -104,13 +135,38 @@ class rule_manager:
 				return a
 		return -1	
 
+#*************************************#
+# this is our account class. the second highest animal
+# purpose of the account is to hold the area
+# an account has a timestamp that tells us
+# when the next check of the rules is required
+#*************************************#
 class rule_account:
 	def __init__(self,account):
 		self.account=account
 		self.areas = []
+		self.next_ts = -1
+		self.day_last_check=-1
 	
 	def add_area(self, area):
 		self.areas.append(area)
+		self.update_next_ts()
+
+	def check_day_jump(self):
+		today=time.localtime()[2]
+		if(self.day_last_check!=today):
+			self.day_last_check=today
+			if(self.next_ts==86400):
+				return 1
+		return 0
+
+	def update_next_ts(self):
+		for a in self.areas:
+			next_event_for_this_area=a.get_next_ts()
+			if(next_event_for_this_area>-1 and (next_event_for_this_area<self.next_ts or self.next_ts==-1)):
+				self.next_ts=next_event_for_this_area
+		return 0
+
 		
 	def rem_area(self, area):
 		for a in self.areas:
@@ -133,15 +189,12 @@ class rule_account:
 			print("||+ Area "+str(i)+"/"+str(len(self.areas)))
 			a.print_rules()
 			i+=1
+		print("|+ my next timebased trigger event is at '"+str(self.next_ts)+"'")
 	
-
-class rule:
-	def __init__(self, id, conn, arg1, arg2):
-		self.id = id
-		self.conn = conn
-		self.arg1 = arg1
-		self.arg2 = arg2
-
+#*************************************#
+# an area is the third animal or second from the bottom
+# it hold the rules, and sub_rules and can check them
+#*************************************#
 class area:
 	def __init__(self, area, account, db):
 		self.area = area
@@ -150,7 +203,30 @@ class area:
 		self.rules = []
 		self.sub_rules = []
 		self.reload_rules()
-		
+
+	#**********************************************************#
+	# This function shall go through all rules and subrules and
+	# find some time based trigger, it will return a timestamp
+	# in UTC between 0..86400 where 86400 means that we have a
+	# day rule. -1 means no time trigger
+	#**********************************************************#
+	def get_next_ts(self):
+		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
+		closest_event=-1
+
+		for c_rules in [self.rules,self.sub_rules]:
+			for r in c_rules:
+				if(r.conn=="time"):
+					if(r.arg1>now and (closest_event==-1 or r.arg1<closest_event)):
+						closest_event=r.arg1
+					if(r.arg2>now and (closest_event==-1 or r.arg2<closest_event)):
+						closest_event=r.arg2
+				elif(r.conn=="day"):
+					if(closest_event==-1):
+						closest_event=86400
+
+		return closest_event
+
 
 	def add_sub_rule(self, id, conn, arg1, arg2):
 		self.sub_rules.append(rule(id,conn,arg1,arg2))
@@ -305,3 +381,10 @@ class area:
 		## WLAN location based
 		
 		return 0
+
+class rule:
+	def __init__(self, id, conn, arg1, arg2):
+		self.id = id
+		self.conn = conn
+		self.arg1 = arg1
+		self.arg2 = arg2
