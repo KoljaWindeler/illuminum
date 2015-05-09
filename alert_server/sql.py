@@ -71,10 +71,15 @@ class sql:
 						result = cursor.fetchone()
 					else:
 						result=-1
+						print("count not 1")
+						print(req)
+						exit()
 					#print(result)
 			except:
 				if(self.connection_check()==0):
 					result = -2
+					print("cobnectuon checjlh ==0")
+					exit()
 				else:
 					self.connection=""
 					self.connect()
