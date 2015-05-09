@@ -27,9 +27,11 @@ def start():
 	threading.Thread(target = start_listen, args = ()).start()
 
 def start_listen():
-	print_out.append(poe("h","Heartbeats","Shows the Heartbeats of every M2M client",1))
+	print_out.append(poe("h","Heartbeats","Shows the Heartbeats of every client",1))
 	print_out.append(poe("r","Rulemanager","Rulemanager output",1))
 	print_out.append(poe("u","Uploades","Shows every uploaded file",1))
+	print_out.append(poe("l","Login","Shows every login",1))
+	print_out.append(poe("s","State Change","Shows every state change via movement or rule change",1))
 
 	while(1):
 		input=sys.stdin.readline()
@@ -90,7 +92,31 @@ def rint(input,sc):
 			if(a.state==1):
 				print(input)
 	if(not(found)):
-		print("didn't recogice shortcut '"+sc+"'")	
+		print("didn't recogice shortcut '"+sc+"'")
+
+
+def m2m_login(m2m,viewer):
+	p_alias=(m2m.alias+"          ")[0:12]
+	p_account=(m2m.account+"          ")[0:10]
+	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(m2m.detection)])+"' (->"+str(viewer)+" ws_clients)","l")
+
+def ws_login(ws):
+	p_account=(ws.account+"          ")[0:10]
+	p_login=(ws.login+"                                                ")[0:32]
+	rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+p_login+"' @ '"+p_account+"' log-in: OK, ->(WS)","l")
+
+def change_state(m2m,viewer):
+	p_alias=(m2m.alias+"          ")[0:12]
+	p_account=(m2m.account+"          ")[0:10]
+	p_state=(str(m2m_state[m2m.state])+"                  ")[0:5]
+	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' changed state to: '"+p_state+"', detection: '"+str(det_state[m2m.detection])+"' (->"+str(viewer)+" ws_clients)","s")
+
+def connect_ws_m2m(m2m,ws):
+	p_alias=(m2m.alias+"          ")[0:12]
+	p_account=(m2m.account+"          ")[0:10]
+	p_login=(ws.login+"             ")[0:20]
+	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' <-> WS '"+p_login+"' "+str(ws.ip),"l")
+
 
 def show_m2m(id,l,m2m):
 	if(id==-2):
