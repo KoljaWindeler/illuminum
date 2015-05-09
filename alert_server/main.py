@@ -135,118 +135,8 @@ def recv_m2m_msg_handle(data,m2m):
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=-2 # not logged in
 			msg_q_m2m.append((msg,m2m))
-						
-		#### heartbeat
-		elif(enc.get("cmd")=="hb"):
-			# respond
-			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' HB updating "+str(len(m2m.m2v))+" clients","h")
-			msg={}
-			msg["mid"]=m2m.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=1
-			msg_q_m2m.append((msg,m2m))
 
-			# tell subscribers
-			msg={}
-			msg["mid"]=m2m.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["ts"]=time.time()
-			for subscriber in m2m.m2v:
-				#print("Tell that to "+subscriber.login)
-				msg_q_ws.append((msg,subscriber))
-
-		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file
-		elif(enc.get("cmd")=="wf"):
-			# handle new file
-			if(m2m.openfile!=enc.get("fn")):
-				if(m2m.fp!=""):
-					try:
-						m2m.fp.close()
-					except:
-						m2m.fp=""
-				m2m.openfile = enc.get("fn")
-				des_location="../webserver/upload/"+str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
-				m2m.fp = open(des_location,'wb')
-				# this is the start of a transmission
-				# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
-				# we'll put every alert file filename in the m2m.alert_img list  and check in the loop if that list
-				# has reached 5 pics, or hasn't been updated for > 20 sec.
-				# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
-				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
-				if(m2m.state==1): # ALERT
-					if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
-						m2m.alert.files.append(des_location)
-						m2m.alert.last_upload = time.time()
-				#tmp_loc=des_location.split('/')
-				#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
-				m2m.paket_count_per_file=0
-
-			# write this file
-			m2m.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
-
-			# check if this packet contained the end of file
-			if(enc.get("eof")==1):
-				# end of file, close it
-				this_file=m2m.openfile #store the name just in case we have to read it again
-				try:
-					m2m.fp.close()
-				except:
-					m2m.fp=""
-				m2m.openfile=""	
-
-				# prepare client message
-				msg={}
-				msg["mid"]=m2m.mid
-				msg["cmd"]="rf"
-				msg["state"]=m2m.state
-
-				# all image data in one packet
-				if(enc.get("sof",0)==1):
-					#send img, assuming this is a at once img
-					msg["img"]=enc.get("data")
-				else:
-					#read img and send at once, close this file pointer as it is writing only
-					try:
-						m2m.fp = open(this_file,'rb')
-						msg["img"]=m2m.fp.read()
-						m2m.fp.close()
-					except:
-						m2m.fp=""
-					
-				# select the ws to send to
-				if(m2m.state==1): # alert -> inform everyone
-					# the m2v list has all viewer
-					for v in m2m.m2v:
-						if(v.snd_q_len<10): # just send it if their queue is not to full
-							msg_q_ws.append((msg,v))
-							v.snd_q_len+=1
-				else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
-					for v in m2m.webcam:
-						#only update if last ts war more then interval ago
-						ts_photo=enc.get("td",0) # td tells us when this photo was taken
-						ts_photo=ts_photo[1][0]
-						t_passed=ts_photo-v.ts+0.1
-						if(t_passed>=v.interval and v.ws.snd_q_len<10): # send only if queue is not too full
-							v.ts=ts_photo
-							v.ws.snd_q_len+=1
-							msg_q_ws.append((msg,v.ws))
-						else:
-							p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
-
-				tmp_loc=this_file.split('/')
-				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
-				# send good ack
-			if(enc.get("ack")==-1):
-				msg={}
-				msg["cmd"]=enc.get("cmd")
-				msg["fn"]=enc.get("fn")
-				msg["ok"]=1
-				msg_q_m2m.append((msg,m2m))
-
-			m2m.paket_count_per_file+=1
-
-
-		#### pre login challange
+		#### pre login challange for M2M
 		elif(enc.get("cmd")=="prelogin"):
 			m2m.challange=get_challange()
 			msg={}
@@ -255,7 +145,8 @@ def recv_m2m_msg_handle(data,m2m):
 			msg_q_m2m.append((msg,m2m))
 			#print("received prelogin request, sending challange "+m2m.challange)
 
-		#### login try to set the logged_in to 1 to upload files etc
+
+		#### login try to set the logged_in to 1 to upload files etc, for M2M
 		elif(enc.get("cmd")=="login"):
 			msg={}
 			msg["cmd"]=enc.get("cmd")
@@ -336,7 +227,7 @@ def recv_m2m_msg_handle(data,m2m):
 							connect_ws_m2m(m2m,viewer)
 							info_viewer+=1
 							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"/"+m2m.alias+"'@'"+m2m.account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(db_r2["state"])])+"' (->"+str(info_viewer)+" ws_clients)")
+					p.m2m_login(m2m,info_viewer)
 					db.update_last_seen(m2m.mid,m2m.conn.getpeername()[0])
 				else:
 					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' log-in: failed")
@@ -344,8 +235,27 @@ def recv_m2m_msg_handle(data,m2m):
 			# send message in any case
 			msg_q_m2m.append((msg,m2m))
 
+		#### heartbeat, for M2M
+		elif(enc.get("cmd")=="hb"):
+			# respond
+			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' HB updating "+str(len(m2m.m2v))+" clients","h")
+			msg={}
+			msg["mid"]=m2m.mid
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=1
+			msg_q_m2m.append((msg,m2m))
 
-		#### login try to set the logged_in to 1 to upload files etc
+			# tell subscribers
+			msg={}
+			msg["mid"]=m2m.mid
+			msg["cmd"]=enc.get("cmd")
+			msg["ts"]=time.time()
+			for subscriber in m2m.m2v:
+				#print("Tell that to "+subscriber.login)
+				msg_q_ws.append((msg,subscriber))
+
+
+		#### confirm that is changed the state of detection or tell us that there is movement, for M2M
 		elif(enc.get("cmd")=="state_change"):
 			m2m.state=enc.get("state",4)
 			m2m.detection=enc.get("detection",-1)
@@ -374,14 +284,109 @@ def recv_m2m_msg_handle(data,m2m):
 
 
 			# print on console
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' changed state to: '"+str(m2m_state[m2m.state])+"', detection: '"+str(det_state[m2m.detection])+"' (->"+str(informed)+" ws_clients)")
+			p.change_state(m2m,informed)
 
 
-		#### unsupported command
+
+		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file , for M2M
+		elif(enc.get("cmd")=="wf"):
+			# handle new file
+			if(m2m.openfile!=enc.get("fn")):
+				if(m2m.fp!=""):
+					try:
+						m2m.fp.close()
+					except:
+						m2m.fp=""
+				m2m.openfile = enc.get("fn")
+				des_location="../webserver/upload/"+str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
+				m2m.fp = open(des_location,'wb')
+				# this is the start of a transmission
+				# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
+				# we'll put every alert file filename in the m2m.alert_img list  and check in the loop if that list
+				# has reached 5 pics, or hasn't been updated for > 20 sec.
+				# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
+				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
+				if(m2m.state==1): # ALERT
+					if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
+						m2m.alert.files.append(des_location)
+						m2m.alert.last_upload = time.time()
+				#tmp_loc=des_location.split('/')
+				#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
+				m2m.paket_count_per_file=0
+
+			# write this file
+			m2m.fp.write(base64.b64decode(enc.get("data").encode('UTF-8')))
+
+			# check if this packet contained the end of file
+			if(enc.get("eof")==1):
+				# end of file, close it
+				this_file=m2m.fp.name  #store the name just in case we have to read it again
+				try:
+					m2m.fp.close()
+				except:
+					m2m.fp=""
+				m2m.openfile=""	
+
+				# prepare client message
+				msg={}
+				msg["mid"]=m2m.mid
+				msg["cmd"]="rf"
+				msg["state"]=m2m.state
+
+				# all image data in one packet
+				if(enc.get("sof",0)==1):
+					#send img, assuming this is a at once img
+					msg["img"]=enc.get("data")
+				else:
+					#read img and send at once, close this file pointer as it is writing only
+					try:
+						m2m.fp = open(this_file,'rb')
+						msg["img"]=m2m.fp.read()
+						m2m.fp.close()
+					except:
+						m2m.fp=""
+					
+				# select the ws to send to
+				if(m2m.state==1): # alert -> inform everyone
+					# the m2v list has all viewer
+					for v in m2m.m2v:
+						if(v.snd_q_len<10): # just send it if their queue is not to full
+							msg_q_ws.append((msg,v))
+							v.snd_q_len+=1
+				else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
+					for v in m2m.webcam:
+						#only update if last ts war more then interval ago
+						ts_photo=enc.get("td",0) # td tells us when this photo was taken
+						ts_photo=ts_photo[1][0]
+						t_passed=ts_photo-v.ts+0.1
+						if(t_passed>=v.interval and v.ws.snd_q_len<10): # send only if queue is not too full
+							v.ts=ts_photo
+							v.ws.snd_q_len+=1
+							msg_q_ws.append((msg,v.ws))
+						else:
+							p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
+
+					#  delete the picture from our memory
+					os.remove(this_file)
+
+				tmp_loc=this_file.split('/')
+				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
+				# send good ack
+			if(enc.get("ack")==-1):
+				msg={}
+				msg["cmd"]=enc.get("cmd")
+				msg["fn"]=enc.get("fn")
+				msg["ok"]=1
+				msg_q_m2m.append((msg,m2m))
+
+			m2m.paket_count_per_file+=1
+
+
+		#### unsupported command, for M2M
 		else:
 				print("unsupported command: "+enc.get("cmd"))
 		#********* msg handling **************#
-	#### comm error
+	#### comm error , for M2M
 	else:
 		print("-d--> json decode error")
 		msg={}
@@ -495,12 +500,17 @@ def recv_ws_msg_handle(data,ws):
 			print("websocket_msg")
 			for key, value in enc.items() :
 				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
-		## AREA CHANGE ##
-		if(enc.get("cmd"," ")=="area_change"):
-			print("websocket announced area change")
+
+		#### pre login challange, for WS
+		elif(enc.get("cmd")=="prelogin"):
+			ws.challange=get_challange()
 			msg={}
 			msg["cmd"]=enc.get("cmd")
-		## LOGIN from a viewer ##
+			msg["challange"]=ws.challange
+			msg_q_ws.append((msg,ws))
+			#print("received prelogin request, sending challange "+m2m.challange)
+
+		## LOGIN from a viewer, for WS
 		elif(enc.get("cmd")=="login"):
 			msg_ws={}
 			msg_ws["cmd"]=enc.get("cmd")
@@ -517,8 +527,10 @@ def recv_ws_msg_handle(data,ws):
 			if(db_f["pw"]==enc.get("client_pw") or 1):
 				ws.logged_in=1
 				msg_ws["ok"]=1 # logged in
+				msg_q_ws.append((msg_ws,ws))
 				ws.account=db_f["account"]
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: OK, '"+ws.login+"'@'"+ws.account+"'")
+				p.ws_login(ws)
+
 				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
 				# introduce them to each other
 				for m2m in server_m2m.clients:
@@ -529,9 +541,20 @@ def recv_ws_msg_handle(data,ws):
 			else:
 				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: failed, '"+ws.login+"'")
 				msg_ws["ok"]=-2 # not logged in
-			msg_q_ws.append((msg_ws,ws))
+				msg_q_ws.append((msg_ws,ws))
 
-		## Detection on/off handle
+
+		#### heartbeat, for WS
+		elif(enc.get("cmd")=="hb"):
+			# respond
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' HB","h")
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=1
+			msg_q_ws.append((msg,ws))
+
+
+		## Detection on/off handle, for WS --> this should be obsolete as the server can decide on its own when to activate the detection
 		elif(enc.get("cmd")=="detection"):
 			area=enc.get("area")
 			# step 1: update database
@@ -547,23 +570,24 @@ def recv_ws_msg_handle(data,ws):
 					clients_affected+=1
 			print("[A_ws  "+time.strftime("%H:%M:%S")+"] set detection of area '"+area+"' to '"+str(enc.get("state"))+"' (->"+str(clients_affected)+" m2m_clients)")
 
-		## webcam interval -> sign in or out to webcam
+		## webcam interval -> sign in or out to webcam, for WS
 		elif(enc.get("cmd")=="set_interval"):
 			set_webcam_con(enc.get("mid"),enc.get("interval",0),ws)
 
-		## if a ws client supports location grabbing it can send location updates to switch on/off the detection
+		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
 		elif(enc.get("cmd")=="update_location"):
 			print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' moved to '"+enc.get("loc")+"'")
 			# step 1: update database location for this login
 			db_r=db.update_location(ws.login,enc.get("loc"))
 			# step 2: run all rule checks and update every box on the account
 			t=time.time()
+			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] checking as somebody moved for this account","r")
 			rm_check_rules(ws.account,ws.login,1)	# check and use db
-			print(time.time()-t)
+			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(time.time()-t),"r")
 
-		## unsupported cmd
+		## unsupported cmd, for WS
 		else:
-			print("[A     "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd"))
+			print("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd"))
 #******************************************************#
 
 #******************************************************#
@@ -603,7 +627,7 @@ def connect_ws_m2m(m2m,ws):
 		# and add them to us to give us the change to tell them if they should be sharp or not
 		ws.v2m.append(m2m)
 		# send a nice and shiny message to the viewer to tell him what boxes are online,
-		print("[A     "+time.strftime("%H:%M:%S")+"] MID '"+m2m.mid+"' <-> WS '"+ws.login+"'")
+		p.connect_ws_m2m(m2m,ws)
 		msg_ws2={}
 		msg_ws2["cmd"]="m2v_login"
 		msg_ws2["mid"]=m2m.mid
@@ -934,7 +958,7 @@ while 1:
 				p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] full rule_check for account "+acc.account+" required","r")
 				rm_check_rules(acc.account,"timetrigger",1) # check with database
 		debug_ts=time.time()-last_rulecheck_ts
-		p.rint("Check took "+str(debug_ts),"r")
+		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(debug_ts),"r")
 
 #***************************************************************************************#
 #********************************** End of Main loop ***********************************#
