@@ -28,7 +28,7 @@ def start():
 
 def start_listen():
 	print_out.append(poe("h","Heartbeats","Shows the Heartbeats of every client",1))
-	print_out.append(poe("r","Rulemanager","Rulemanager output",1))
+	print_out.append(poe("r","Rulemanager","Rulemanager output",0))
 	print_out.append(poe("u","Uploades","Shows every uploaded file",1))
 	print_out.append(poe("l","Login","Shows every login",1))
 	print_out.append(poe("s","State Change","Shows every state change via movement or rule change",1))
