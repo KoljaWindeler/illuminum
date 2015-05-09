@@ -845,14 +845,18 @@ def rm_check_rules(account,login,use_db):
 # as this code has all the variables we just call the Displaying function in p with our variables ..
 def helper_output(input):
 	print("")
+	
 	if(input=="rm"):
 		p.show_m2m(1,0,0)
 		rm.print_all()
 		p.show_m2m(1,0,0)
+	
 	elif(input=="ws"):
-		print("we got "+str(len(server_ws.clients))+" ws clients connected")
+		p.show_ws(-2,len(server_ws.clients),0)
+		p.show_ws(-1,0,0)
 		for ws in server_ws.clients:
-			print("IP:"+str(ws.ip)+", port:"+str(ws.port)+", logged in:"+str(ws.logged_in)+", last_comm:"+str(ws.last_comm)+", login:"+str(ws.login)+", account:"+str(ws.account)+", send_q_len:"+str(ws.snd_q_len))
+			p.show_ws(0,0,ws)
+		p.show_ws(1,0,0)
 
 	elif(input=="m2m"):
 		p.show_m2m(-2,len(server_m2m.clients),0)
@@ -860,6 +864,7 @@ def helper_output(input):
 		for m2m in server_m2m.clients:
 			p.show_m2m(0,0,m2m)
 		p.show_m2m(1,0,0)
+	
 	else:
 		print("whoot? ->"+input+"<-")
 		print("your choices are:")

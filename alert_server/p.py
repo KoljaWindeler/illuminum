@@ -118,13 +118,32 @@ def connect_ws_m2m(m2m,ws):
 	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' <-> WS '"+p_login+"' "+str(ws.ip),"l")
 
 
+def show_ws(id,l,ws):
+	if(id==-2):
+		show_m2m(1,l,"")
+		print("we got "+str(l)+" ws-clients connected")
+	elif(id==-1):
+		print("WS login        | Account    | IP             | l-in | last_seen  | Q-length")
+		show_m2m(1,l,"")
+	elif(id==0):
+		p_login=(ws.login+"               ")[0:15]
+		p_account=(ws.account+"               ")[0:10]
+		p_ip=(str(ws.ip)+"                  ")[0:14]
+		p_last_seen=(str(int(ws.last_comm))+"                         ")[0:10]
+		
+		output=p_login+" | "+p_account+" | "+str(p_ip)+" | "+str(ws.logged_in)+"    | "+p_last_seen+" | "+str(ws.snd_q_len)
+		print(output)
+	elif(id==1):
+		show_m2m(1,"","")
+		
+
 def show_m2m(id,l,m2m):
 	if(id==-2):
-		print("-------------------------------------------------------------------------------------------------------------------------------------------------------")
+		show_m2m(1,l,m2m)
 		print("we got "+str(l)+" m2m-clients connected")
 	elif(id==-1):
 		print("M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Coordinates")
-		print("-------------------------------------------------------------------------------------------------------------------------------------------------------")
+		show_m2m(1,l,m2m)
 	elif(id==0):
 		p_alias=(m2m.alias+"               ")[0:15]
 		p_account=(m2m.account+"               ")[0:10]
