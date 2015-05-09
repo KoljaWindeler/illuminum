@@ -34,8 +34,6 @@ class ws_clients:
 		self.ip = addr.getpeername()[0] 	# the IP adress of the viewr	
 		self.port = addr.getpeername()[1]	# the client port
 		self.conn=addr				# this is the socket
-		self.description = "This shape has not been described yet"
-		self.author = "Nobody has claimed to make this shape yet"
 		self.logged_in=0			# 1 if log-in ok
 		self.last_comm=0			# timestamp of the last incoming msg
 		self.v2m=[]				# list of all active subscribers. those will get a message for e.g. alert->sharp
