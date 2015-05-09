@@ -116,7 +116,7 @@ if(!empty($output[0])){	// python serer is running add everything
 							console.log("hb feld in client angebaut");
 						}
 
-						document.getElementById(msg_dec["mid"]+"_state").innerHTML=state2str((msg_dec["state"]));
+						document.getElementById(msg_dec["mid"]+"_state").innerHTML=state2str((msg_dec["state"]))+", "+det2str(msg_dec["detection"]);
 					}
 				}
 
@@ -130,8 +130,9 @@ if(!empty($output[0])){	// python serer is running add everything
 				else if(msg_dec["cmd"]=="state_change"){
 					e=document.getElementById(msg_dec["mid"]+"_state");
 					state=msg_dec["state"];
+					detection=msg_dec["detection"];
 					if(e!=undefined){
-						e.innerHTML=state2str(state);
+						e.innerHTML=state2str(state)+" "+det2str(detection);
 					}
 				}
 
@@ -181,16 +182,22 @@ if(!empty($output[0])){	// python serer is running add everything
 				return "idle";
 			} else if(state==1){
 				return "movement!";
-			} else if(state==2){
-				return "disabled, idle";
-			} else if(state==3){
-				return "disabled, movement";
 			} else if(state==-1){
 				return "disconnected";
 			} else {
 				return state.toString();
 			};
 		};
+
+		function det2str(det){
+		    if(det==0){
+		        return "detection off";
+		    } else if(det==1){
+		        return "detection on";
+		    } else {
+		        return det.toString();
+		    }
+		}
 
 		function set_interval(mid,interval){
 			if(con == null){
