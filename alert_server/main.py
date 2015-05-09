@@ -1,5 +1,5 @@
-import time,json,os,base64,hashlib,string,random,sys,select
-from clients import alert_event,webcam_viewer,m2m_state,det_state
+import time,json,os,base64,hashlib,string,random
+from clients import alert_event,webcam_viewer,det_state
 import server_m2m
 import server_ws
 import send_mail
@@ -77,9 +77,6 @@ def recv_m2m_con_handle(data,m2m):
 			server_m2m.clients.remove(m2m)
 		except:
 			ignore=1
-		# update database
-		# TODO database shall set state to "disconnected" and last seen to time.time()
-		#sql.m2m_disconnect(m2m.mid)
 #******************************************************#
 ################## M2M CONNECTION #########################
 
@@ -524,7 +521,7 @@ def recv_ws_msg_handle(data,ws):
 			db_f["account"]="jkw"
 
 			# check parameter
-			if(db_f["pw"]==enc.get("client_pw") or 1):
+			if(db_f["pw"]==enc.get("client_pw") or 1): # <<-- TODO, that is no very safe ;D
 				ws.logged_in=1
 				msg_ws["ok"]=1 # logged in
 				msg_q_ws.append((msg_ws,ws))
@@ -758,7 +755,6 @@ def check_alerts():
 	ret=-1
 	for cli in server_m2m.clients:
 		if(cli.alert.notification_send_ts==-1): # -1 = we switch to alert, we haven't switched back to "no alert" otherwise send_ts=0 and we haven't send the mail for this alert, otherwise this would be a timestamp
-			#print("check cli.alias as he is in -1, files:"+str(len(cli.alert.files))+"/"+str(cli.alert.files_expected)+" last upload "+str(cli.alert.last_upload)+"/"+str(cli.alert.last_upload+cli.alert.file_max_timeout_ms/1000)) ## ULTRA TODO BUG
 			# found client in "alert but not yet notified" state, see if it is time to notify
 			send = 0
 			# if the gab between the last_upload and now is > timeout, last_upload will be set every time a file arrives, and initialized to 0 once the state changes to alert
@@ -805,8 +801,13 @@ def rm_check_rules(account,login,use_db):
 		# run the rule check for every area in this account
 		#print("running rule check on every area of this account")
 		for b in acc.areas:
-			detection_state=b.check_rules(use_db) 	# get the state, TODO, this will just return 1 if the rules say that at least one is true. it will never say 2 .. which we might need!
-			db.update_det(login,account,b.area,detection_state)
+			detection_state=b.check_rules(use_db) 	# get the rule state, 1 for detection on and 0 for off ... this is NOT the detection state the box shall get (could be 2)
+			if(detection_state): # if the alert should be "on", grab the first box you can find in this account and area and check what the detection_on_mode is to set it to 1 or 2
+				for m2m in server_m2m.clients:
+					if(m2m.account==account and m2m.area==b.area):
+						real_detection_state=m2m.detection_on_mode
+						break
+			db.update_det(login,account,b.area,real_detection_state)
 			#print("updateing to db that detection of area "+str(b.area)+" should be")
 			#print(detection_state)
 
