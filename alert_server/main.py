@@ -177,6 +177,7 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.alias=db_r["alias"]
 					m2m.longitude=db_r["longitude"]
 					m2m.latitude=db_r["latitude"]
+					msg["alias"]=m2m.alias
 
 					# add rules to the rule manager for this area if it wasn there before
 					# first check if the account is known to the rule manager at all and add it if not
@@ -303,7 +304,7 @@ def recv_m2m_msg_handle(data,m2m):
 				# has reached 5 pics, or hasn't been updated for > 20 sec.
 				# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
 				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
-				if(m2m.state==1): # ALERT
+				if(m2m.state==1 and m2m.detection>=1): # ALERT
 					if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
 						m2m.alert.files.append(des_location)
 						m2m.alert.last_upload = time.time()
@@ -344,7 +345,7 @@ def recv_m2m_msg_handle(data,m2m):
 						m2m.fp=""
 					
 				# select the ws to send to
-				if(m2m.state==1): # alert -> inform everyone
+				if(m2m.state==1 and m2m.detection>=1): # alert -> inform everyone
 					# the m2v list has all viewer
 					for v in m2m.m2v:
 						if(v.snd_q_len<10): # just send it if their queue is not to full

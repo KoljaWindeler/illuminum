@@ -17,9 +17,9 @@ if(!empty($output[0])){	// python serer is running add everything
 			};
 			// reacting on incoming messages
 		        con.onmessage = function(msg) {
-                		console.log("Message");
+                		// console.log("Message");
 				msg_dec=JSON.parse(msg.data);
-				console.log(msg_dec);
+				// console.log(msg_dec);
 
 				if(msg_dec["cmd"]=="m2v_login"){
 					if(document.getElementById("clients")!=undefined){
@@ -72,11 +72,23 @@ if(!empty($output[0])){	// python serer is running add everything
 							button.onclick=function(){
 								var msg_int=msg_dec;
 								return function(){
+									set_interval(msg_int["mid"],0.01);
+								}
+							   }();
+							button.className="button";
+							button.text="Webcam 0.1s";
+							node.appendChild(button);
+
+							var button=document.createElement("A");
+							button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
+							button.onclick=function(){
+								var msg_int=msg_dec;
+								return function(){
 									set_interval(msg_int["mid"],1);
 								}
 							   }();
 							button.className="button";
-							button.text="Webcam on";
+							button.text="Webcam 1s";
 							node.appendChild(button);
 
 							var button=document.createElement("A");
@@ -88,7 +100,7 @@ if(!empty($output[0])){	// python serer is running add everything
 								}
 							   }();
 							button.className="button";
-							button.text="Webcam slow";
+							button.text="Webcam 5s";
 							node.appendChild(button);
 
 
@@ -194,6 +206,8 @@ if(!empty($output[0])){	// python serer is running add everything
 		        return "detection off";
 		    } else if(det==1){
 		        return "detection on";
+		    } else if(det==2){
+		        return "detection very on";
 		    } else {
 		        return det.toString();
 		    }
