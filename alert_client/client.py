@@ -33,9 +33,14 @@ def trigger_handle(event,data):
 	global trigger
 
 	if(event=="uploading"):
+		#print("Event uploading, q:"+str(len(file_q)))
 		#avoi overloading
-		if(len(file_q)<5):
+		if(len(file_q)<2):
 			file_q.append(data)			
+			return 0
+		else:
+			#print("dequeuing another foto: wait!!")
+			return 1
 	elif(event=="state_change"):
 		msg={}
 		msg["cmd"]=event
@@ -71,7 +76,9 @@ def trigger_handle(event,data):
 #******************************************************#
 def upload_file(data):
 	#print(str(time.time())+" -> this is upload_file with "+path)
+	#print("this is upload_file with "+str(len(msg_q)))
 	if(len(msg_q)>10):
+		print("skip picture, q full")
 		return 1
 
 	path=data[0]
@@ -90,6 +97,7 @@ def upload_file(data):
 			td.append((time.time(),"reading img"))
 
 		if not strng:
+			#print("could not read")
 			break
 
 		msg={}
@@ -112,6 +120,7 @@ def upload_file(data):
 		
 		msg["td"]=td
 		msg_q.append(msg)
+		#print("upload appended message")
 		#msg=json.dumps(msg)	
 		#client_socket.send(msg.encode("UTF-8"))
 		i=i+1
@@ -165,6 +174,7 @@ comm_wait=0
 waiter=[]
 hb_out=0
 recv_buffer=""
+last_pic=time.time()
 
 while 1:
 	logged_in=0
@@ -306,12 +316,14 @@ while 1:
 
 		#************* file preperation start ******************#
 		if(len(file_q)>0):
+			#print("we have "+str(len(file_q))+" files waiting")
 			file=file_q[0]
 			file_q.remove(file)
 			
 			if(trigger.TIMING_DEBUG):
 				file[1].append((time.time(),"dequeue"))
 
+			# call upload_file now
 			if(upload_file(file)!=0):
 				#error
 				client_socket=""
@@ -320,7 +332,7 @@ while 1:
 
 		#************* sending start ******************#
 		if(len(msg_q)>5):
-			print("msg_q: "+str(msg_q)+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in))
+			print("!!!!!!!!!!!!!!!!!!!!!! msg_q: "+str(msg_q)+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in))
 
 		if(len(msg_q)>0 and (comm_wait==0 or logged_in!=1)):
 			msg=""
@@ -365,15 +377,20 @@ while 1:
 							msg["td"].append((time.time(),"upload done"))
 							old=msg["td"][0][0]
 							for a in msg["td"]:
-								print("[A "+time.strftime("%H:%M:%S")+"] -> event:"+a[1]+":"+str(int((a[0]-old)*1000))+"ms")
+								p_state=(a[1]+"             ")[0:15]
+								p_t1=(str(int((a[0]-old)*1000))+"          ")[0:5]
+								p_t2=(str(int((a[0]-msg["td"][0][0])*1000))+"          ")[0:5]
+								
+								print("[A "+time.strftime("%H:%M:%S")+"] -> event:"+p_state+": "+p_t1+" / "+p_t2+" ms at "+str(a[0]))
 								old=a[0]
-							os._exit(1)
+							#os._exit(1)
+							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic))
+							last_pic=time.time()
 
-
-		elif(comm_wait==1 and logged_in==1):
-			if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
-				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
-				comm_wait=0
+		#elif(comm_wait==1 and logged_in==1):
+		#	if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
+		#		print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
+		#		comm_wait=0
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")		
 	trigger.set_interval(0) # switch off the webstream, we wouldn't have ws beeing connected to us anyway after resign on

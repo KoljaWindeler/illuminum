@@ -14,14 +14,50 @@ from PIL import ImageFont
 
 WIDTH=1280
 HEIGHT=720
+<<<<<<< HEAD
+
+TIMING_DEBUG=0
+=======
 #WIDTH=640
 #HEIGHT=480
 TIMING_DEBUG=1
+>>>>>>> 6ee90ed87ba24d914ccfed27ea9f058b634c20e8
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
+img_q=[]
+
+
+# 
+
+
+def start_queue():
+	while(1):
+		if(len(img_q)>0):
+			img_de=img_q[0]
+			img_q.remove(img_de)
+
+			img=img_de[0]
+			path=img_de[1]
+			td=img_de[2]
+			img.save(path,"jpeg",quality=75)
+
+			# timinig
+			td.append((time.time(),"saving"))
+
+			print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
+			for callb in callback_action:
+				while(callb("uploading",(path,td))): # the callback will return 1 if is more then one file in the queue
+					#print("upload handle was not yet ready, waiting 0.1sec")
+					time.sleep(0.1) # give the upload process a little more cpu priority
+		else:
+			time.sleep(0.1) # avoid cpu load
+			
+	
+		
 
 #******************************************************#
 def start():
         threading.Thread(target = start_trigger, args = ()).start()
+        threading.Thread(target = start_queue, args = ()).start()
 #******************************************************#
 def start_trigger():
 	while True:
@@ -57,6 +93,10 @@ def start_trigger():
 		global last_webcam_ts
 		global webcam_interval
 		global detection
+<<<<<<< HEAD
+		global img_q
+=======
+>>>>>>> 6ee90ed87ba24d914ccfed27ea9f058b634c20e8
 		state=-1 # to be refreshed
 		webcam_capture_remaining=0
 		busy=1
@@ -119,7 +159,7 @@ def start_trigger():
 			if(webcam_capture_remaining>0):
 				busy=1
 				l_last_webcam_ts=time.time()
-				img_q=[]
+				#img_q=[]
 				td=[]
 				td.append((time.time(),"start"))
 
@@ -142,7 +182,7 @@ def start_trigger():
 					if(state==1 and detection>=1):
 						path='alert'+str(i)+'.jpg';
 					else:
-						path='snap'+str(i)+'.jpg';
+						path=str(int(time.time()*10) % 10)+'snap'+str(i)+'.jpg';
 				
 					# add the timestamp
 					pil_string_image = pygame.image.tostring(img, "RGBA",False)
@@ -161,6 +201,13 @@ def start_trigger():
 					td.append((time.time(),"processing"))
 
 					# appending to save later
+<<<<<<< HEAD
+					while(len(img_q)>1):
+						#print("We've snapped to fast. there is more then one frame in the saving q, waiting 100ms")
+						# this will cycle approximatly 3-4 times on a rpi 1 if user intervall is set to 0
+						time.sleep(0.1)
+					img_q.append((img,path,td))
+=======
 					img_q.append((img,path))
 
 				# saveing
@@ -181,6 +228,7 @@ def start_trigger():
 					print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
 					for callb in callback_action:
 						callb("uploading",(path,td))
+>>>>>>> 6ee90ed87ba24d914ccfed27ea9f058b634c20e8
 						
 				webcam_capture_remaining=0
 				last_webcam_ts=l_last_webcam_ts
