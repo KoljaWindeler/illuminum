@@ -16,8 +16,7 @@ WIDTH=1280
 HEIGHT=720
 #WIDTH=640
 #HEIGHT=480
-TIMING_DEBUG=0
-MS=1
+TIMING_DEBUG=1
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
 
 #******************************************************#
@@ -58,7 +57,6 @@ def start_trigger():
 		global last_webcam_ts
 		global webcam_interval
 		global detection
-		last_detection=detection
 		state=-1 # to be refreshed
 		webcam_capture_remaining=0
 		busy=1
@@ -78,12 +76,12 @@ def start_trigger():
 				break
 
 			# changing the resolution - depr.
-			if(change_res_event==1):
-				print("changing resolution ("+str(cam_width)+"/"+str(cam_height)+")")
-				change_res_event=0
-				cam.stop()
-				cam=pygame.camera.Camera("/dev/video0",(cam_width,cam_height))
-				cam.start()
+			#if(change_res_event==1):
+			#	print("changing resolution ("+str(cam_width)+"/"+str(cam_height)+")")
+			#	change_res_event=0
+			#	cam.stop()
+			#	cam=pygame.camera.Camera("/dev/video0",(cam_width,cam_height))
+			#	cam.start()
 
 			# set detection on / off
 			if(change_det_event):
@@ -141,7 +139,7 @@ def start_trigger():
 					td.append((time.time(),"snapping"))
 
 					# saving to file
-					if(state==1):
+					if(state==1 and detection>=1):
 						path='alert'+str(i)+'.jpg';
 					else:
 						path='snap'+str(i)+'.jpg';
@@ -151,6 +149,7 @@ def start_trigger():
 					img = Image.fromstring("RGBA",(cam_width,cam_height),pil_string_image)
 				
 					draw=ImageDraw.Draw(img)
+					td.append((time.time(),"loading"))
 					#draw.text((6, 1),path+" /  "+time.strftime("%H:%M:%S"),(0,0,0),font=f)
 					#draw.text((5, 0),path+" /  "+time.strftime("%H:%M:%S"),(250,250,250),font=f)
 					now=datetime.datetime.now().strftime("%H:%M:%S.%f")
@@ -173,13 +172,7 @@ def start_trigger():
 					img=img_de[0]
 					path=img_de[1]
 
-					if(MS):
-						img.save(path,"jpeg")
-					else:
-						# saving to stream
-						b = io.BytesIO() 
-						img.save(b, 'jpeg',	quality=80)
-						img_bytes = b.getvalue()
+					img.save(path,"jpeg",quality=75)
 
 					# timinig
 					td.append((time.time(),"saving"))
@@ -187,11 +180,8 @@ def start_trigger():
 
 					print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
 					for callb in callback_action:
-						if(MS):
-							callb("uploading",(path,td))
-						else:
-							callb("uploading_str",(img_bytes,td))
-
+						callb("uploading",(path,td))
+						
 				webcam_capture_remaining=0
 				last_webcam_ts=l_last_webcam_ts
 
