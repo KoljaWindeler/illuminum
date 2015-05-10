@@ -803,10 +803,13 @@ def rm_check_rules(account,login,use_db):
 		for b in acc.areas:
 			detection_state=b.check_rules(use_db) 	# get the rule state, 1 for detection on and 0 for off ... this is NOT the detection state the box shall get (could be 2)
 			if(detection_state): # if the alert should be "on", grab the first box you can find in this account and area and check what the detection_on_mode is to set it to 1 or 2
+				real_detection_state=1 # backup
 				for m2m in server_m2m.clients:
 					if(m2m.account==account and m2m.area==b.area):
 						real_detection_state=m2m.detection_on_mode
 						break
+			else:
+				real_detection_state=0
 			db.update_det(login,account,b.area,real_detection_state)
 			#print("updateing to db that detection of area "+str(b.area)+" should be")
 			#print(detection_state)
