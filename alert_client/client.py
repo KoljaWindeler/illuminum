@@ -52,15 +52,6 @@ def trigger_handle(event,data):
 		
 		# light dimming stuff
 		if(my_detection==0 and my_state==1): # deactive and motion
-			#light_dimming_q.append((time.time()+0.0,100,0,0,500)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+0.5,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+0.7,0,0,100,500)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+1.2,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+1.3,100,0,0,500)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+1.9,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+2.1,0,0,100,500)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+2.6,0,0,0,200)) # 4 sec to dimm to warm orange - now
-			#light_dimming_q.append((time.time()+2.8,100,70,2,4000)) # 4 sec to dimm to warm orange - now
 			light_dimming_q.append((time.time(),100,70,2,4000)) # 4 sec to dimm to warm orange - now
 		elif(my_detection==0 and my_state==0): # deactive and no motion
 			light_dimming_q.append((time.time()+10*60,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
@@ -332,7 +323,7 @@ while 1:
 
 		#************* sending start ******************#
 		if(len(msg_q)>5):
-			print("!!!!!!!!!!!!!!!!!!!!!! msg_q: "+str(msg_q)+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in))
+			print("!!!!!!!!!!!!!!!!!!!!!! msg_q is very long: "+str(msg_q)+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in))
 
 		if(len(msg_q)>0 and (comm_wait==0 or logged_in!=1)):
 			msg=""
@@ -387,10 +378,10 @@ while 1:
 							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic))
 							last_pic=time.time()
 
-		#elif(comm_wait==1 and logged_in==1):
-		#	if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
-		#		print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
-		#		comm_wait=0
+		elif(comm_wait==1 and logged_in==1):
+			if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
+				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
+				comm_wait=0
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")		
 	trigger.set_interval(0) # switch off the webstream, we wouldn't have ws beeing connected to us anyway after resign on

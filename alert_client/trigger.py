@@ -14,22 +14,34 @@ from PIL import ImageFont
 
 WIDTH=1280
 HEIGHT=720
-<<<<<<< HEAD
-
 TIMING_DEBUG=0
-=======
-#WIDTH=640
-#HEIGHT=480
-TIMING_DEBUG=1
->>>>>>> 6ee90ed87ba24d914ccfed27ea9f058b634c20e8
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
 img_q=[]
 
+webcam_interval=0
+change_det_event=0
+#change_res_event=0
+cam_width=WIDTH
+cam_height=HEIGHT
+last_webcam_ts=0
+callback_action=[""]
+detection=0 # set to 1 for default, 0=off,1=send just the first 5 shoots if alert, 2=send all shoots as long as pin is HIGH
 
-# 
+
+# this is how the photos travel:
+# the server will tell us via "set interval" how often we should make a photo (at most)
+
+# our main loop (start_trigger), will try to snap a picture with this interval.
+# after SNAPPING the picture, the main loop will try to append it to img_q but will wait if there is more then 1
+# picture in the queue
+
+# the save_queue (different thread) will try to save the pictures (jpeg compressed) and will call the 
+# the call backs for the clients thread to append the file. the client thread will return 1 if there is more then one img in his queue
+
+# PERFORMANCE: snapping 	
 
 
-def start_queue():
+def save_queue():
 	while(1):
 		if(len(img_q)>0):
 			img_de=img_q[0]
@@ -38,6 +50,8 @@ def start_queue():
 			img=img_de[0]
 			path=img_de[1]
 			td=img_de[2]
+			td.append((time.time(),"dequeue to save"))
+			
 			img.save(path,"jpeg",quality=75)
 
 			# timinig
@@ -56,8 +70,8 @@ def start_queue():
 
 #******************************************************#
 def start():
-        threading.Thread(target = start_trigger, args = ()).start()
-        threading.Thread(target = start_queue, args = ()).start()
+		threading.Thread(target = start_trigger, args = ()).start()
+		threading.Thread(target = save_queue, args = ()).start()
 #******************************************************#
 def start_trigger():
 	while True:
@@ -93,10 +107,7 @@ def start_trigger():
 		global last_webcam_ts
 		global webcam_interval
 		global detection
-<<<<<<< HEAD
 		global img_q
-=======
->>>>>>> 6ee90ed87ba24d914ccfed27ea9f058b634c20e8
 		state=-1 # to be refreshed
 		webcam_capture_remaining=0
 		busy=1
@@ -201,34 +212,12 @@ def start_trigger():
 					td.append((time.time(),"processing"))
 
 					# appending to save later
-<<<<<<< HEAD
 					while(len(img_q)>1):
 						#print("We've snapped to fast. there is more then one frame in the saving q, waiting 100ms")
 						# this will cycle approximatly 3-4 times on a rpi 1 if user intervall is set to 0
 						time.sleep(0.1)
+					td.append((time.time(),"queue "+str(len(img_q)))) # tells us how many UNTOUCHED images are in the queue, there will be one more in the saving process 
 					img_q.append((img,path,td))
-=======
-					img_q.append((img,path))
-
-				# saveing
-				for i in range(0,webcam_capture_remaining):
-					#dequeueing
-					img_de=img_q[0]
-					img_q.remove(img_de)
-
-					img=img_de[0]
-					path=img_de[1]
-
-					img.save(path,"jpeg",quality=75)
-
-					# timinig
-					td.append((time.time(),"saving"))
-
-
-					print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
-					for callb in callback_action:
-						callb("uploading",(path,td))
->>>>>>> 6ee90ed87ba24d914ccfed27ea9f058b634c20e8
 						
 				webcam_capture_remaining=0
 				last_webcam_ts=l_last_webcam_ts
@@ -236,7 +225,7 @@ def start_trigger():
 		GPIO.cleanup()
 
 def subscribe_callback(fun,method):
-	if callback_action[0]==subscribe_callback:
+	if callback_action[0]=="":
 		callback_action[0]=fun
 	else:
 		callback_action.append(fun)
@@ -257,22 +246,15 @@ def set_interval(interval):
 	#else:
 	#	change_res((1280,720))
 	
-def change_res(res):
-	global change_res_event
-	global cam_width
-	global cam_height
-	if(cam_width!=res[0] or cam_height!=res[1]):
-		change_res_event=1
-		cam_width=res[0]
-		cam_height=res[1]
+#def change_res(res):
+#	global change_res_event
+#	global cam_width
+#	global cam_height
+#	if(cam_width!=res[0] or cam_height!=res[1]):
+#		change_res_event=1
+#		cam_width=res[0]
+#		cam_height=res[1]
 
 
 ##########################################
-webcam_interval=0
-change_det_event=0
-change_res_event=0
-cam_width=WIDTH
-cam_height=HEIGHT
-last_webcam_ts=0
-callback_action=[subscribe_callback]
-detection=0 # set to 1 for default, 0=off,1=send just the first 5 shoots if alert, 2=send all shoots as long as pin is HIGH
+
