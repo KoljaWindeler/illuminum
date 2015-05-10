@@ -15,6 +15,7 @@ from PIL import ImageFont
 WIDTH=1280
 HEIGHT=720
 TIMING_DEBUG=0
+STEP_DEBUG=0
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
 img_q=[]
 
@@ -26,6 +27,7 @@ cam_height=HEIGHT
 last_webcam_ts=0
 callback_action=[""]
 detection=0 # set to 1 for default, 0=off,1=send just the first 5 shoots if alert, 2=send all shoots as long as pin is HIGH
+alias=""
 
 
 # this is how the photos travel:
@@ -50,6 +52,9 @@ def save_queue():
 			img=img_de[0]
 			path=img_de[1]
 			td=img_de[2]
+			if(STEP_DEBUG):
+				print("[A "+time.strftime("%H:%M:%S")+"] Step 2. dequeueing "+path+" from img_q to save it to file")
+			
 			td.append((time.time(),"dequeue to save"))
 			
 			img.save(path,"jpeg",quality=75)
@@ -57,11 +62,14 @@ def save_queue():
 			# timinig
 			td.append((time.time(),"saving"))
 
-			print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" taken")
+			print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" saved")
 			for callb in callback_action:
 				while(callb("uploading",(path,td))): # the callback will return 1 if is more then one file in the queue
-					#print("upload handle was not yet ready, waiting 0.1sec")
+					if(STEP_DEBUG):
+						print("[A "+time.strftime("%H:%M:%S")+"] Step 2.1. upload handle was not yet ready for "+path+", waiting 0.1sec")
 					time.sleep(0.1) # give the upload process a little more cpu priority
+				if(STEP_DEBUG):
+					print("[A "+time.strftime("%H:%M:%S")+"] Step 3. passed image "+path+" to upload handle")
 		else:
 			time.sleep(0.1) # avoid cpu load
 			
@@ -108,6 +116,7 @@ def start_trigger():
 		global webcam_interval
 		global detection
 		global img_q
+		global alias
 		state=-1 # to be refreshed
 		webcam_capture_remaining=0
 		busy=1
@@ -190,10 +199,14 @@ def start_trigger():
 					td.append((time.time(),"snapping"))
 
 					# saving to file
+					add="SNAP"
 					if(state==1 and detection>=1):
-						path='alert'+str(i)+'.jpg';
+						path=str(int(time.time()*100) % 10000)+'alert'+str(i)+'.jpg';
+						add="ALERT"
 					else:
-						path=str(int(time.time()*10) % 10)+'snap'+str(i)+'.jpg';
+						path=str(int(time.time()*100) % 10000)+'snap'+str(i)+'.jpg';
+						
+					print("[A "+time.strftime("%H:%M:%S")+"] Picture taken "+path)
 				
 					# add the timestamp
 					pil_string_image = pygame.image.tostring(img, "RGBA",False)
@@ -205,15 +218,18 @@ def start_trigger():
 					#draw.text((5, 0),path+" /  "+time.strftime("%H:%M:%S"),(250,250,250),font=f)
 					now=datetime.datetime.now().strftime("%H:%M:%S.%f")
 					now=now[0:10]
-					draw.text((6, 1),path+" /  "+now,(0,0,0),font=f)
-					draw.text((5, 0),path+" /  "+now,(250,250,250),font=f)
+					
+					
+					draw.text((6, 1),alias[0:20]+" /  "+add+" /  "+now,(0,0,0),font=f)
+					draw.text((5, 0),alias[0:20]+" /  "+add+" /  "+now,(250,250,250),font=f)
 
 					# timing debug
 					td.append((time.time(),"processing"))
 
 					# appending to save later
 					while(len(img_q)>1):
-						#print("We've snapped to fast. there is more then one frame in the saving q, waiting 100ms")
+						if(STEP_DEBUG):
+							print("[A "+time.strftime("%H:%M:%S")+"] Step 1. We've snapped "+path+" to fast. there is more then one frame in the saving q, waiting 100ms")
 						# this will cycle approximatly 3-4 times on a rpi 1 if user intervall is set to 0
 						time.sleep(0.1)
 					td.append((time.time(),"queue "+str(len(img_q)))) # tells us how many UNTOUCHED images are in the queue, there will be one more in the saving process 
@@ -236,6 +252,10 @@ def set_detection(state):
 	change_det_event=1
 	detection=state
 	print("[T "+time.strftime("%H:%M:%S")+"] detection set to "+str(state))
+
+def set_alias(new_alias):
+	global alias
+	alias=new_alias
 
 def set_interval(interval):
 	global webcam_interval

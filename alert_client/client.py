@@ -36,6 +36,8 @@ def trigger_handle(event,data):
 		#print("Event uploading, q:"+str(len(file_q)))
 		#avoi overloading
 		if(len(file_q)<2):
+			if(trigger.STEP_DEBUG):
+				print("[A "+time.strftime("%H:%M:%S")+"] Step 3. handle accepted file "+data[0]+" as there are only "+str(len(file_q))+" files in the file_q")
 			file_q.append(data)			
 			return 0
 		else:
@@ -67,7 +69,8 @@ def trigger_handle(event,data):
 #******************************************************#
 def upload_file(data):
 	#print(str(time.time())+" -> this is upload_file with "+path)
-	#print("this is upload_file with "+str(len(msg_q)))
+	if(trigger.STEP_DEBUG):
+		print("[A "+time.strftime("%H:%M:%S")+"] Step 5. this is upload_file for "+data[0]+" with "+str(len(msg_q)))
 	if(len(msg_q)>10):
 		print("skip picture, q full")
 		return 1
@@ -111,7 +114,8 @@ def upload_file(data):
 		
 		msg["td"]=td
 		msg_q.append(msg)
-		#print("upload appended message")
+		if(trigger.STEP_DEBUG):
+			print("[A "+time.strftime("%H:%M:%S")+"] Step 6	. upload appended message for "+path)
 		#msg=json.dumps(msg)	
 		#client_socket.send(msg.encode("UTF-8"))
 		i=i+1
@@ -261,6 +265,7 @@ while 1:
 							logged_in=1
 							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
 							print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("detection")))
+							trigger.set_alias(enc.get("alias"))
 							trigger.set_detection(int(enc.get("detection")))
 						else:
 							logged_in=0
@@ -307,7 +312,8 @@ while 1:
 
 		#************* file preperation start ******************#
 		if(len(file_q)>0):
-			#print("we have "+str(len(file_q))+" files waiting")
+			if(trigger.STEP_DEBUG):
+				print("[A "+time.strftime("%H:%M:%S")+"] Step 4. we have "+str(len(file_q))+" files waiting")
 			file=file_q[0]
 			file_q.remove(file)
 			
@@ -363,6 +369,8 @@ while 1:
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("eof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
+						os.remove(json.loads(send_msg).get("fn"))
+						
 						#print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
 						if(trigger.TIMING_DEBUG):
 							msg["td"].append((time.time(),"upload done"))
