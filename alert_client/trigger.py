@@ -227,7 +227,7 @@ def start_trigger():
 					td.append((time.time(),"processing"))
 
 					# appending to save later
-					while(len(img_q)>1):
+					while(len(img_q)>0): # only go on if there is no other file in the queue, but there will be still another file in saving process
 						if(STEP_DEBUG):
 							print("[A "+time.strftime("%H:%M:%S")+"] Step 1. We've snapped "+path+" to fast. there is more then one frame in the saving q, waiting 100ms")
 						# this will cycle approximatly 3-4 times on a rpi 1 if user intervall is set to 0

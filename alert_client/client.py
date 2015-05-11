@@ -35,7 +35,7 @@ def trigger_handle(event,data):
 	if(event=="uploading"):
 		#print("Event uploading, q:"+str(len(file_q)))
 		#avoi overloading
-		if(len(file_q)<2):
+		if(len(file_q)<1):
 			if(trigger.STEP_DEBUG):
 				print("[A "+time.strftime("%H:%M:%S")+"] Step 3. handle accepted file "+data[0]+" as there are only "+str(len(file_q))+" files in the file_q")
 			file_q.append(data)			
@@ -384,6 +384,7 @@ while 1:
 								old=a[0]
 							#os._exit(1)
 							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic))
+							print("[A "+time.strftime("%H:%M:%S")+"] delay "+str(time.time()-msg["td"][0][0]))
 							last_pic=time.time()
 
 		elif(comm_wait==1 and logged_in==1):
