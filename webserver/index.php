@@ -134,7 +134,8 @@ if(!empty($output[0])){	// python serer is running add everything
 
 				else if(msg_dec["cmd"]=="hb"){
 					if(document.getElementById(msg_dec["mid"]+"_hb")!=undefined){
-						document.getElementById(msg_dec["mid"]+"_hb").innerHTML=msg_dec["ts"];
+						var delay=Date.now()-(1000*parseFloat(msg_dec["ts"]));
+						document.getElementById(msg_dec["mid"]+"_hb").innerHTML=msg_dec["ts"]+" delay "+delay+" ms";
 						console.log("hb ts updated");
 					}
 				}
@@ -149,6 +150,10 @@ if(!empty($output[0])){	// python serer is running add everything
 				}
 
 				else if(msg_dec["cmd"]=="rf"){
+					var delay=parseInt(Date.now()-(1000*parseFloat(msg_dec["ts"])));
+					document.getElementById(msg_dec["mid"]+"_hb").innerHTML="Foto age "+delay+" ms";
+
+
 					var client=document.getElementById(msg_dec["mid"]);
 					if(client!=undefined){
 						if(document.getElementById(msg_dec["mid"]+"_img")==undefined){
