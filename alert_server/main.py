@@ -335,6 +335,7 @@ def recv_m2m_msg_handle(data,m2m):
 				if(enc.get("sof",0)==1):
 					#send img, assuming this is a at once img
 					msg["img"]=enc.get("data")
+					msg["ts"]=(enc.get("td"))[0][0]
 				else:
 					#read img and send at once, close this file pointer as it is writing only
 					try:
