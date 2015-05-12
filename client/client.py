@@ -278,6 +278,8 @@ while 1:
 						trigger.set_detection(enc.get("state"))
 					elif(enc.get("cmd")=="wf"):
 						ignore=1
+					elif(enc.get("cmd")=="set_color"):
+						light_dimming_q.append((time.time(),enc.get("r",0),enc.get("g",0),enc.get("b",0),100)) # 4 sec to dimm to warm orange - now
 					elif(enc.get("cmd")=="set_interval"):
 						print("setting interval to "+str(enc.get("interval",0)))
 						trigger.set_interval(enc.get("interval",0))
