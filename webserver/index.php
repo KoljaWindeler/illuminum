@@ -7,13 +7,17 @@ if(!empty($output[0])){	// python serer is running add everything
 	$body.='<font color="green">online</font>';
 
 	$body.='</h1>';
+	$body.='<script type="text/javascript" src="jscolor/jscolor.js"></script>
+	        Click here: <input class="color {onImmediateChange:\'updateInfo(this);\'}" value="66ff00">';
 	// add ws display stuff
 	$extra_header='<script type="text/javascript">
 		var con = null;
+		var f_t= 0;
+		var c_t=0;
 		function start() {
 		        con = new WebSocket(\'ws://192.168.1.80:9876/\');
 			con.onopen = function(){
-				login("kolja","huhu");
+				login("browser","huhu");
 			};
 			// reacting on incoming messages
 		        con.onmessage = function(msg) {
@@ -66,6 +70,12 @@ if(!empty($output[0])){	// python serer is running add everything
 							node.appendChild(document.createTextNode("client:"+msg_dec["alias"]+" / "+msg_dec["mid"]));
 							node.setAttribute("id",msg_dec["mid"]);
 							
+
+							//var cs=document.createElement("input");
+							//cs.setAttribute("id",+msg_dec["mid"]+"_img");
+							//cs.className="color";
+							//cs.value="66ff00";
+							//node.appendChild(cs);
 
 							var button=document.createElement("A");
 							button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
@@ -151,7 +161,12 @@ if(!empty($output[0])){	// python serer is running add everything
 
 				else if(msg_dec["cmd"]=="rf"){
 					var delay=parseInt(Date.now()-(1000*parseFloat(msg_dec["ts"])));
-					document.getElementById(msg_dec["mid"]+"_hb").innerHTML="Foto age "+delay+" ms";
+					c_t=c_t+1;
+					if(f_t==0){
+						f_t=Date.now();
+					}
+					var fps=Math.floor((c_t/((Date.now()-f_t)/1000)*100))/100;
+					document.getElementById(msg_dec["mid"]+"_hb").innerHTML="Foto age "+delay+" ms, fps: "+fps;
 
 
 					var client=document.getElementById(msg_dec["mid"]);
@@ -217,6 +232,14 @@ if(!empty($output[0])){	// python serer is running add everything
 		        return det.toString();
 		    }
 		}
+
+
+		function updateInfo(color) {
+			var cmd_data = { "cmd":"set_color", "r":parseInt(parseFloat(color.rgb[0])*100), "g":parseInt(parseFloat(color.rgb[1])*100), "b":parseInt(parseFloat(color.rgb[2])*100)};
+			console.log(JSON.stringify(cmd_data));
+			con.send(JSON.stringify(cmd_data));
+		}
+
 
 		function set_interval(mid,interval){
 			if(con == null){
