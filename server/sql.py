@@ -39,7 +39,7 @@ class sql:
 					result = cursor.fetchall()
 			except:
 				if(self.connection_check()==0):
-					print("failed") # failure based on the command, connection ok
+					print("failed to load rules") # failure based on the command, connection ok
 					result =-2
 				else:
 					self.connection=""
@@ -58,15 +58,16 @@ class sql:
 				#print("try:")
 				with self.connection.cursor() as cursor:
 					# Read a single record
-					#print("gen req:")
+					print("get_data gen req:")
 					req = "SELECT COUNT(*) FROM m2m WHERE mid="+str(mid)
-					cursor.execute(req,)
+					cursor.execute(req)
 					result = cursor.fetchone()
+					print(result)
 					#print(result)
 					if(result["COUNT(*)"]==1):
 						req = "SELECT  pw, area, account, alias, longitude, latitude FROM m2m WHERE mid="+str(mid)
 						#print(req)
-						cursor.execute(req,)
+						cursor.execute(req)
 						#print("setting result to ")
 						result = cursor.fetchone()
 					else:
@@ -76,11 +77,13 @@ class sql:
 						exit()
 					#print(result)
 			except:
+				print("exception running self check")
 				if(self.connection_check()==0):
 					result = -2
 					print("cobnectuon checjlh ==0")
 					exit()
 				else:
+					print("self check return NOT 0")
 					self.connection=""
 					self.connect()
 					result=self.get_data(mid)
@@ -92,6 +95,8 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "UPDATE  `ws` SET  `location` = '"+location+"' WHERE  `ws`.`login` = '"+login+"'"
+				cursor.execute(req, )
+				req = "INSERT INTO  `history` (`id` ,`timestamp` ,`user` ,`action`)VALUES (NULL,'"+str(int(time.time()))+"','"+login+"','"+location+"');"
 				cursor.execute(req, )
 			self.connection.commit()
 			result=0
@@ -108,13 +113,27 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "UPDATE  `area_state` SET  `state` = '"+str(state)+"', `login` = '"+str(login)+"', `updated` = '"+str(time.time())+"'  WHERE  `account` = '"+account+"' AND `area` = '"+area+"'"
-				#print(req)
-				cursor.execute(req, )
-			self.connection.commit()
-			result=0
+				req = "SELECT COUNT(*) FROM area_state WHERE `account` = '"+str(account)+"' AND `area`='"+str(area)+"'"
+				cursor.execute(req)
+				result = cursor.fetchone()
+				#print(result)
+				if(result["COUNT(*)"]==1):
+					req = "UPDATE  `area_state` SET  `state` = '"+str(state)+"', `login` = '"+str(login)+"', `updated` = '"+str(int(time.time()))+"'  WHERE  `account` = '"+account+"' AND `area` = '"+area+"'"
+					#print(req)
+					cursor.execute(req, )
+					self.connection.commit()
+					result=0
+				elif(result["COUNT(*)"]==0):
+					req = "INSERT INTO  `area_state` (`id` ,`area` ,`account` ,`state` ,`updated` ,`login`) VALUES (NULL,'"+str(area)+"','"+str(account)+"','"+str(state)+"','"+str(int(time.time()))+"','"+str(login)+"');"
+					#print(req)
+					cursor.execute(req, )
+					self.connection.commit()
+					result=0
+				else: 
+					result = -1
 		except:
 			result = -1
+		return result
 	#############################################################
 	def get_areas_for_account(self,account):
 		try:
@@ -131,9 +150,16 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT `state` FROM  `area_state` WHERE  `account` = '"+str(account)+"' AND `area`='"+str(area)+"'"
+				req = "SELECT COUNT(*) FROM area_state WHERE `account` = '"+str(account)+"' AND `area`='"+str(area)+"'"
 				cursor.execute(req)
 				result = cursor.fetchone()
+				#print(result)
+				if(result["COUNT(*)"]==1):
+					req = "SELECT `state` FROM  `area_state` WHERE  `account` = '"+str(account)+"' AND `area`='"+str(area)+"'"
+					cursor.execute(req)
+					result = cursor.fetchone()
+				else: 
+					return -1
 		except:
 			result = -1
 		return result
@@ -150,13 +176,25 @@ class sql:
 			result = -1
 		return result
 	#############################################################
-	def update_last_seen(self,mid,ip):
+	def update_last_seen_m2m(self,mid,ip):
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "UPDATE  `m2m` SET  `last_seen` =  %s, `last_ip` = %s WHERE  `m2m`.`mid` =%s"
 				cursor.execute(req, (str(time.time()), str(ip),str(mid)))
 			
+			self.connection.commit()
+			result=0
+		except:
+			result = -1
+		return result
+	#############################################################
+	def update_last_seen_ws(self,login,ip):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "UPDATE  `ws` SET  `update` =  %s, `ip` = %s WHERE  `ws`.`login` =%s"
+				cursor.execute(req, (str(time.time()), str(ip),str(login)))
 			self.connection.commit()
 			result=0
 		except:
