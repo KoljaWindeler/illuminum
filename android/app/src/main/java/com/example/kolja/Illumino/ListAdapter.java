@@ -1,17 +1,14 @@
-package com.example.kolja.alert_app;
+package com.example.kolja.Illumino;
 
 
 import android.app.Activity;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.SeekBar;
-import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
 public class ListAdapter extends ArrayAdapter<ListContainer> {

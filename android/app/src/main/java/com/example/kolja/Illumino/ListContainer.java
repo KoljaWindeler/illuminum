@@ -1,4 +1,4 @@
-package com.example.kolja.alert_app;
+package com.example.kolja.Illumino;
 
 /**
  * Created by kolja on 5/1/15.

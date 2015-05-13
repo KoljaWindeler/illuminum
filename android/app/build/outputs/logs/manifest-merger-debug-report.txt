@@ -49,7 +49,7 @@ MERGED from com.android.support:support-v4:22.1.1:22:5
 		ADDED from AndroidManifest.xml:15:9
 	android:theme
 		ADDED from AndroidManifest.xml:17:9
-activity#com.example.kolja.alert_app.MainActivity
+activity#com.example.kolja.Illumino.MainActivity
 ADDED from AndroidManifest.xml:18:9
 	android:label
 		ADDED from AndroidManifest.xml:20:13
@@ -65,7 +65,7 @@ category#android.intent.category.LAUNCHER
 ADDED from AndroidManifest.xml:23:17
 	android:name
 		ADDED from AndroidManifest.xml:23:27
-service#com.example.kolja.alert_app.bg_service
+service#com.example.kolja.Illumino.bg_service
 ADDED from AndroidManifest.xml:27:9
 	android:label
 		ADDED from AndroidManifest.xml:31:13

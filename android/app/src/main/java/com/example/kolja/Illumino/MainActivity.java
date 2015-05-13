@@ -1,88 +1,36 @@
-package com.example.kolja.alert_app;
+package com.example.kolja.Illumino;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.app.Activity;
-import android.app.Fragment;
-import android.os.Build;
-import android.os.Bundle;
 import android.util.Log;
 import android.content.Context;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.media.Image;
-import android.app.Activity;
 import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Bundle;
-import android.view.View;
-import android.widget.TextView;
-import android.widget.Toast;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Rect;
-import android.view.View.OnClickListener;
+
 import org.java_websocket.util.Base64;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-import java.net.URI;
-import java.net.URISyntaxException;
-import org.java_websocket.client.WebSocketClient;
-import org.java_websocket.handshake.ServerHandshake;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
+
 import java.util.Vector;
-import android.app.ActionBar;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.ActionBar.Tab;
-import android.app.ActionBar.TabListener;
-import android.app.FragmentTransaction;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.graphics.drawable.Drawable;
-import android.os.Bundle;
-import android.os.Handler;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.Window;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.Button;
-import android.widget.LinearLayout;
+
 import android.widget.ListView;
-import android.widget.TextView;
-import android.app.ListActivity;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.view.View;
-import android.widget.ArrayAdapter;
-import android.widget.Toast;
+
 
 
 public class MainActivity extends Activity implements android.view.View.OnClickListener {
-
+    public static final String PREFS_NAME = "IlluminoSettings";
     Vector<ListContainer> res_data = new Vector<ListContainer>();
+    SharedPreferences settings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,11 +39,26 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
 
         Intent intent = new Intent(this, bg_service.class);
         startService(intent);
+
+        settings = getSharedPreferences(PREFS_NAME, 0);
+        String login =settings.getString("LOGIN","Kolja");
+        ((Button)findViewById(R.id.save_id)).setOnClickListener(this);
+        ((EditText)findViewById(R.id.id)).setText(login);
+
+
     }
 
     @Override
     public void onClick(View arg0) {
         Intent intent;
+        switch (arg0.getId()) {
+            case R.id.save_id:
+                String login=((EditText)findViewById(R.id.id)).getText().toString();
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putString("LOGIN", login);
+                editor.commit();
+                break;
+        }
     };
 
     @Override

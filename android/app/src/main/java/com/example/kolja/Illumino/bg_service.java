@@ -1,8 +1,11 @@
-package com.example.kolja.alert_app;
+package com.example.kolja.Illumino;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+
+import android.content.SharedPreferences;
+import android.media.AudioManager;
 import android.os.Vibrator;
 
 import android.graphics.Bitmap;
@@ -15,64 +18,17 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
 
-import android.app.Activity;
-import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.graphics.BitmapFactory;
-import android.graphics.drawable.Drawable;
-import android.media.AudioManager;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
-import android.media.MediaPlayer;
-import android.os.Bundle;
-import android.os.Binder;
-import android.os.Environment;
-import android.os.Handler;
-import java.text.DateFormat;
+
 import java.text.SimpleDateFormat;
-import java.text.ParseException;
 import java.util.Date;
-import android.os.IBinder;
-import android.os.RemoteException;
-import android.widget.ImageButton;
-import android.widget.SeekBar;
-import android.widget.TextView;
-
-import java.io.File;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
 
 
-import android.app.ListActivity;
-import android.content.ComponentName;
-import android.content.ContentUris;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.database.Cursor;
-
-import android.net.Uri;
-
-import android.provider.MediaStore;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.Window;
-import android.view.WindowManager;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.view.animation.TranslateAnimation;
-import android.view.animation.Animation;
-import android.view.animation.Animation.AnimationListener;
-import android.view.animation.AnimationUtils;
-import android.widget.ImageView;
-import android.widget.ListView;
-
-import android.widget.SimpleCursorAdapter;
 
 
 import org.java_websocket.client.WebSocketClient;
@@ -80,8 +36,7 @@ import org.java_websocket.handshake.ServerHandshake;
 import org.java_websocket.util.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
-import android.os.Bundle;
-import android.content.Context;
+
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
 
@@ -93,6 +48,9 @@ public class bg_service extends Service {
 
     private IBinder mBinder;
     private final NotificationCompat.Builder mNotificationBuilder = new NotificationCompat.Builder(this);
+    private AudioManager am;
+    private Vibrator v;
+    private SharedPreferences settings;
 
     private ArrayList<String> areas = new ArrayList<String>();
     private ArrayList<Integer> detection = new ArrayList<Integer>();
@@ -136,15 +94,11 @@ public class bg_service extends Service {
                 // on open -> login in.
                 JSONObject object = new JSONObject();
                 try {
-                    //object.put("cmd", "login");
-                    //object.put("login", "kolja_android");
-                    //object.put("pw", "pw");
                     object.put("cmd", "prelogin");
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
                 Log.i("websocket",object.toString());
-                //console.log(JSON.stringify(cmd_data));
                 mWebSocketClient.send(object.toString());
             }
 
@@ -168,9 +122,11 @@ public class bg_service extends Service {
                     if(cmd.equals("prelogin")) {
                         JSONObject object_snd = new JSONObject();
                         try {
+                            String login =settings.getString("LOGIN","Kolja");
+                            String pw =settings.getString("PW","hui");
                             object_snd.put("cmd", "login");
-                            object_snd.put("login", "kolja_android");
-                            object_snd.put("pw", "pw");
+                            object_snd.put("login", login);
+                            object_snd.put("pw", pw);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -201,8 +157,9 @@ public class bg_service extends Service {
                                 if(object.has("state")) {
                                     Log.i("websockets","state:"+String.valueOf(object.getInt("state"))+" "+String.valueOf(object.getInt("detection")));
                                     if(object.getInt("state")==1 && object.getInt("detection")>=1){
-                                        Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                                        v.vibrate(500);
+                                        if(am.getRingerMode()!=AudioManager.RINGER_MODE_SILENT) {
+                                            v.vibrate(500);
+                                        }
                                         area_of_last_alert=object.getString("area");
                                     }
                                     state.set(i, object.getInt("state"));
@@ -239,7 +196,7 @@ public class bg_service extends Service {
                         }
 
                         // show notification
-                        showNotification("SmartCam",Notification_text_builder(false),Notification_text_builder(true));
+                        showNotification("Illumino",Notification_text_builder(false),Notification_text_builder(true));
 
                     } else if(cmd.equals("rf")){
                         byte[] decodedString = Base64.decode(object.getString("img"), Base64.NO_OPTIONS);
@@ -247,9 +204,13 @@ public class bg_service extends Service {
                         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
                         time_of_last_alert=sdf.format(new Date());
                         // show notification
-                        showNotification("SmartCam", Notification_text_builder(false), "");
-
+                        showNotification("Illumino", Notification_text_builder(false), "");
                     }
+
+
+                    //else if(cmd.equals("rf")){
+                    //
+                    //}
 
                 } catch (Exception e) {
                     cmd="";
@@ -260,14 +221,14 @@ public class bg_service extends Service {
             public void onClose(int i, String s, boolean b) {
                 Log.i("Websocket", "Closed " + s);
                 connected=false;
-                showNotification("SmartCam","disconnected","");
+                showNotification("Illumino","disconnected","");
             }
 
             @Override
             public void onError(Exception e) {
                 Log.i("Websocket", "Error " + e.getMessage());
                 connected=false;
-                showNotification("SmartCam","connection Error","");
+                showNotification("Illumino","connection Error","");
             }
         };
         mWebSocketClient.connect();
@@ -282,6 +243,7 @@ public class bg_service extends Service {
                 try {
                     Thread.sleep(3000);
                 } catch (Exception ex) {
+                    Log.i("websocket","exeption on wait")
                     ;
                 }
 
@@ -293,11 +255,18 @@ public class bg_service extends Service {
                     try {
                         object.put("cmd", "hb");
                     } catch (JSONException e) {
+                        Log.i("websocket","exeption on put hb");
                         e.printStackTrace();
                     }
                     Log.i("websocket",object.toString());
                     //console.log(JSON.stringify(cmd_data));
-                    mWebSocketClient.send(object.toString());
+                    try {
+                        mWebSocketClient.send(object.toString());
+                    } catch (Exception e) {
+                        Log.i("websocket", "send exception");
+                    }
+                    // show notification
+                    showNotification("Illumino-",Notification_text_builder(false),Notification_text_builder(true));
                 }
 
                 if(!connected){
@@ -332,8 +301,10 @@ public class bg_service extends Service {
     }
     private void showNotification(String title,String short_text, String long_text) {
         if(last_picture==null) {
+            String login =settings.getString("LOGIN","Kolja");
             mNotificationBuilder
-                    .setContentTitle(title)
+                    .setContentTitle(login+"@"+title)
+                    .setWhen(System.currentTimeMillis())
                             //.setContentInfo("shor first line, right")
                     .setContentText(short_text)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(long_text)); //.setSummaryText(short_text+"3"));this will be shown if you pull down the menu
@@ -398,6 +369,11 @@ public class bg_service extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i("websocket", "this is on start");
 
+        // get services
+        am = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        settings = getSharedPreferences(MainActivity.PREFS_NAME, 0);
+
         // establish comm interface
         registerReceiver(receiver, new IntentFilter(bg_service.SENDER));
 
@@ -409,8 +385,10 @@ public class bg_service extends Service {
         t.start();
 
         setupNotifications();
-        showNotification("SmartCam","connecting..","");
+        showNotification("Illumino","connecting..","");
         //connectWebSocket();
+
+
 
         return Service.START_STICKY;
     }
@@ -496,7 +474,7 @@ public class bg_service extends Service {
         }
 
         // update once we've change our position, just for the DUBUG line!!
-        showNotification("SmartCam",Notification_text_builder(false),Notification_text_builder(true));
+        showNotification("Illumino",Notification_text_builder(false),Notification_text_builder(true));
     };
 
     // Define a listener that responds to location updates

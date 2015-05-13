@@ -1,4 +1,4 @@
-package com.example.kolja.alert_app;
+package com.example.kolja.Illumino;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
