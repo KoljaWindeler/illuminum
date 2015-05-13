@@ -59,7 +59,7 @@ def recv_m2m_con_handle(data,m2m):
 	#print("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
 		print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' disconneted")
-		db.update_last_seen(m2m.mid,"")
+		db.update_last_seen_m2m(m2m.mid,"") #<- this returns bad file descriptor
 
 		# try to find that m2m in all ws clients lists, so go through all clients and their lists
 		for ws in server_ws.clients:
@@ -226,7 +226,7 @@ def recv_m2m_msg_handle(data,m2m):
 							info_viewer+=1
 							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
 					p.m2m_login(m2m,info_viewer)
-					db.update_last_seen(m2m.mid,m2m.conn.getpeername()[0])
+					db.update_last_seen_m2m(m2m.mid,m2m.conn.getpeername()[0])
 				else:
 					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' log-in: failed")
 					msg["ok"]=-2 # not logged in
@@ -515,21 +515,31 @@ def recv_ws_msg_handle(data,ws):
 			msg_ws["cmd"]=enc.get("cmd")
 			# data base has to give us this values
 			ws.login=enc.get("login")
+			
+			# database output
 			pw2="124"
 			h = hashlib.new('ripemd160')
 			h.update(pw2.encode("UTF-8"))
 			db_f={}
 			db_f["pw"]=h.hexdigest() # todo get those data from sql
 			db_f["account"]="jkw"
+			# database output
 
 			# check parameter
 			if(db_f["pw"]==enc.get("client_pw") or 1): # <<-- TODO, that is no very safe ;D
-				ws.logged_in=1
+				# complete message
 				msg_ws["ok"]=1 # logged in
 				msg_q_ws.append((msg_ws,ws))
+				
+				# add socket infos
+				ws.logged_in=1
 				ws.account=db_f["account"]
+				ws.last_comm=time.time()
+				
+				# print and update db
 				p.ws_login(ws)
-
+				db.update_last_seen_ws(ws.login, ws.conn.getpeername()[0])
+				
 				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
 				# introduce them to each other
 				for m2m in server_m2m.clients:
@@ -551,7 +561,20 @@ def recv_ws_msg_handle(data,ws):
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
 			msg_q_ws.append((msg,ws))
+			ws.last_comm=time.time()
 
+
+		#### set a color 
+		elif(enc.get("cmd")=="set_color"):
+			# respond
+			#p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' HB","h")
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["r"]=enc.get("r")
+			msg["g"]=enc.get("g")
+			msg["b"]=enc.get("b")
+			for m2m in server_m2m.clients:
+				msg_q_m2m.append((msg,m2m))
 
 		## Detection on/off handle, for WS --> this should be obsolete as the server can decide on its own when to activate the detection
 		elif(enc.get("cmd")=="detection"):
