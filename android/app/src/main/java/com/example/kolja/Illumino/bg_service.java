@@ -69,6 +69,7 @@ public class bg_service extends Service {
     private Bitmap last_picture = null;
     private String area_of_last_alert ="";
     private String time_of_last_alert ="";
+    private long last_ts_in;
 
     private int server_told_location =-1;
     private boolean connected=false;
@@ -144,6 +145,7 @@ public class bg_service extends Service {
                                 Log.i("websocket", "i have a valid location");
                                 check_locations(last_known_location);
                             }
+                            last_ts_in = System.currentTimeMillis();
                         }
 
 
@@ -208,9 +210,9 @@ public class bg_service extends Service {
                     }
 
 
-                    //else if(cmd.equals("rf")){
-                    //
-                    //}
+                    else if(cmd.equals("hb")){
+                        last_ts_in = System.currentTimeMillis();
+                    }
 
                 } catch (Exception e) {
                     cmd="";
@@ -243,10 +245,10 @@ public class bg_service extends Service {
                 try {
                     Thread.sleep(3000);
                 } catch (Exception ex) {
-                    Log.i("websocket","exeption on wait")
-                    ;
+                    Log.i("websocket","exeption on wait");
                 }
 
+                showNotification("Illumino "+String.valueOf(count)+"/20 "+String.valueOf((int)((System.currentTimeMillis()-last_ts_in)/1000)),Notification_text_builder(false),Notification_text_builder(true));
 
                 // send heartbeet to server every 60 sec
                 if(count>=20){
@@ -266,10 +268,10 @@ public class bg_service extends Service {
                         Log.i("websocket", "send exception");
                     }
                     // show notification
-                    showNotification("Illumino-",Notification_text_builder(false),Notification_text_builder(true));
+                    showNotification("Illumino",Notification_text_builder(false),Notification_text_builder(true));
                 }
 
-                if(!connected){
+                if(!connected || ((System.currentTimeMillis()-last_ts_in)>130000)){
                     Log.i("websocket", "not connected - reconnecting");
                     connectWebSocket();
                 }
