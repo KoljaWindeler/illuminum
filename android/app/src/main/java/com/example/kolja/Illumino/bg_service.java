@@ -303,7 +303,8 @@ public class bg_service extends Service {
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
         // start loop
-        t.start();
+        //t.start();
+        connectWebSocket();
 
         setupNotifications();
         showNotification("Illumino", "connecting..", "");
@@ -548,6 +549,18 @@ public class bg_service extends Service {
                             last_ts_in = System.currentTimeMillis();
                         }
 
+                        else if (cmd.equals("shb")) {
+                            try {
+                                o_snd.put("cmd", "shb");
+                                o_snd.put("ok", 1);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            Log.i("websocket", o_snd.toString());
+                            //console.log(JSON.stringify(cmd_data));
+                            send_msg(o_snd.toString());
+                        }
+
                     } catch (Exception e) {
                         Log.i("Websocket", "Error " + e.getMessage());
                     }
@@ -568,7 +581,6 @@ public class bg_service extends Service {
                     connectWebSocket();
                 }
             };
-
             // connect
             mWebSocketClient.close();
             mWebSocketClient.connect();
