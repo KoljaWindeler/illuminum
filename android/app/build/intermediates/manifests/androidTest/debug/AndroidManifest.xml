@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.kolja.alert_app.test">
+    package="com.example.kolja.Illumino.test">
 
     <uses-sdk android:minSdkVersion="15" android:targetSdkVersion="21" />
 
@@ -9,8 +9,8 @@
     </application>
 
     <instrumentation android:name="android.test.InstrumentationTestRunner"
-                     android:targetPackage="com.example.kolja.alert_app"
+                     android:targetPackage="com.example.kolja.Illumino"
                      android:handleProfiling="false"
                      android:functionalTest="false"
-                     android:label="Tests for com.example.kolja.alert_app"/>
+                     android:label="Tests for com.example.kolja.Illumino"/>
 </manifest>
