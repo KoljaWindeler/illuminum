@@ -138,7 +138,7 @@ if(!empty($output[0])){	// python serer is running add everything
 							console.log("hb feld in client angebaut");
 						}
 
-						document.getElementById(msg_dec["mid"]+"_state").innerHTML=state2str((msg_dec["state"]))+", "+det2str(msg_dec["detection"]);
+						document.getElementById(msg_dec["mid"]+"_state").innerHTML=state2str((msg_dec["state"]))+" || "+det2str(msg_dec["detection"]);
 					}
 				}
 
@@ -155,7 +155,7 @@ if(!empty($output[0])){	// python serer is running add everything
 					state=msg_dec["state"];
 					detection=msg_dec["detection"];
 					if(e!=undefined){
-						e.innerHTML=state2str(state)+" "+det2str(detection);
+						e.innerHTML=state2str(state)+" || "+det2str(detection);
 					}
 				}
 
