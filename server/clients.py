@@ -32,6 +32,7 @@ class ws_clients:
 	def __init__(self, addr):
 		self.ip = addr.getpeername()[0] 	# the IP adress of the viewr	
 		self.port = addr.getpeername()[1]	# the client port
+		self.uuid = ""						# IMEI/?
 		self.conn=addr						# this is the socket
 		self.logged_in=0					# 1 if log-in ok
 		self.last_comm=0					# timestamp of the last incoming msg

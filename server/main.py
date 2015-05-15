@@ -535,6 +535,7 @@ def recv_ws_msg_handle(data,ws):
 				ws.logged_in=1
 				ws.account=db_f["account"]
 				ws.last_comm=time.time()
+				ws.uuid=enc.get("uuid","")
 				
 				# print and update db
 				p.ws_login(ws)
@@ -547,6 +548,15 @@ def recv_ws_msg_handle(data,ws):
 						connect_ws_m2m(m2m,ws)
 				# and finally connect all disconnected m2m to the ws
 				connect_ws_m2m("",ws)
+				
+				# check if the same UUID has another open connection
+				if(enc.get("uuid","")!=""):
+					for cli_ws in server_ws.clients:
+						if(cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login):
+							#print("disconnecting "+str(cli_ws.login)+" IP "+str(cli_ws.ip)+" as that has the same UUID")
+							cli_ws.conn.close()
+							recv_ws_con_handle("disconnect", cli_ws)
+				
 			else:
 				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: failed, '"+ws.login+"'")
 				msg_ws["ok"]=-2 # not logged in
@@ -609,7 +619,7 @@ def recv_ws_msg_handle(data,ws):
 
 		## unsupported cmd, for WS
 		else:
-			print("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd"))
+			print("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+ws.login)
 #******************************************************#
 
 #******************************************************#
@@ -949,6 +959,8 @@ last_rulecheck_ts=0
 #***************************************************************************************#
 #************************************** Main loop **************************************#
 #***************************************************************************************#
+last_ws_bh_time=0
+
 while 1:
 	# sleeping
 	if(busy==0):
@@ -994,6 +1006,16 @@ while 1:
 		debug_ts=time.time()-last_rulecheck_ts
 		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(debug_ts),"r")
 
+
+	if(time.time()-last_ws_bh_time>60):
+		last_ws_bh_time=time.time()
+		msg={}
+		msg["cmd"]="shb"
+		for ws in server_ws.clients:
+			msg_q_ws.append((msg,ws))
+			print("[A     "+time.strftime("%H:%M:%S")+"] -> Server ping to "+ws.login)
+			
 #***************************************************************************************#
 #********************************** End of Main loop ***********************************#
 #***************************************************************************************#
+	

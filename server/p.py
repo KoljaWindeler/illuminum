@@ -1,4 +1,4 @@
-import sys,  threading, time
+import sys,  threading, time, datetime
 from clients import m2m_state,det_state
 
 __author__ = 'kolja'
@@ -123,15 +123,16 @@ def show_ws(id,l,ws):
 		show_m2m(1,l,"")
 		print("we got "+str(l)+" ws-clients connected")
 	elif(id==-1):
-		print("WS login        | Account    | IP             | l-in | last_seen  | Q-length")
+		print("WS login        | Account    | IP             | l-in | last_seen  | Q-length | uuid")
 		show_m2m(1,l,"")
 	elif(id==0):
 		p_login=(ws.login+"               ")[0:15]
 		p_account=(ws.account+"               ")[0:10]
 		p_ip=(str(ws.ip)+"                  ")[0:14]
-		p_last_seen=(str(int(ws.last_comm))+"                         ")[0:10]
+		p_last_seen=(datetime.datetime.fromtimestamp(int(ws.last_comm)).strftime('%H:%M:%S')+"                         ")[0:10]
+		p_qlen=(str(ws.snd_q_len)+"                    ")[0:8]
 		
-		output=p_login+" | "+p_account+" | "+str(p_ip)+" | "+str(ws.logged_in)+"    | "+p_last_seen+" | "+str(ws.snd_q_len)
+		output=p_login+" | "+p_account+" | "+str(p_ip)+" | "+str(ws.logged_in)+"    | "+p_last_seen+" | "+p_qlen+" | "+ws.uuid
 		print(output)
 	elif(id==1):
 		show_m2m(1,"","")
@@ -149,13 +150,14 @@ def show_m2m(id,l,m2m):
 		p_account=(m2m.account+"               ")[0:10]
 		p_ip=(str(m2m.ip)+"                  ")[0:14]
 		p_area=(str(m2m.area)+"                  ")[0:15]
+		p_last_seen=(datetime.datetime.fromtimestamp(int(m2m.last_comm)).strftime('%H:%M:%S')+"                         ")[0:10]
 		if(m2m.detection>=0):
 			p_detection=(det_state[m2m.detection]+"           ")[0:9]
 		else:
 			p_detection=(str(m2m.detection)+"                  ")[0:9]
 		p_state=(m2m_state[int(m2m.state)]+"                   ")[0:13]
 		output=str(m2m.mid)[-5:]+"/"+p_alias+" | "+p_account+" | "+str(p_detection)+" | "+(p_state)+" | "+str(p_ip)+" | "+str(m2m.logged_in)+"    | "
-		output+=str(int(m2m.last_comm))+" | "+p_area+" | "+str(m2m.latitude)+"/"+str(m2m.longitude)
+		output+=p_last_seen+" | "+p_area+" | "+str(m2m.latitude)+"/"+str(m2m.longitude)
 		print(output)
 	elif(id==1):
 		print("-------------------------------------------------------------------------------------------------------------------------------------------------------")
