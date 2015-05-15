@@ -15,6 +15,8 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.media.AudioManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -23,6 +25,7 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import org.java_websocket.util.Base64;
@@ -71,8 +74,8 @@ class coordinate{
     private boolean valid=false;
 
     public coordinate()                     { super();    }
-    public void setCoordinaes(Location loc) { this.last_valid_location=loc; valid=true;  };
-    public Location getCoordinaes()         { return this.last_valid_location;   };
+    public void setCoordinaes(Location loc) { this.last_valid_location=loc; valid=true;  }
+    public Location getCoordinaes()         { return this.last_valid_location;   }
     public boolean isValid()                { return this.valid;   }
 }
 
@@ -92,8 +95,11 @@ public class bg_service extends Service {
     private Handler mHandler;
     private LocationManager mLocationManager;
     private NotificationManager mNotificationManager = null;
-    private final NotificationCompat.Builder mNotificationBuilder = new NotificationCompat.Builder(this);
+    private NotificationCompat.Builder mNotificationBuilder = new NotificationCompat.Builder(this);
     private WebSocketConnection mWebSocketClient;
+    private String mNetworkType=null;
+    private AlarmManager mAlarmManager;
+    private PendingIntent mPendingIntentCreator;
 
     private ArrayList<area> areas = new ArrayList<area>();
     private ArrayList<String> msg_out = new ArrayList<String>();
@@ -121,18 +127,29 @@ public class bg_service extends Service {
         i.setAction(ACTION_CONNECT);
         return i;
     }
+
+    private Runnable delayed_reconnect=new Runnable() {
+        @Override
+        public void run() {
+            startService(startIntent(mContext));
+        }
+    };
+
     // initiates a hb send
     public static Intent pingIntent(Context context){
         Intent i = new Intent(context, bg_service.class);
         i.setAction(ACTION_PING);
         return i;
     }
+
+
     // to kill us
     public static Intent closeIntent(Context context){
         Intent i = new Intent(context, bg_service.class);
         i.setAction(ACTION_SHUT_DOWN);
         return i;
     }
+
 
 
     ///////////////////////////////////////////////////////////////////////////////
@@ -251,37 +268,39 @@ public class bg_service extends Service {
             }
         }
 
-        // check if we should tell the server
-        if (server_told_location != closest_area) {
-            server_told_location = closest_area;
-            // we should
+        if(mConnected) {
+            // check if we should tell the server
+            if (server_told_location != closest_area) {
+                server_told_location = closest_area;
+                // we should
 
-            // Intent intent = new Intent(NOTIFICATION);
-            // intent.putExtra(LOG, "log");
-            // intent.putExtra(JSON, distance);
-            // sendBroadcast(intent);
+                // Intent intent = new Intent(NOTIFICATION);
+                // intent.putExtra(LOG, "log");
+                // intent.putExtra(JSON, distance);
+                // sendBroadcast(intent);
 
-            // tell the server that we are in that area
-            JSONObject object = new JSONObject();
-            try {
-                object.put("cmd", "update_location");
-                if (closest_area == -1) {
-                    object.put("loc", "www");
-                } else {
-                    object.put("loc", areas.get(closest_area).getName());
+                // tell the server that we are in that area
+                JSONObject object = new JSONObject();
+                try {
+                    object.put("cmd", "update_location");
+                    if (closest_area == -1) {
+                        object.put("loc", "www");
+                    } else {
+                        object.put("loc", areas.get(closest_area).getName());
+                    }
+
+                    //Log.i(getString(R.string.debug_id), object.toString());
+                    //console.log(JSON.stringify(cmd_data));
+                    send_msg(object.toString());
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
                 }
-
-                //Log.i(getString(R.string.debug_id), object.toString());
-                //console.log(JSON.stringify(cmd_data));
-                send_msg(object.toString());
-
-            } catch (JSONException e) {
-                e.printStackTrace();
             }
-        }
 
-        // update once we've change our position, just for the DUBUG line!!
-        showNotification("Illumino", Notification_text_builder(false), Notification_text_builder(true));
+            // update once we've change our position, just for the DUBUG line!!
+            showNotification("Illumino check location", Notification_text_builder(false), Notification_text_builder(true));
+        }
     }
 
     ;
@@ -308,18 +327,16 @@ public class bg_service extends Service {
     // https://github.com/schwiz/android-websocket-example/blob/master/src/net/schwiz/eecs780/PushService.java
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        try {
-            Thread.sleep(10000);
-        } catch (Exception ex) {
-
-        }
+        //try {
+        //    Thread.sleep(10000);
+        //} catch (Exception ex) {   }
 
 
-        WakeLock wakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "EECS780 Service");
+        WakeLock wakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Illumino Service");
         wakelock.acquire();
+
         mShutDown = false;
         mLoggedIn = false;
-        mConnected = false;
         mContext = this;
         mHandler = new Handler();
 
@@ -328,9 +345,12 @@ public class bg_service extends Service {
         am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         settings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, 0);
+        mAlarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
+        mPendingIntentCreator = PendingIntent.getService(this, 0, bg_service.pingIntent(this), PendingIntent.FLAG_UPDATE_CURRENT);
 
         // establish comm interface
         registerReceiver(receiver, new IntentFilter(bg_service.SENDER));
+        registerReceiver(receiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
 
         // Register the listener with the Location Manager to receive location updates
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -339,12 +359,11 @@ public class bg_service extends Service {
         setupNotifications();
 
         // start loop
-        //t.start();
         boolean recreate=false;
         write_to_file("check if we should recreate");
         if(mWebSocketClient == null){
             recreate=true;
-            write_to_file("yes, is null");
+            write_to_file("yes, or client is set to null");
         } else if(!mWebSocketClient.isConnected()) {
             recreate = true;
             write_to_file("yes, is not connected");
@@ -352,12 +371,15 @@ public class bg_service extends Service {
             recreate = true;
             write_to_file("yes, mConnected said so");
         }
-
         if(intent!=null) {
             if (ACTION_CONNECT.equals(intent.getAction())) {
                 recreate = true;
-                write_to_file("yes, this is a reconnect action");
+                write_to_file("yes, this is ACTION CONNECT");
+            } else if(ACTION_PING.equals(intent.getAction())){
+                write_to_file("this is ACTION PING");
             }
+        } else {
+            write_to_file("this is NO ACTION");
         }
 
         try {
@@ -374,7 +396,6 @@ public class bg_service extends Service {
 
         if(intent!=null){
             if(ACTION_PING.equals(intent.getAction())){
-                write_to_file("ACTION PING received");
                 if(mWebSocketClient!=null && mWebSocketClient.isConnected()) {
                     JSONObject object = new JSONObject();
                     try {
@@ -383,23 +404,16 @@ public class bg_service extends Service {
                         write_to_file("exeption on put hb to JSON");
                         e.printStackTrace();
                     }
-                    //Log.i(getString(R.string.debug_id), object.toString());
-                    //console.log(JSON.stringify(cmd_data));
                     send_msg(object.toString());
                     last_ts_out=System.currentTimeMillis();
-                } else {
-                    //mWebSocketClient=null;
-                    startService(bg_service.pingIntent(mContext));
                 }
             }
         }
 
         if(intent == null || (intent.getAction()!=null && !intent.getAction().equals(ACTION_SHUT_DOWN)) || (intent.getAction()==null)){
-            AlarmManager am = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
             PendingIntent operation = PendingIntent.getService(this, 0, bg_service.pingIntent(this), PendingIntent.FLAG_NO_CREATE);
             if(operation == null) {
-                operation = PendingIntent.getService(this, 0, bg_service.pingIntent(this), PendingIntent.FLAG_UPDATE_CURRENT);
-                am.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 60000, operation);
+                mAlarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 60000, mPendingIntentCreator);
                 write_to_file("wakeup for ping scheduled for now+60sec");
             } else {
                 write_to_file("there is a pending intent");
@@ -453,10 +467,34 @@ public class bg_service extends Service {
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Bundle bundle = intent.getExtras();
-            if (bundle != null) {
-                String data = bundle.getString(bg_service.JSON);
-                send_msg(data);
+            try {
+                if (intent != null && intent.getExtras() != null) {
+
+                    Bundle bundle = intent.getExtras();
+                    if (bundle != null) {
+                        String data = bundle.getString(bg_service.JSON,"");
+                        if(!data.equals("")) {
+                            send_msg(data);
+                        }
+                    }
+
+
+                    final ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                    final NetworkInfo ni = connectivityManager.getActiveNetworkInfo();
+
+                    if (ni != null && ni.isConnectedOrConnecting()) {
+                        if(mNetworkType!=null && !mNetworkType.equals(ni.getTypeName())) {
+                            write_to_file("Network was "+mNetworkType+" and changed to " + ni.getTypeName()+ " calling restart ");
+                            restart_connection();
+                        }
+                        mNetworkType=ni.getTypeName();
+                    } else if (intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, Boolean.FALSE)) {
+                        write_to_file("There's no network connectivity");
+                    }
+                }
+            }
+            catch (Exception ex){
+                write_to_file("catched this on receiving "+ex.toString());
             }
         }
     };
@@ -467,34 +505,13 @@ public class bg_service extends Service {
     ///////////////////////////////////////////////////////////////////////////////
     ///////////////////////////// web socket handling /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////
-//    Thread t = new Thread(new Runnable() {
-//        public void run() {
-//            Log.i(getString(R.string.debug_id), "Starting thread T");
-//            int count = 1;
-//            while (true) {
-//                try {
-//                    // check connetion
-//                    if(!mConnected) {
-//                        connectWebSocket();
-//                    }
-//
-//                    try {
-//                        Thread.sleep(3000);
-//                    } catch (Exception ex) {
-//                        Log.i(getString(R.string.debug_id), "exeption on wait");
-//                    }
-//                } catch (Exception ex){
-//                    Log.i(getString(R.string.debug_id), "!!!!!!!!!!!!!!!!!!!!!exeption !!!!!!!!!!!!!!!!!");
-//                    ex.printStackTrace();
-//                }
-//            }
-//        }
-//    });
-
     private void createWebSocket() {
+
         final String wsuri = "ws://172.12.213.117:10820";
+
         try {
             last_ts_in=0;
+            write_to_file("Setting up WebSocket and connecting");
             mWebSocketClient = new WebSocketConnection();
             mWebSocketClient.connect(wsuri, new WebSocketHandler() {
                 // websocket is connected and has just opened
@@ -518,177 +535,208 @@ public class bg_service extends Service {
                 public void onTextMessage(String message) {
                     write_to_file("onMessage: " + message);
 
-                    WakeLock wakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Illumino");
-                    wakelock.acquire();
-                    last_ts_in = System.currentTimeMillis();
-
-                    // forward message to possible listening apps
-                    Intent intent = new Intent(NOTIFICATION);
-                    intent.putExtra(JSON, message);
-                    sendBroadcast(intent);
-
-                    // but check if we could use it
-                    String cmd;
-                    try {
-                        JSONObject o_recv = new JSONObject(message);
-                        JSONObject o_snd = new JSONObject();
-                        cmd = o_recv.getString("cmd");
-
-                        //////////////////////////////////////////////////////////////////////////////////////
-                        // if we receive a prelogin answer, we have to calc our login and send it to the server
-                        if (cmd.equals("prelogin")) {
-                            try {
-                                String login = settings.getString("LOGIN", "Kolja");
-                                String pw = settings.getString("PW", "hui");
-                                o_snd.put("cmd", "login");
-                                o_snd.put("login", login);
-                                o_snd.put("pw", pw);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            write_to_file("received prelogin, sending " + o_snd.toString());
-                            //console.log(JSON.stringify(cmd_data));
-                            send_msg(o_snd.toString());
-                        }
-
-                        //////////////////////////////////////////////////////////////////////////////////////
-                        // if we receive a login answer, we should check if we can answer with a location
-                        else if (cmd.equals("login")) {
-                            if (o_recv.getString("ok").equals("1")) {
-                                write_to_file("We are logged in!");
-                                mLoggedIn = true;
-
-                                // assuming we reconnected as a reaction on a server reboot, the server has no idea where we are. we should tell him right away if we know it
-                                if (last_known_location.isValid()) {
-                                    write_to_file("i have a valid location");
-                                    check_locations(last_known_location.getCoordinaes());
-                                }
-
-
-                                // check if we have messages in the q
-                                send_msg("");
-                            }
-                        }
-
-                        //////////////////////////////////////////////////////////////////////////////////////
-                        // update our list of areas
-                        else if (cmd.equals("m2v_login") || cmd.equals("detection_changed") || cmd.equals("state_change")) {
-                            int found = 0;
-                            for (int i = 0; i < areas.size(); i++) {
-                                if (areas.get(i).getName().equals(o_recv.getString("area"))) {
-                                    found = 1;
-                                    areas.get(i).setDetection(o_recv.getInt("detection"));
-
-                                    if (o_recv.has("state")) {
-                                        write_to_file("state:" + String.valueOf(o_recv.getInt("state")) + " " + String.valueOf(o_recv.getInt("detection")));
-                                        if (o_recv.getInt("state") == 1 && o_recv.getInt("detection") >= 1) {
-                                            if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
-                                                v.vibrate(500);
-                                            }
-                                            area_of_last_alert = o_recv.getString("area");
-                                        }
-                                        areas.get(i).setState(o_recv.getInt("state"));
-                                    }
-                                }
-                            }
-
-                            // first sign up .. add to list
-                            if (found == 0) {
-                                String name = o_recv.getString("area");
-                                Integer det = o_recv.getInt("detection");
-                                Location new_loc = new Location("new");
-                                if (!o_recv.getString("latitude").equals("") && !o_recv.getString("longitude").equals("")) {
-                                    new_loc.setLatitude(Float.parseFloat(o_recv.getString("latitude")));
-                                    new_loc.setLongitude(Float.parseFloat(o_recv.getString("longitude")));
-                                } else {
-                                    new_loc.setLatitude(0.0);
-                                    new_loc.setLongitude(0.0);
-                                }
-
-                                int state = -1;
-                                if (o_recv.has("state")) {
-                                    state = o_recv.getInt("state");
-                                }
-
-                                // add it to the structure
-                                areas.add(new area(name, det, new_loc, 500, state));
-                            }
-
-                            // show notification
-                            showNotification("Illumino", Notification_text_builder(false), Notification_text_builder(true));
-                        }
-
-                        //////////////////////////////////////////////////////////////////////////////////////
-                        // receive a image
-                        else if (cmd.equals("rf")) {
-                            byte[] decodedString = Base64.decode(o_recv.getString("img"), Base64.NO_OPTIONS);
-                            last_picture = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length); // todo: we need a kind of, if app has started reset picture to null
-                            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-                            time_of_last_alert = sdf.format(new Date());
-                            // show notification
-                            showNotification("Illumino", Notification_text_builder(false), "");
-                        }
-
-                        //////////////////////////////////////////////////////////////////////////////////////
-                        // receive a heartbeat answer
-                        //else if (cmd.equals("hb")){
-                        else if (cmd.equals("shb")) {
-                            try {
-                                o_snd.put("cmd", "shb");
-                                o_snd.put("ok", 1);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                            //Log.i(getString(R.string.debug_id), o_snd.toString());
-                            //console.log(JSON.stringify(cmd_data));
-                            send_msg(o_snd.toString());
-                        }
-
-                    } catch (Exception e) {
-                        write_to_file("Error on decoding incoming message " + e.getMessage());
-                    }
-                    wakelock.release();
+                    read_msg(message);
                 }
 
                 @Override
                 public void onClose(int code, String reason) {
                     write_to_file("On Closed " + reason);
-                    mConnected = false;
-                    showNotification("Illumino", "disconnected", "");
-                    startService(startIntent(mContext));
+                    restart_connection();
                 }
             });
         }
 
         catch (WebSocketException e){
             write_to_file("On Error " + e.getMessage());
-            mConnected = false;
-            showNotification("Illumino", "connection Error", "");
-
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() { startService(startIntent(mContext));    }
-            }, (1000 * 5)); // start in 5 sec
+            restart_connection();
         }
+    }
+
+    // restart
+    private void restart_connection(){
+        mWebSocketClient=null;
+        mConnected = false;
+        showNotification("Illumino", "disconnected", "");
+
+        try{
+            mAlarmManager.cancel(mPendingIntentCreator);
+        } catch (Exception ex){
+
+        }
+
+        mHandler.removeCallbacks(delayed_reconnect);
+        mHandler.postDelayed(delayed_reconnect,5000); // start in 5 sec
+    }
+
+
+    // handle message that came in
+    private void read_msg(String message){
+        WakeLock wakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Illumino");
+        wakelock.acquire();
+        last_ts_in = System.currentTimeMillis();
+
+        // forward message to possible listening apps
+        Intent intent = new Intent(NOTIFICATION);
+        intent.putExtra(JSON, message);
+        sendBroadcast(intent);
+
+        // but check if we could use it
+        String cmd;
+        try {
+            JSONObject o_recv = new JSONObject(message);
+            JSONObject o_snd = new JSONObject();
+            cmd = o_recv.getString("cmd");
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // if we receive a prelogin answer, we have to calc our login and send it to the server
+            if (cmd.equals("prelogin")) {
+                try {
+                    TelephonyManager tManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
+                    String uuid = tManager.getDeviceId();
+
+                    String login = settings.getString("LOGIN", "Kolja");
+                    String pw = settings.getString("PW", "hui");
+                    o_snd.put("cmd", "login");
+                    o_snd.put("login", login);
+                    o_snd.put("uuid", uuid);
+                    o_snd.put("pw", pw);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                write_to_file("received prelogin, sending " + o_snd.toString());
+                //console.log(JSON.stringify(cmd_data));
+                send_msg(o_snd.toString());
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // if we receive a login answer, we should check if we can answer with a location
+            else if (cmd.equals("login")) {
+                if (o_recv.getString("ok").equals("1")) {
+                    write_to_file("We are logged in!");
+                    mLoggedIn = true;
+
+                    // assuming we reconnected as a reaction on a server reboot, the server has no idea where we are. we should tell him right away if we know it
+                    if (last_known_location.isValid()) {
+                        write_to_file("i have a valid location");
+                        check_locations(last_known_location.getCoordinaes());
+                    }
+
+
+                    // check if we have messages in the q
+                    send_msg("");
+                }
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // update our list of areas
+            else if (cmd.equals("m2v_login") || cmd.equals("detection_changed") || cmd.equals("state_change")) {
+                int found = 0;
+                for (int i = 0; i < areas.size(); i++) {
+                    if (areas.get(i).getName().equals(o_recv.getString("area"))) {
+                        found = 1;
+                        areas.get(i).setDetection(o_recv.getInt("detection"));
+
+                        if (o_recv.has("state")) {
+                            //write_to_file("state:" + String.valueOf(o_recv.getInt("state")) + " " + String.valueOf(o_recv.getInt("detection")));
+                            if (o_recv.getInt("state") == 1 && o_recv.getInt("detection") >= 1) {
+                                if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
+                                    v.vibrate(500);
+                                }
+                                area_of_last_alert = o_recv.getString("area");
+                            }
+                            areas.get(i).setState(o_recv.getInt("state"));
+                        }
+                    }
+                }
+
+                // first sign up .. add to list
+                if (found == 0) {
+                    String name = o_recv.getString("area");
+                    Integer det = o_recv.getInt("detection");
+                    Location new_loc = new Location("new");
+                    if (!o_recv.getString("latitude").equals("") && !o_recv.getString("longitude").equals("")) {
+                        new_loc.setLatitude(Float.parseFloat(o_recv.getString("latitude")));
+                        new_loc.setLongitude(Float.parseFloat(o_recv.getString("longitude")));
+                    } else {
+                        new_loc.setLatitude(0.0);
+                        new_loc.setLongitude(0.0);
+                    }
+
+                    int state = -1;
+                    if (o_recv.has("state")) {
+                        state = o_recv.getInt("state");
+                    }
+
+                    // add it to the structure
+                    areas.add(new area(name, det, new_loc, 500, state));
+                }
+
+                // show notification
+                showNotification("Illumino read message", Notification_text_builder(false), Notification_text_builder(true));
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // receive a image
+            else if (cmd.equals("rf")) {
+                byte[] decodedString = Base64.decode(o_recv.getString("img"), Base64.NO_OPTIONS);
+                last_picture = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length); // todo: we need a kind of, if app has started reset picture to null
+                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+                time_of_last_alert = sdf.format(new Date());
+                // show notification
+                showNotification("Illumino read file", Notification_text_builder(false), "");
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // receive a heartbeat answer
+            //else if (cmd.equals("hb")){
+            else if (cmd.equals("shb")) {
+                try {
+                    o_snd.put("cmd", "shb");
+                    o_snd.put("ok", 1);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                //Log.i(getString(R.string.debug_id), o_snd.toString());
+                //console.log(JSON.stringify(cmd_data));
+                send_msg(o_snd.toString());
+            }
+
+        } catch (Exception e) {
+            write_to_file("Error on decoding incoming message " + e.getMessage());
+        }
+        wakelock.release();
     }
 
     // send a message or put it in the buffer
     private void send_msg(String input) {
         // check if we are dis-connected
-        write_to_file("on send");
+        //write_to_file("on send");
         if (!input.equals("")) {
             msg_out.add(input);
         }
-        boolean temp=false;
+
         try {
             if (mWebSocketClient == null || !mConnected || !mWebSocketClient.isConnected() || (last_ts_in>0 && last_ts_in < last_ts_out)) {
-                write_to_file("I don't think we are still connected, " + String.valueOf(last_ts_in)+"<"+String.valueOf(last_ts_out));
-                mWebSocketClient=null;
-                mConnected = false;
-                showNotification("Illumino", "disconnected", "");
-                // mWebSocketClient=null;
-                startService(startIntent(this));
-                temp=true;
+                String s="";
+                if(mWebSocketClient == null){
+                    s+=" mWebSocketClient is null ";
+                }
+
+                if(!mConnected){
+                    s+=" mConnected is false ";
+                }
+
+                if(!mWebSocketClient.isConnected()){
+                    s+=" mwebsocketclient is not connected ";
+                }
+
+                if((last_ts_in>0 && last_ts_in < last_ts_out)){
+                    s+=String.valueOf(last_ts_in)+"<"+String.valueOf(last_ts_out);
+                }
+
+
+                write_to_file("I don't think we are still connected, as " + s);
+                restart_connection();
             }
         }catch (Exception ex){
             write_to_file("Exception on check if client is connected in send_msg!! " + ex.toString());
@@ -700,15 +748,13 @@ public class bg_service extends Service {
         //else {
             try {
                 while (msg_out.size() > 0) {
-                    write_to_file("on send websocket");
+                    //write_to_file("on send websocket");
                     mWebSocketClient.sendTextMessage(msg_out.get(0));
                     msg_out.remove(0);
                 }
             } catch(Exception ex){
                 write_to_file("Exception on send -->" + ex.toString());
-                mWebSocketClient.disconnect();
-                mConnected = false;
-                startService(startIntent(this));
+                restart_connection();
             }
         }
     }

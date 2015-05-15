@@ -2,60 +2,60 @@
 <items version="2" >
 
     <item
-        jar="C:\Users\windkol\Downloads\illumino-master\android\app\libs\autobahn-0.5.0.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="5f62bc6117f905fd37955f6e2ebd3aad68701b60">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\autobahn-0.5.0-6b4a489a43d5a44ee01ca0a9483924ab4726e7ca.jar" />
-    </item>
-    <item
-        jar="C:\Users\windkol\AppData\Local\Android\sdk\extras\android\m2repository\com\android\support\support-annotations\22.1.1\support-annotations-22.1.1.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="01d051a6bfb1218b1db2d3a5af0480ac2c25c42a">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\support-annotations-22.1.1-66f0fb664df5dd947839ed0cc9dcc6a76d102944.jar" />
-    </item>
-    <item
-        jar="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\exploded-aar\com.android.support\appcompat-v7\22.1.1\classes.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="a3ff3c506644c820eb2bdf06e8339f72be578551">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\classes-51b9a66a0d2a91810af107f18ccbbfebf7d5d2eb.jar" />
-    </item>
-    <item
-        jar="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\exploded-aar\com.android.support\support-v4\22.1.1\libs\internal_impl-22.1.1.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="9e070ad32b2700b0343e8e0cccc437733d91ba3a">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\internal_impl-22.1.1-4367d7690b39d3203e27d74466a5ac239f694ca6.jar" />
-    </item>
-    <item
-        jar="C:\Users\windkol\.gradle\caches\modules-2\files-2.1\org.java-websocket\Java-WebSocket\1.3.0\db2658f013fb163de4a99274c2eb9e17efe535d2\Java-WebSocket-1.3.0.jar"
-        jumboMode="false"
-        revision="21.1.2"
-        sha1="db2658f013fb163de4a99274c2eb9e17efe535d2">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\Java-WebSocket-1.3.0-49e44a19697ba13af503dce62838f26ce45699a6.jar" />
-    </item>
-    <item
-        jar="C:\Users\windkol\Downloads\illumino-master\android\app\libs\jackson-core-asl-1.9.7.jar"
+        jar="/home/kolja/Desk/26-illumino/illumino/android/app/libs/jackson-core-asl-1.9.7.jar"
         jumboMode="false"
         revision="21.1.2"
         sha1="2dd41e7570f5c73e63a6a1311671a60c817e1989">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\jackson-core-asl-1.9.7-dc179168a5e24a6d2c0c94b0f333b7db85120007.jar" />
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/jackson-core-asl-1.9.7-0ce20aaff467b32eda1dd09559f544d2ac960f6a.jar" />
     </item>
     <item
-        jar="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\exploded-aar\com.android.support\support-v4\22.1.1\classes.jar"
+        jar="/home/kolja/Desk/26-illumino/illumino/android/app/libs/autobahn-0.5.0.jar"
         jumboMode="false"
         revision="21.1.2"
-        sha1="c95ba8152923e4872e86a82cfcba9a51c0214328">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\classes-d36c2b630f47b57f398b4e4500ea1dd35f028a34.jar" />
+        sha1="5f62bc6117f905fd37955f6e2ebd3aad68701b60">
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/autobahn-0.5.0-4eb5f3e200385c6a89dd70048e1de35cda939af8.jar" />
     </item>
     <item
-        jar="C:\Users\windkol\Downloads\illumino-master\android\app\libs\jackson-mapper-asl-1.9.7.jar"
+        jar="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.1.1/classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="a3ff3c506644c820eb2bdf06e8339f72be578551">
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/classes-ae644517406608cf3fc8b4b006e640d5b14281ab.jar" />
+    </item>
+    <item
+        jar="/home/kolja/Android/Sdk/extras/android/m2repository/com/android/support/support-annotations/22.1.1/support-annotations-22.1.1.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="01d051a6bfb1218b1db2d3a5af0480ac2c25c42a">
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/support-annotations-22.1.1-98a2a94ecbe3ea58c495a071f682c76aeae00252.jar" />
+    </item>
+    <item
+        jar="/home/kolja/.gradle/caches/modules-2/files-2.1/org.java-websocket/Java-WebSocket/1.3.0/db2658f013fb163de4a99274c2eb9e17efe535d2/Java-WebSocket-1.3.0.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="db2658f013fb163de4a99274c2eb9e17efe535d2">
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/Java-WebSocket-1.3.0-8cb6379692ec1aed8a6a3c5e74a0e08d08bc4ad8.jar" />
+    </item>
+    <item
+        jar="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/exploded-aar/com.android.support/support-v4/22.1.1/libs/internal_impl-22.1.1.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="9e070ad32b2700b0343e8e0cccc437733d91ba3a">
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/internal_impl-22.1.1-4fd81f331f6cfab4f9659924c597a3e7f6669f02.jar" />
+    </item>
+    <item
+        jar="/home/kolja/Desk/26-illumino/illumino/android/app/libs/jackson-mapper-asl-1.9.7.jar"
         jumboMode="false"
         revision="21.1.2"
         sha1="3bc2efad5ceb9e24e44f731d4282b5df3ea6d23f">
-        <dex dex="C:\Users\windkol\Downloads\illumino-master\android\app\build\intermediates\pre-dexed\debug\jackson-mapper-asl-1.9.7-11573596540d3328c1d8d87012b9f354c60debfe.jar" />
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/jackson-mapper-asl-1.9.7-b350c4c2d07769183b14e406ee5f1914f5dd2af7.jar" />
+    </item>
+    <item
+        jar="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/exploded-aar/com.android.support/support-v4/22.1.1/classes.jar"
+        jumboMode="false"
+        revision="21.1.2"
+        sha1="c95ba8152923e4872e86a82cfcba9a51c0214328">
+        <dex dex="/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/pre-dexed/debug/classes-10e62544e66c4262130292a0d4c47654bfadccc5.jar" />
     </item>
 
 </items>
