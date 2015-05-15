@@ -63,7 +63,11 @@ def recv_data (client, length):
 		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client disconnected!")
 		return -1
 	
-	data_dec=data.decode("UTF-8")
+	try:
+		data_dec=data.decode("UTF-8")
+	except:
+		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> UTF8 decoding failed!")
+		data_dec=""
 	#print("input:"+data_dec+"<-")
 	
 	# add everything that we couldn't use from the last message (saved in the buffer)
