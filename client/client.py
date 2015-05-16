@@ -56,12 +56,12 @@ def trigger_handle(event,data):
 		if(my_detection==0 and my_state==1): # deactive and motion
 			light_dimming_q.append((time.time(),100,70,2,4000)) # 4 sec to dimm to warm orange - now
 		elif(my_detection==0 and my_state==0): # deactive and no motion
-			light_dimming_q.append((time.time()+10*60,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
+			light_dimming_q.append((time.time()+5*60*1000,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			#light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 		elif(my_detection==1 and my_state==1):
 			light_dimming_q.append((time.time(),100,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 		elif(my_detection==1 and my_state==0):
-			light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
+			light_dimming_q.append((time.time(),0,0,100,4000)) # 4 sec to dimm to off - in 10 min from now
 			
 	elif(event=="uploading_str"):
 		file_str_q.append(data)

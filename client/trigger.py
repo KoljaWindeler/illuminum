@@ -17,6 +17,7 @@ HEIGHT=720
 TIMING_DEBUG=0
 STEP_DEBUG=0
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
+det_state = ["off","on,single","on,permanent","error"]
 img_q=[]
 
 webcam_interval=0
@@ -157,7 +158,7 @@ def start_trigger():
 					start = time.time()
 					webcam_capture_remaining=5
 
-				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[state]+"'")
+				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[state]+"' with detection '"+det_state[detection]+"'")
 
 				for callb in callback_action:
 					callb("state_change",(state,detection))
@@ -197,7 +198,7 @@ def start_trigger():
 	
 					# to time dispaying
 					td.append((time.time(),"snapping"))
-
+					
 					# saving to file
 					add="SNAP"
 					if(state==1 and detection>=1):
