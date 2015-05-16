@@ -123,7 +123,7 @@ def show_ws(id,l,ws):
 		show_m2m(1,l,"")
 		print("we got "+str(l)+" ws-clients connected")
 	elif(id==-1):
-		print("WS login        | Account    | IP             | l-in | last_seen  | Q-length | uuid")
+		print("WS login        | Account    | IP             | l-in | last_seen  | Q-length | uuid            | Location ")
 		show_m2m(1,l,"")
 	elif(id==0):
 		p_login=(ws.login+"               ")[0:15]
@@ -131,8 +131,11 @@ def show_ws(id,l,ws):
 		p_ip=(str(ws.ip)+"                  ")[0:14]
 		p_last_seen=(datetime.datetime.fromtimestamp(int(ws.last_comm)).strftime('%H:%M:%S')+"                         ")[0:10]
 		p_qlen=(str(ws.snd_q_len)+"                    ")[0:8]
+		p_uuid=(str(ws.uuid)+"                   ")[0:15]
+		p_location=(str(ws.location)+"             ")[0:10]
 		
-		output=p_login+" | "+p_account+" | "+str(p_ip)+" | "+str(ws.logged_in)+"    | "+p_last_seen+" | "+p_qlen+" | "+ws.uuid
+		output=p_login+" | "+p_account+" | "+str(p_ip)+" | "+str(ws.logged_in)+"    | "+p_last_seen+" | "+p_qlen+" | "+p_uuid
+		output+=" | "+p_location
 		print(output)
 	elif(id==1):
 		show_m2m(1,"","")

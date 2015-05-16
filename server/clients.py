@@ -41,7 +41,7 @@ class ws_clients:
 		self.account=" "					# the account the login belongs to .. something like JKW even if there are two logins (kolja,caro) to the account. multiple login for one account
 		self.snd_q_len=0					# messages in queue for this ws
 		self.challange=""					# challange for the login
-
+		self.location=""
 
 class webcam_viewer:
 	def __init__(self,cli):

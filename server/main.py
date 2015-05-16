@@ -608,6 +608,7 @@ def recv_ws_msg_handle(data,ws):
 
 		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
 		elif(enc.get("cmd")=="update_location"):
+			ws.location=enc.get("loc","")
 			print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' moved to '"+enc.get("loc")+"'")
 			# step 1: update database location for this login
 			db_r=db.update_location(ws.login,enc.get("loc"))
