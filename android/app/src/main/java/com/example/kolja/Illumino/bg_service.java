@@ -110,9 +110,11 @@ public class bg_service extends Service {
             // update once we've change our position, just for the DUBUG line!!
             mNofity.showNotification("Illumino check location", mNofity.Notification_text_builder(false, areas), mNofity.Notification_text_builder(true, areas));
         }
-    }
+    };
 
-    ;
+    public void resetLocation(){
+        server_told_location=-1;
+    }
 
     // Define a listener that responds to location updates
     LocationListener locationListener = new LocationListener() {

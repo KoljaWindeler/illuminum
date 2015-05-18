@@ -61,7 +61,7 @@ MERGED from com.android.support:support-v4:22.1.1:22:5
 		ADDED from AndroidManifest.xml:18:9
 	android:theme
 		ADDED from AndroidManifest.xml:20:9
-receiver#com.example.kolja.Illumino.autostart
+receiver#com.example.kolja.Illumino.s_autostart
 ADDED from AndroidManifest.xml:22:9
 	android:name
 		ADDED from AndroidManifest.xml:22:19

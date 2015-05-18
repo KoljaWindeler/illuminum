@@ -23,7 +23,7 @@
         android:icon="@drawable/logobw"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
-        <receiver android:name="com.example.kolja.Illumino.autostart" >
+        <receiver android:name="com.example.kolja.Illumino.s_autostart" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

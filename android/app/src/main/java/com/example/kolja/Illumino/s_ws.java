@@ -41,7 +41,7 @@ public class s_ws {
     public WebSocketConnection mWebSocketClient;
     public boolean mConnected;
     public boolean mLoggedIn;
-    private int server_told_location = -1;
+
 
 
     private ArrayList<String> msg_out = new ArrayList<String>();
@@ -111,7 +111,7 @@ public class s_ws {
         mWebSocketClient=null;
         mConnected = false;
         mLoggedIn = false;
-        server_told_location = -1;
+        ((bg_service)mContext).resetLocation();
         mNofity.showNotification("Illumino", "disconnected", "");
 
         mWakeup.stop_pinging(mContext);
