@@ -537,9 +537,13 @@ def recv_ws_msg_handle(data,ws):
 				ws.last_comm=time.time()
 				ws.uuid=enc.get("uuid","")
 				
-				# print and update db
+				# print and update db, as this fails when the client already disconnected, surrond with try catch
 				p.ws_login(ws)
-				db.update_last_seen_ws(ws.login, ws.conn.getpeername()[0])
+				try:
+					ip=ws.conn.getpeername()[0]
+				except:
+					ip="???"
+				db.update_last_seen_ws(ws.login, ip)
 				
 				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
 				# introduce them to each other
@@ -552,7 +556,7 @@ def recv_ws_msg_handle(data,ws):
 				# check if the same UUID has another open connection
 				if(enc.get("uuid","")!=""):
 					for cli_ws in server_ws.clients:
-						if(cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login):
+						if((cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login) or (cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60))  :
 							#print("disconnecting "+str(cli_ws.login)+" IP "+str(cli_ws.ip)+" as that has the same UUID")
 							cli_ws.conn.close()
 							recv_ws_con_handle("disconnect", cli_ws)
