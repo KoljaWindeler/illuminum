@@ -45,44 +45,58 @@ uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
 ADDED from AndroidManifest.xml:12:5
 	android:name
 		ADDED from AndroidManifest.xml:12:22
+uses-permission#android.permission.READ_PHONE_STATE
+ADDED from AndroidManifest.xml:13:5
+	android:name
+		ADDED from AndroidManifest.xml:13:22
 application
-ADDED from AndroidManifest.xml:15:5
+ADDED from AndroidManifest.xml:16:5
 MERGED from com.android.support:appcompat-v7:22.1.1:22:5
 MERGED from com.android.support:support-v4:22.1.1:22:5
 	android:label
-		ADDED from AndroidManifest.xml:18:9
-	android:allowBackup
-		ADDED from AndroidManifest.xml:16:9
-	android:icon
-		ADDED from AndroidManifest.xml:17:9
-	android:theme
 		ADDED from AndroidManifest.xml:19:9
-activity#com.example.kolja.Illumino.MainActivity
-ADDED from AndroidManifest.xml:20:9
-	android:label
-		ADDED from AndroidManifest.xml:22:13
+	android:allowBackup
+		ADDED from AndroidManifest.xml:17:9
+	android:icon
+		ADDED from AndroidManifest.xml:18:9
+	android:theme
+		ADDED from AndroidManifest.xml:20:9
+receiver#com.example.kolja.Illumino.autostart
+ADDED from AndroidManifest.xml:22:9
 	android:name
-		ADDED from AndroidManifest.xml:21:13
-intent-filter#android.intent.action.MAIN+android.intent.category.LAUNCHER
+		ADDED from AndroidManifest.xml:22:19
+intent-filter#android.intent.action.BOOT_COMPLETED
 ADDED from AndroidManifest.xml:23:13
-action#android.intent.action.MAIN
+action#android.intent.action.BOOT_COMPLETED
 ADDED from AndroidManifest.xml:24:17
 	android:name
 		ADDED from AndroidManifest.xml:24:25
-category#android.intent.category.LAUNCHER
-ADDED from AndroidManifest.xml:25:17
-	android:name
-		ADDED from AndroidManifest.xml:25:27
-service#com.example.kolja.Illumino.bg_service
-ADDED from AndroidManifest.xml:29:9
+activity#com.example.kolja.Illumino.MainActivity
+ADDED from AndroidManifest.xml:28:9
 	android:label
-		ADDED from AndroidManifest.xml:33:13
-	android:icon
-		ADDED from AndroidManifest.xml:31:13
-	android:process
-		ADDED from AndroidManifest.xml:32:13
-	android:name
 		ADDED from AndroidManifest.xml:30:13
+	android:name
+		ADDED from AndroidManifest.xml:29:13
+intent-filter#android.intent.action.MAIN+android.intent.category.LAUNCHER
+ADDED from AndroidManifest.xml:31:13
+action#android.intent.action.MAIN
+ADDED from AndroidManifest.xml:32:17
+	android:name
+		ADDED from AndroidManifest.xml:32:25
+category#android.intent.category.LAUNCHER
+ADDED from AndroidManifest.xml:33:17
+	android:name
+		ADDED from AndroidManifest.xml:33:27
+service#com.example.kolja.Illumino.bg_service
+ADDED from AndroidManifest.xml:37:9
+	android:label
+		ADDED from AndroidManifest.xml:41:13
+	android:icon
+		ADDED from AndroidManifest.xml:39:13
+	android:process
+		ADDED from AndroidManifest.xml:40:13
+	android:name
+		ADDED from AndroidManifest.xml:38:13
 uses-sdk
 INJECTED from AndroidManifest.xml:0:0 reason: use-sdk injection requested
 MERGED from com.android.support:appcompat-v7:22.1.1:20:5

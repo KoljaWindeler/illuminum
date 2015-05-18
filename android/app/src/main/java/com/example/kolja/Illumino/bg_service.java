@@ -23,10 +23,12 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.os.SystemClock;
 import android.os.Vibrator;
 import android.support.v4.app.NotificationCompat;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.java_websocket.util.Base64;
 import org.json.JSONException;
@@ -98,8 +100,7 @@ public class bg_service extends Service {
     private NotificationCompat.Builder mNotificationBuilder = new NotificationCompat.Builder(this);
     private WebSocketConnection mWebSocketClient;
     private String mNetworkType=null;
-    private AlarmManager mAlarmManager;
-    private PendingIntent mPendingIntentCreator;
+    private AlarmManager mAlarmManager=null;
 
     private ArrayList<area> areas = new ArrayList<area>();
     private ArrayList<String> msg_out = new ArrayList<String>();
@@ -135,11 +136,33 @@ public class bg_service extends Service {
         }
     };
 
-    // initiates a hb send
-    public static Intent pingIntent(Context context){
-        Intent i = new Intent(context, bg_service.class);
+    private void start_pinging(Context ct){
+        Intent i = new Intent(ct, bg_service.class);
         i.setAction(ACTION_PING);
-        return i;
+        PendingIntent operation = PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        mAlarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 300000L, operation);
+        write_to_file("wakeup for ping scheduled for now+5min");
+    }
+
+    private boolean is_pinging(Context ct){
+        Intent i = new Intent(ct, bg_service.class);
+        i.setAction(ACTION_PING);
+        boolean state = (PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_NO_CREATE) != null);
+        if(state) {
+            write_to_file("ping intent is running");
+        } else {
+            write_to_file("ping intent is not running");
+        }
+        return  state;
+    }
+
+    private void stop_pinging(Context ct){
+        Intent i = new Intent(ct, bg_service.class);
+        i.setAction(ACTION_PING);
+        write_to_file("cancel all wakeups!!!");
+        PendingIntent operation = PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_CANCEL_CURRENT);
+        mAlarmManager.cancel(operation);//important
+        operation.cancel();//important
     }
 
 
@@ -149,6 +172,7 @@ public class bg_service extends Service {
         i.setAction(ACTION_SHUT_DOWN);
         return i;
     }
+
 
 
 
@@ -208,9 +232,9 @@ public class bg_service extends Service {
             for (int i = 0; i < areas.size(); i++) {
                 not += areas.get(i).getName() + ": ";
                 if(areas.get(i).getDetection() >= 1) {
-                    not += "Detection on";
+                    not += "Protected";
                 } else {
-                    not += "Detection off";
+                    not += "NOT protected";
                 }
 
                 if (areas.get(i).getState() >= 1) {
@@ -268,7 +292,7 @@ public class bg_service extends Service {
             }
         }
 
-        if(mConnected) {
+        if(mConnected && mLoggedIn) {
             // check if we should tell the server
             if (server_told_location != closest_area) {
                 server_told_location = closest_area;
@@ -336,7 +360,6 @@ public class bg_service extends Service {
         wakelock.acquire();
 
         mShutDown = false;
-        mLoggedIn = false;
         mContext = this;
         mHandler = new Handler();
 
@@ -345,8 +368,12 @@ public class bg_service extends Service {
         am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         settings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, 0);
-        mAlarmManager = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
-        mPendingIntentCreator = PendingIntent.getService(this, 0, bg_service.pingIntent(this), PendingIntent.FLAG_UPDATE_CURRENT);
+        if(mAlarmManager==null) {
+            mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            write_to_file("alarm manager stated");
+        } else {
+            write_to_file("alarm manager was started");
+        }
 
         // establish comm interface
         registerReceiver(receiver, new IntentFilter(bg_service.SENDER));
@@ -354,6 +381,10 @@ public class bg_service extends Service {
 
         // Register the listener with the Location Manager to receive location updates
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        if(!mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
+            Toast.makeText(getApplicationContext(), (String)"carolin debug: aaahh network provier is not on!", Toast.LENGTH_LONG).show();
+            write_to_file("carolin debug: aaahh network provier is not on!");
+        }
         mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
         setupNotifications();
@@ -394,7 +425,7 @@ public class bg_service extends Service {
             write_to_file("exeption on connect:" + ex.toString());
         }
 
-        if(intent!=null){
+        if(mConnected && intent!=null){
             if(ACTION_PING.equals(intent.getAction())){
                 if(mWebSocketClient!=null && mWebSocketClient.isConnected()) {
                     JSONObject object = new JSONObject();
@@ -410,13 +441,11 @@ public class bg_service extends Service {
             }
         }
 
-        if(intent == null || (intent.getAction()!=null && !intent.getAction().equals(ACTION_SHUT_DOWN)) || (intent.getAction()==null)){
-            PendingIntent operation = PendingIntent.getService(this, 0, bg_service.pingIntent(this), PendingIntent.FLAG_NO_CREATE);
-            if(operation == null) {
-                mAlarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 60000, mPendingIntentCreator);
-                write_to_file("wakeup for ping scheduled for now+60sec");
+        if(intent == null || (intent.getAction()==null) || (intent.getAction()!=null && !intent.getAction().equals(ACTION_SHUT_DOWN)) ){
+            if(!is_pinging(mContext)){
+                start_pinging(mContext);
             } else {
-                write_to_file("there is a pending intent");
+                write_to_file("There is a timer waiting for us");
             }
         }
 
@@ -527,6 +556,7 @@ public class bg_service extends Service {
                         e.printStackTrace();
                     }
                     write_to_file("sending as socket is open: " + object.toString());
+                    msg_out.clear();
                     send_msg(object.toString());
                 }
 
@@ -556,13 +586,11 @@ public class bg_service extends Service {
     private void restart_connection(){
         mWebSocketClient=null;
         mConnected = false;
+        mLoggedIn = false;
+        server_told_location = -1;
         showNotification("Illumino", "disconnected", "");
 
-        try{
-            mAlarmManager.cancel(mPendingIntentCreator);
-        } catch (Exception ex){
-
-        }
+        stop_pinging(mContext);
 
         mHandler.removeCallbacks(delayed_reconnect);
         mHandler.postDelayed(delayed_reconnect,5000); // start in 5 sec
@@ -745,17 +773,43 @@ public class bg_service extends Service {
 
         // if we are still connected: send
         if(mConnected){
-        //else {
-            try {
-                while (msg_out.size() > 0) {
-                    //write_to_file("on send websocket");
-                    mWebSocketClient.sendTextMessage(msg_out.get(0));
-                    msg_out.remove(0);
+            ArrayList<Integer> msg_send = new ArrayList<Integer>();
+            //write_to_file("ich bin verbunden und habe "+String.valueOf(msg_out.size())+" Nachrichten.");
+
+            for(int i=0;i<msg_out.size();i++) {
+                //write_to_file("Nachricht "+String.valueOf(i)+".");
+                boolean send_this = false;
+                if (mLoggedIn) {
+                    //write_to_file("Bin eingeloggt");
+                    send_this = true;
+                } else {
+                    //write_to_file("Bin nicht eingeloggt");
+                    if (msg_out.get(i).indexOf("login") > 0) {
+                        send_this = true;
+                        //write_to_file("Dafür hats was mit login zutun");
+                    }
                 }
-            } catch(Exception ex){
-                write_to_file("Exception on send -->" + ex.toString());
-                restart_connection();
+
+                if (send_this){
+                    //write_to_file("Versuche zu senden");
+                    try {
+                        //write_to_file("on send websocket");
+                        mWebSocketClient.sendTextMessage(msg_out.get(i));
+                        msg_send.add(i);
+                    } catch (Exception ex) {
+                        //write_to_file("Exception on send -->" + ex.toString());
+                        restart_connection();
+                    }
+                }
             }
+
+            //write_to_file("Entferne jetzt "+String.valueOf(msg_send.size())+" Nachrichten");
+            // remove reverse ordered
+            for(int i=msg_send.size()-1;i>=0;i--){
+                int element=msg_send.get(i);
+                msg_out.remove(element);
+            }
+            //write_to_file("Hab noch "+String.valueOf(msg_out.size())+" Nachrichten");
         }
     }
     ///////////////////////////////////////////////////////////////////////////////
