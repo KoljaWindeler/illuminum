@@ -170,7 +170,7 @@ def start_trigger():
 
 			
 			# interval photos
-			if(webcam_interval!=0):
+			if(webcam_interval>0):
 				if(time.time()>last_webcam_ts+webcam_interval):
 					webcam_capture_remaining=1
 					#print("taking a snap")
@@ -257,6 +257,10 @@ def set_detection(state):
 def set_alias(new_alias):
 	global alias
 	alias=new_alias
+
+def get_interval():
+	global webcam_interval
+	return webcam_interval
 
 def set_interval(interval):
 	global webcam_interval
