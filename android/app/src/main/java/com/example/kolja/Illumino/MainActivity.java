@@ -64,7 +64,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(receiver, new IntentFilter(bg_service.NOTIFICATION));
+        registerReceiver(receiver, new IntentFilter(s_ws.NOTIFICATION));
     }
     @Override
     protected void onPause() {
@@ -78,8 +78,8 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         public void onReceive(Context context, Intent intent) {
             Bundle bundle = intent.getExtras();
             if (bundle != null) {
-                if(bundle.containsKey(bg_service.JSON)) {
-                    String data = bundle.getString(bg_service.JSON);
+                if(bundle.containsKey(s_ws.JSON)) {
+                    String data = bundle.getString(s_ws.JSON);
                     String cmd;
                     //int resultCode = bundle.getInt(DownloadService.RESULT);
                     TextView textView = (TextView) findViewById(R.id.log);
@@ -88,7 +88,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                     try {
                         String log = bundle.getString(bg_service.LOG);
                         if (log.equals("log")) {
-                            textView.setText(String.valueOf(bundle.getFloat(bg_service.JSON)) + "\n" + textView.getText());
+                            textView.setText(String.valueOf(bundle.getFloat(s_ws.JSON)) + "\n" + textView.getText());
                         }
                     } catch (Exception e) {
                         int ignore = 1;
@@ -139,9 +139,9 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                         }
                     } else if (cmd.equals("m2v_login")) {
                         try {
-                            // add an object that will hold the ID "mid", "area","state","account"
+                            // add an object that will hold the ID "mid", "s_area","state","account"
                             String mid = object.getString("mid");
-                            String area = object.getString("area");
+                            String area = object.getString("s_area");
                             int state = object.getInt("state");
                             String account = object.getString("account");
 

@@ -91,7 +91,7 @@ public class s_notify {
         }
     }
 
-    public String Notification_text_builder(boolean l_t, ArrayList<area> areas, String distance_debug) {
+    public String Notification_text_builder(boolean l_t, ArrayList<s_area> areas) {
         String not = "";
         if (l_t) {
             for (int i = 0; i < areas.size(); i++) {
@@ -109,7 +109,8 @@ public class s_notify {
                 }
                 not += "\n";
             }
-            not += distance_debug;
+
+            not += ((bg_service)mContext).getDistanceDebug();
         } else {
             int detection_on = 0;
             //Log.i(getString(R.string.debug_id),"we have "+String.valueOf(areas.size())+" areas");

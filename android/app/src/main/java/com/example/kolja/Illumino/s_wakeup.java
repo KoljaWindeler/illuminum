@@ -48,9 +48,9 @@ public class s_wakeup {
         i.setAction(ACTION_PING);
         boolean state = (PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_NO_CREATE) != null);
         if(state) {
-            mDebug.write_to_file("ping intent is running");
+            mDebug.write_to_file("Wakeup,is_pinging: ping intent is running");
         } else {
-            mDebug.write_to_file("ping intent is not running");
+            mDebug.write_to_file("Wakeup,is_pinging: ping intent is not running");
         }
         return  state;
     }
