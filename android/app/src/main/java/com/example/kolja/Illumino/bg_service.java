@@ -2,14 +2,12 @@ package com.example.kolja.Illumino;
 
 import android.app.AlarmManager;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.location.Location;
 import android.location.LocationListener;
@@ -18,29 +16,19 @@ import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
-import android.os.SystemClock;
 import android.os.Vibrator;
-import android.support.v4.app.NotificationCompat;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.widget.Toast;
 
 import org.java_websocket.util.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 import de.tavendo.autobahn.WebSocketConnection;
 import de.tavendo.autobahn.WebSocketException;
@@ -50,21 +38,21 @@ class area{
     private String name;
     private Integer detection;
     private Location coordinates;
-    private Integer distance;
+    private Integer range;
     private Integer state; // debugging
 
-    public area(String name, Integer detection, Location coordinates, Integer distance, Integer state){
+    public area(String name, Integer detection, Location coordinates, Integer range, Integer state){
         super();
-        this.name=name;
-        this.detection=detection;
-        this.coordinates=coordinates;
-        this.distance=distance;
+        this.name=name;                 // like "home"
+        this.detection=detection;       // 0=off, 1=on, 2=fast fire
+        this.coordinates=coordinates;   // a android location
+        this.range = range;         // range around the center
         this.state=state;
     }
 
     public void setState(int st) {          this.state=st;              }
     public void setDetection(int det){      this.detection=det;         }
-    public int getCriticalDistance(){       return this.distance;       }
+    public int getCriticalRange(){          return this.range;       }
     public int getDetection()   {           return this.detection;      }
     public String getName()     {           return this.name;           }
     public int getState()       {           return this.state;       }
@@ -86,9 +74,7 @@ public class bg_service extends Service {
     public static final String JSON = "JSON";
     public static final String NOTIFICATION = "BG_RECEIVER";
     public static final String SENDER = "BG_SENDER";
-    public static final String ACTION_PING = "illumino.ACTION_PING";
-    public static final String ACTION_CONNECT = "illumino.ACTION_CONNECT";
-    public static final String ACTION_SHUT_DOWN = "illumino.ACTION_SHUT_DOWN";
+
 
     private IBinder mBinder;
     private AudioManager am;
@@ -96,11 +82,12 @@ public class bg_service extends Service {
     private SharedPreferences settings;
     private Handler mHandler;
     private LocationManager mLocationManager;
-    private NotificationManager mNotificationManager = null;
-    private NotificationCompat.Builder mNotificationBuilder = new NotificationCompat.Builder(this);
+    private s_notify mNofity = null;
+    private s_wakeup mWakeup = null;
+    private s_debug mDebug = null;
     private WebSocketConnection mWebSocketClient;
     private String mNetworkType=null;
-    private AlarmManager mAlarmManager=null;
+//    private AlarmManager mAlarmManager=null;
 
     private ArrayList<area> areas = new ArrayList<area>();
     private ArrayList<String> msg_out = new ArrayList<String>();
@@ -109,9 +96,6 @@ public class bg_service extends Service {
     private String distance_debug = "";
 
     private coordinate last_known_location=new coordinate();
-    private Bitmap last_picture = null;
-    private String area_of_last_alert = "";
-    private String time_of_last_alert = "";
     private long last_ts_in;
     private long last_ts_out;
 
@@ -121,145 +105,6 @@ public class bg_service extends Service {
     private boolean mConnected;
     private Context mContext;
 
-    // intents to restart us with
-    // plain
-    public static Intent startIntent(Context context){
-        Intent i = new Intent(context, bg_service.class);
-        i.setAction(ACTION_CONNECT);
-        return i;
-    }
-
-    private Runnable delayed_reconnect=new Runnable() {
-        @Override
-        public void run() {
-            startService(startIntent(mContext));
-        }
-    };
-
-    private void start_pinging(Context ct){
-        Intent i = new Intent(ct, bg_service.class);
-        i.setAction(ACTION_PING);
-        PendingIntent operation = PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
-        mAlarmManager.setInexactRepeating(AlarmManager.RTC_WAKEUP, System.currentTimeMillis(), 300000L, operation);
-        write_to_file("wakeup for ping scheduled for now+5min");
-    }
-
-    private boolean is_pinging(Context ct){
-        Intent i = new Intent(ct, bg_service.class);
-        i.setAction(ACTION_PING);
-        boolean state = (PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_NO_CREATE) != null);
-        if(state) {
-            write_to_file("ping intent is running");
-        } else {
-            write_to_file("ping intent is not running");
-        }
-        return  state;
-    }
-
-    private void stop_pinging(Context ct){
-        Intent i = new Intent(ct, bg_service.class);
-        i.setAction(ACTION_PING);
-        write_to_file("cancel all wakeups!!!");
-        PendingIntent operation = PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_CANCEL_CURRENT);
-        mAlarmManager.cancel(operation);//important
-        operation.cancel();//important
-    }
-
-
-    // to kill us
-    public static Intent closeIntent(Context context){
-        Intent i = new Intent(context, bg_service.class);
-        i.setAction(ACTION_SHUT_DOWN);
-        return i;
-    }
-
-
-
-
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////// notification ////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
-    private void setupNotifications() { //called in onCreate()
-        if (mNotificationManager == null) {
-            mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        }
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
-        //PendingIntent pendingCloseIntent = PendingIntent.getActivity(this, 0,new Intent(this, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP),0);
-        mNotificationBuilder
-                .setSmallIcon(R.drawable.logobw)
-                .setCategory(NotificationCompat.CATEGORY_SERVICE)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setContentTitle("app is running")
-                .setWhen(System.currentTimeMillis())
-                .setContentIntent(pendingIntent)
-                //.addAction(android.R.drawable.ic_menu_close_clear_cancel,"exit", pendingCloseIntent)
-                .setOngoing(true);
-    }
-
-    private void showNotification(String title, String short_text, String long_text) {
-        if (last_picture == null) {
-            String login = settings.getString("LOGIN", "Kolja");
-            mNotificationBuilder
-                    .setContentTitle(login + "@" + title)
-                    .setWhen(System.currentTimeMillis())
-                    //.setContentInfo("shor first line, right")
-                    .setContentText(short_text)
-                    .setStyle(new NotificationCompat.BigTextStyle().bigText(long_text)); //.setSummaryText(short_text+"3"));this will be shown if you pull down the menu
-            displayNotification();
-        } else {
-            String Message = "Alert at " + area_of_last_alert + " " + time_of_last_alert + "! " + short_text + ".";
-            showNotification(title, Message, last_picture);
-        }
-    }
-
-    private void showNotification(String title, String short_text, Bitmap picture) {
-        mNotificationBuilder
-                .setContentTitle(title)
-                .setContentText(short_text)
-                .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(picture).setSummaryText(short_text));
-        displayNotification();
-    }
-
-    private void displayNotification() {
-        if (mNotificationManager != null) {
-            mNotificationManager.notify(1, mNotificationBuilder.build());
-        }
-    }
-
-    private String Notification_text_builder(boolean l_t) {
-        String not = "";
-        if (l_t) {
-            for (int i = 0; i < areas.size(); i++) {
-                not += areas.get(i).getName() + ": ";
-                if(areas.get(i).getDetection() >= 1) {
-                    not += "Protected";
-                } else {
-                    not += "NOT protected";
-                }
-
-                if (areas.get(i).getState() >= 1) {
-                    not += " / Movement";
-                } else {
-                    not += " / No Movement";
-                }
-                not += "\n";
-            }
-            not += distance_debug;
-        } else {
-            int detection_on = 0;
-            //Log.i(getString(R.string.debug_id),"we have "+String.valueOf(areas.size())+" areas");
-            for (int i = 0; i < areas.size(); i++) {
-                if (areas.get(i).getDetection() >= 1) {
-                    detection_on++;
-                }
-            }
-            not = String.valueOf(detection_on) + "/" + String.valueOf(areas.size()) + " Areas protected";
-        }
-        return not;
-    }
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////// notification ////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////////////////////////
     ////////////////////////////// location gedönese //////////////////////////////
@@ -279,7 +124,7 @@ public class bg_service extends Service {
             distance_debug += "Area:" + areas.get(i).getName() + ", " + String.valueOf(this_distance) + "m\n";
 
             // check if we are IN a region
-            if (this_distance < areas.get(i).getCriticalDistance()) {
+            if (this_distance < areas.get(i).getCriticalRange()) {
                 // lets see if we are even closer to the coordinates then the others
                 if (closest_area == -1) {
                     closest_area = i;
@@ -300,7 +145,7 @@ public class bg_service extends Service {
 
                 // Intent intent = new Intent(NOTIFICATION);
                 // intent.putExtra(LOG, "log");
-                // intent.putExtra(JSON, distance);
+                // intent.putExtra(JSON, range);
                 // sendBroadcast(intent);
 
                 // tell the server that we are in that area
@@ -323,7 +168,7 @@ public class bg_service extends Service {
             }
 
             // update once we've change our position, just for the DUBUG line!!
-            showNotification("Illumino check location", Notification_text_builder(false), Notification_text_builder(true));
+            mNofity.showNotification("Illumino check location", mNofity.Notification_text_builder(false,areas,distance_debug), mNofity.Notification_text_builder(true,areas,distance_debug));
         }
     }
 
@@ -351,88 +196,90 @@ public class bg_service extends Service {
     // https://github.com/schwiz/android-websocket-example/blob/master/src/net/schwiz/eecs780/PushService.java
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        //try {
-        //    Thread.sleep(10000);
-        //} catch (Exception ex) {   }
-
-
         WakeLock wakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Illumino Service");
         wakelock.acquire();
 
-        mShutDown = false;
-        mContext = this;
-        mHandler = new Handler();
-
-        write_to_file("this is on start");
         // get services
         am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         settings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, 0);
-        if(mAlarmManager==null) {
-            mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-            write_to_file("alarm manager stated");
-        } else {
-            write_to_file("alarm manager was started");
-        }
+
+        mShutDown = false;
+        mContext = this;
+
+        mHandler = new Handler();
+        mDebug = new s_debug(mContext);
+        mWakeup = new s_wakeup(mContext,(AlarmManager) getSystemService(Context.ALARM_SERVICE),mDebug);
+        mNofity = new s_notify(mContext,settings);
+        mNofity.setupNotifications((NotificationManager) getSystemService(NOTIFICATION_SERVICE));
+
+        mDebug.write_to_file("this is on start");
+
+//        if(mAlarmManager==null) {
+//            mAlarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+//            mDebug.write_to_file("alarm manager stated");
+//        } else {
+//            mDebug.write_to_file("alarm manager was started");
+//        }
 
         // establish comm interface
-        registerReceiver(receiver, new IntentFilter(bg_service.SENDER));
-        registerReceiver(receiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
+        registerReceiver(app_receiver, new IntentFilter(bg_service.SENDER));
+        registerReceiver(network_change_receiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
 
         // Register the listener with the Location Manager to receive location updates
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if(!mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)){
             Toast.makeText(getApplicationContext(), (String)"carolin debug: aaahh network provier is not on!", Toast.LENGTH_LONG).show();
-            write_to_file("carolin debug: aaahh network provier is not on!");
+            mDebug.write_to_file("carolin debug: aaahh network provier is not on!");
         }
         mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
-        setupNotifications();
+
 
         // start loop
         boolean recreate=false;
-        write_to_file("check if we should recreate");
+        mDebug.write_to_file("check if we should recreate");
         if(mWebSocketClient == null){
             recreate=true;
-            write_to_file("yes, or client is set to null");
+            mDebug.write_to_file("yes, or client is set to null");
         } else if(!mWebSocketClient.isConnected()) {
             recreate = true;
-            write_to_file("yes, is not connected");
+            mDebug.write_to_file("yes, is not connected");
         } else if(!mConnected){
             recreate = true;
-            write_to_file("yes, mConnected said so");
+            mDebug.write_to_file("yes, mConnected said so");
         }
         if(intent!=null) {
-            if (ACTION_CONNECT.equals(intent.getAction())) {
+            if (s_wakeup.ACTION_CONNECT.equals(intent.getAction())) {
                 recreate = true;
-                write_to_file("yes, this is ACTION CONNECT");
-            } else if(ACTION_PING.equals(intent.getAction())){
-                write_to_file("this is ACTION PING");
+                mDebug.write_to_file("yes, this is ACTION CONNECT");
+            } else if(s_wakeup.ACTION_PING.equals(intent.getAction())){
+                mDebug.write_to_file("this is ACTION PING");
             }
         } else {
-            write_to_file("this is NO ACTION");
+            mDebug.write_to_file("this is NO ACTION");
         }
 
         try {
             if (recreate) {
-                showNotification("Illumino", "connecting..", "");
-                write_to_file("not connected, try to reconnect");
+                mNofity.showNotification("Illumino", "connecting..", "");
+                mDebug.write_to_file("not connected, try to reconnect");
                 createWebSocket(); // create a new websockets, reuse is forbidden
             } else {
-                write_to_file("connection seams to be fine");
+                mDebug.write_to_file("connection seams to be fine");
             }
         } catch (Exception ex){
-            write_to_file("exeption on connect:" + ex.toString());
+            mDebug.write_to_file("exeption on connect:" + ex.toString());
         }
 
         if(mConnected && intent!=null){
-            if(ACTION_PING.equals(intent.getAction())){
+            if(s_wakeup.ACTION_PING.equals(intent.getAction())){
                 if(mWebSocketClient!=null && mWebSocketClient.isConnected()) {
                     JSONObject object = new JSONObject();
                     try {
                         object.put("cmd", "hb");
                     } catch (JSONException e) {
-                        write_to_file("exeption on put hb to JSON");
+                        mDebug.write_to_file("exeption on put hb to JSON");
                         e.printStackTrace();
                     }
                     send_msg(object.toString());
@@ -441,11 +288,12 @@ public class bg_service extends Service {
             }
         }
 
-        if(intent == null || (intent.getAction()==null) || (intent.getAction()!=null && !intent.getAction().equals(ACTION_SHUT_DOWN)) ){
-            if(!is_pinging(mContext)){
-                start_pinging(mContext);
+        // just check if there is a timer, waiting for us or install one if there is none
+        if(intent == null || (intent.getAction()==null) || (intent.getAction()!=null && !intent.getAction().equals(s_wakeup.ACTION_SHUT_DOWN)) ){
+            if(!mWakeup.is_pinging(mContext)){
+                mWakeup.start_pinging(mContext);
             } else {
-                write_to_file("There is a timer waiting for us");
+                mDebug.write_to_file("There is a timer waiting for us");
             }
         }
 
@@ -453,47 +301,13 @@ public class bg_service extends Service {
         return Service.START_STICKY;
     }
 
-    private void write_to_file(String started) {
-        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        started=sdf.format(new Date())+" "+started+"\n";
-
-        String baseFolder="";
-        // check if external storage is available
-        if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            baseFolder = mContext.getExternalFilesDir(null).getAbsolutePath();
-        }
-        // revert to using internal storage
-        else {
-            baseFolder = mContext.getFilesDir().getAbsolutePath();
-        }
-
-        File file = new File(baseFolder + "bg_service.txt");
-        FileOutputStream fos = null;
-        try {
-            fos = new FileOutputStream(file,true);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        try {
-            fos.write(started.getBytes());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            fos.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        // debug output
-        Log.i(getString(R.string.debug_id),started);
-    }
 
     @Override
     public IBinder onBind(Intent arg0) {
         return mBinder;
     }
 
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
+    private BroadcastReceiver app_receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
@@ -501,29 +315,44 @@ public class bg_service extends Service {
 
                     Bundle bundle = intent.getExtras();
                     if (bundle != null) {
-                        String data = bundle.getString(bg_service.JSON,"");
-                        if(!data.equals("")) {
+                        String data = bundle.getString(bg_service.JSON, "");
+                        if (!data.equals("")) {
                             send_msg(data);
                         }
-                    }
-
-
-                    final ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-                    final NetworkInfo ni = connectivityManager.getActiveNetworkInfo();
-
-                    if (ni != null && ni.isConnectedOrConnecting()) {
-                        if(mNetworkType!=null && !mNetworkType.equals(ni.getTypeName())) {
-                            write_to_file("Network was "+mNetworkType+" and changed to " + ni.getTypeName()+ " calling restart ");
-                            restart_connection();
-                        }
-                        mNetworkType=ni.getTypeName();
-                    } else if (intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, Boolean.FALSE)) {
-                        write_to_file("There's no network connectivity");
                     }
                 }
             }
             catch (Exception ex){
-                write_to_file("catched this on receiving "+ex.toString());
+                mDebug.write_to_file("catched this on app_receiving " + ex.toString());
+            }
+        }
+    };
+
+    // this shall give us some infor if the network changes
+    private BroadcastReceiver network_change_receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                if (intent != null && intent.getExtras() != null) {
+                    final ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                    final NetworkInfo ni = connectivityManager.getActiveNetworkInfo();
+
+                    if (ni != null){
+                        if(ni.isConnectedOrConnecting()) {
+                            if (mNetworkType != null && !mNetworkType.equals(ni.getTypeName())) {
+                                mDebug.write_to_file("Network was " + mNetworkType + " and changed to " + ni.getTypeName() + " calling restart ");
+                                restart_connection();
+                            }
+                        }
+                        mNetworkType=ni.getTypeName();
+                    } else if (intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, Boolean.FALSE)) {
+                        mDebug.write_to_file("There's no network connectivity");
+                        mNetworkType=""; // not null but resetet to empty
+                    }
+                }
+            }
+            catch (Exception ex){
+                mDebug.write_to_file("catched this on network receiving " + ex.toString());
             }
         }
     };
@@ -540,13 +369,13 @@ public class bg_service extends Service {
 
         try {
             last_ts_in=0;
-            write_to_file("Setting up WebSocket and connecting");
+            mDebug.write_to_file("Setting up WebSocket and connecting");
             mWebSocketClient = new WebSocketConnection();
             mWebSocketClient.connect(wsuri, new WebSocketHandler() {
                 // websocket is connected and has just opened
                 @Override
                 public void onOpen() {
-                    write_to_file("Socket Opened");
+                    mDebug.write_to_file("Socket Opened");
                     mConnected = true;
                     // on open -> login in.
                     JSONObject object = new JSONObject();
@@ -555,7 +384,7 @@ public class bg_service extends Service {
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
-                    write_to_file("sending as socket is open: " + object.toString());
+                    mDebug.write_to_file("sending as socket is open: " + object.toString());
                     msg_out.clear();
                     send_msg(object.toString());
                 }
@@ -563,21 +392,21 @@ public class bg_service extends Service {
                 // websocket is connected and we've just received a message
                 @Override
                 public void onTextMessage(String message) {
-                    write_to_file("onMessage: " + message);
+                    mDebug.write_to_file("onMessage: " + message);
 
                     read_msg(message);
                 }
 
                 @Override
                 public void onClose(int code, String reason) {
-                    write_to_file("On Closed " + reason);
+                    mDebug.write_to_file("On Closed " + reason);
                     restart_connection();
                 }
             });
         }
 
         catch (WebSocketException e){
-            write_to_file("On Error " + e.getMessage());
+            mDebug.write_to_file("On Error " + e.getMessage());
             restart_connection();
         }
     }
@@ -588,12 +417,12 @@ public class bg_service extends Service {
         mConnected = false;
         mLoggedIn = false;
         server_told_location = -1;
-        showNotification("Illumino", "disconnected", "");
+        mNofity.showNotification("Illumino", "disconnected", "");
 
-        stop_pinging(mContext);
+        mWakeup.stop_pinging(mContext);
 
-        mHandler.removeCallbacks(delayed_reconnect);
-        mHandler.postDelayed(delayed_reconnect,5000); // start in 5 sec
+        mHandler.removeCallbacks(mWakeup.delayed_reconnect);
+        mHandler.postDelayed(mWakeup.delayed_reconnect,5000); // start in 5 sec
     }
 
 
@@ -631,7 +460,7 @@ public class bg_service extends Service {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                write_to_file("received prelogin, sending " + o_snd.toString());
+                mDebug.write_to_file("received prelogin, sending " + o_snd.toString());
                 //console.log(JSON.stringify(cmd_data));
                 send_msg(o_snd.toString());
             }
@@ -640,12 +469,12 @@ public class bg_service extends Service {
             // if we receive a login answer, we should check if we can answer with a location
             else if (cmd.equals("login")) {
                 if (o_recv.getString("ok").equals("1")) {
-                    write_to_file("We are logged in!");
+                    mDebug.write_to_file("We are logged in!");
                     mLoggedIn = true;
 
                     // assuming we reconnected as a reaction on a server reboot, the server has no idea where we are. we should tell him right away if we know it
                     if (last_known_location.isValid()) {
-                        write_to_file("i have a valid location");
+                        mDebug.write_to_file("i have a valid location");
                         check_locations(last_known_location.getCoordinaes());
                     }
 
@@ -665,12 +494,12 @@ public class bg_service extends Service {
                         areas.get(i).setDetection(o_recv.getInt("detection"));
 
                         if (o_recv.has("state")) {
-                            //write_to_file("state:" + String.valueOf(o_recv.getInt("state")) + " " + String.valueOf(o_recv.getInt("detection")));
+                            //mDebug.write_to_file("state:" + String.valueOf(o_recv.getInt("state")) + " " + String.valueOf(o_recv.getInt("detection")));
                             if (o_recv.getInt("state") == 1 && o_recv.getInt("detection") >= 1) {
                                 if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
                                     v.vibrate(500);
                                 }
-                                area_of_last_alert = o_recv.getString("area");
+                                mNofity.set_area(o_recv.getString("area"));
                             }
                             areas.get(i).setState(o_recv.getInt("state"));
                         }
@@ -700,18 +529,17 @@ public class bg_service extends Service {
                 }
 
                 // show notification
-                showNotification("Illumino read message", Notification_text_builder(false), Notification_text_builder(true));
+                mNofity.showNotification("Illumino read message", mNofity.Notification_text_builder(false,areas,distance_debug), mNofity.Notification_text_builder(true, areas, distance_debug));
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
             // receive a image
             else if (cmd.equals("rf")) {
                 byte[] decodedString = Base64.decode(o_recv.getString("img"), Base64.NO_OPTIONS);
-                last_picture = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length); // todo: we need a kind of, if app has started reset picture to null
-                SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-                time_of_last_alert = sdf.format(new Date());
+                mNofity.set_image(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length)); // todo: we need a kind of, if app has started reset picture to null
+                mNofity.set_time();
                 // show notification
-                showNotification("Illumino read file", Notification_text_builder(false), "");
+                mNofity.showNotification("Illumino read file", mNofity.Notification_text_builder(false, areas, distance_debug), "");
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
@@ -730,7 +558,7 @@ public class bg_service extends Service {
             }
 
         } catch (Exception e) {
-            write_to_file("Error on decoding incoming message " + e.getMessage());
+            mDebug.write_to_file("Error on decoding incoming message " + e.getMessage());
         }
         wakelock.release();
     }
@@ -738,7 +566,7 @@ public class bg_service extends Service {
     // send a message or put it in the buffer
     private void send_msg(String input) {
         // check if we are dis-connected
-        //write_to_file("on send");
+        //mDebug.write_to_file("on send");
         if (!input.equals("")) {
             msg_out.add(input);
         }
@@ -763,53 +591,53 @@ public class bg_service extends Service {
                 }
 
 
-                write_to_file("I don't think we are still connected, as " + s);
+                mDebug.write_to_file("I don't think we are still connected, as " + s);
                 restart_connection();
             }
         }catch (Exception ex){
-            write_to_file("Exception on check if client is connected in send_msg!! " + ex.toString());
+            mDebug.write_to_file("Exception on check if client is connected in send_msg!! " + ex.toString());
         }
 
 
         // if we are still connected: send
         if(mConnected){
             ArrayList<Integer> msg_send = new ArrayList<Integer>();
-            //write_to_file("ich bin verbunden und habe "+String.valueOf(msg_out.size())+" Nachrichten.");
+            //mDebug.write_to_file("ich bin verbunden und habe "+String.valueOf(msg_out.size())+" Nachrichten.");
 
             for(int i=0;i<msg_out.size();i++) {
-                //write_to_file("Nachricht "+String.valueOf(i)+".");
+                //mDebug.write_to_file("Nachricht "+String.valueOf(i)+".");
                 boolean send_this = false;
                 if (mLoggedIn) {
-                    //write_to_file("Bin eingeloggt");
+                    //mDebug.write_to_file("Bin eingeloggt");
                     send_this = true;
                 } else {
-                    //write_to_file("Bin nicht eingeloggt");
+                    //mDebug.write_to_file("Bin nicht eingeloggt");
                     if (msg_out.get(i).indexOf("login") > 0) {
                         send_this = true;
-                        //write_to_file("Dafür hats was mit login zutun");
+                        //mDebug.write_to_file("Dafür hats was mit login zutun");
                     }
                 }
 
                 if (send_this){
-                    //write_to_file("Versuche zu senden");
+                    //mDebug.write_to_file("Versuche zu senden");
                     try {
-                        //write_to_file("on send websocket");
+                        //mDebug.write_to_file("on send websocket");
                         mWebSocketClient.sendTextMessage(msg_out.get(i));
                         msg_send.add(i);
                     } catch (Exception ex) {
-                        //write_to_file("Exception on send -->" + ex.toString());
+                        //mDebug.write_to_file("Exception on send -->" + ex.toString());
                         restart_connection();
                     }
                 }
             }
 
-            //write_to_file("Entferne jetzt "+String.valueOf(msg_send.size())+" Nachrichten");
+            //mDebug.write_to_file("Entferne jetzt "+String.valueOf(msg_send.size())+" Nachrichten");
             // remove reverse ordered
             for(int i=msg_send.size()-1;i>=0;i--){
                 int element=msg_send.get(i);
                 msg_out.remove(element);
             }
-            //write_to_file("Hab noch "+String.valueOf(msg_out.size())+" Nachrichten");
+            //mDebug.write_to_file("Hab noch "+String.valueOf(msg_out.size())+" Nachrichten");
         }
     }
     ///////////////////////////////////////////////////////////////////////////////

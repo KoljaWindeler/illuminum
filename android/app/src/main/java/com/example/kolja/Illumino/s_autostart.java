@@ -8,7 +8,7 @@ import android.util.Log;
 /**
  * Created by kolja on 5/16/15.
  */
-public class autostart extends BroadcastReceiver
+public class s_autostart extends BroadcastReceiver
 {
     public void onReceive(Context arg0, Intent arg1)
     {
