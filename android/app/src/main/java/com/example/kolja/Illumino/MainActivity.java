@@ -42,8 +42,20 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         setContentView(R.layout.activity_main);
 
         Intent intent = new Intent(this, bg_service.class);
-        stopService(intent);
         startService(intent);
+
+        // set message that we need an update
+        try {
+            JSONObject o_snd = new JSONObject();
+            o_snd.put("cmd", "refresh_ws");
+            Intent send_intent = new Intent(bg_service.SENDER);
+            send_intent.putExtra(s_ws.TYPE,s_ws.APP2SERVER);
+            send_intent.putExtra(s_ws.PAYLOAD,o_snd.toString());
+            sendBroadcast(send_intent);
+        } catch (Exception e) {
+
+        }
+
 
         settings = getSharedPreferences(PREFS_NAME, 0);
         String login =settings.getString("LOGIN","Kolja");
@@ -125,8 +137,8 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                                     int pos = id - WebcamView.getFirstVisiblePosition();
                                     View v = WebcamView.getChildAt(pos);
 
-                                    // is this a alert picture
-                                    if(Integer.parseInt(object.getString("state"))>0) {
+                                    // is this a alert picture, it has movement and detection, both flagged as on
+                                    if(Integer.parseInt(object.getString("state"))>0 && Integer.parseInt(object.getString("detection"))>0) {
                                         // if this is a alert, then the picture is not open. there for we have to open it
                                         if(!((ListAdapter)WebcamView.getAdapter()).isPicOpen(id)){
                                             ((ListAdapter) WebcamView.getAdapter()).showPic(id);
@@ -152,31 +164,23 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                     } else if (cmd.equals("m2v_login")) {
                         try {
                             // add an object that will hold the ID "mid", "s_area","state","account"
-                            String area = object.getString("area");
-                            String alias = object.getString("alias");
-                            int state = object.getInt("state");
-                            int detection = object.getInt("detection");
-                            int last_seen = object.getInt("last_seen");
-                            Location new_loc = new Location("new");
-                            if (!object.getString("latitude").equals("") && !object.getString("longitude").equals("")) {
-                                new_loc.setLatitude(Float.parseFloat(object.getString("latitude")));
-                                new_loc.setLongitude(Float.parseFloat(object.getString("longitude")));
-                            } else {
-                                new_loc.setLatitude(0.0);
-                                new_loc.setLongitude(0.0);
+                            if(id==-1) { // MID not known
+                                String area = object.getString("area");
+                                String alias = object.getString("alias");
+                                int state = object.getInt("state");
+                                int detection = object.getInt("detection");
+                                int last_seen = object.getInt("last_seen");
+                                Location new_loc = new Location("new");
+                                if (!object.getString("latitude").equals("") && !object.getString("longitude").equals("")) {
+                                    new_loc.setLatitude(Float.parseFloat(object.getString("latitude")));
+                                    new_loc.setLongitude(Float.parseFloat(object.getString("longitude")));
+                                } else {
+                                    new_loc.setLatitude(0.0);
+                                    new_loc.setLongitude(0.0);
+                                }
+
+                                prepare_adapter(mid, state, area, detection, new_loc, last_seen, alias);
                             }
-
-                            prepare_adapter(mid,state,area,detection,new_loc,last_seen,alias);
-
-                            // quick and dirty: add us to the list of webcams as soon as they sign up:
-//                        JSONObject object_send = new JSONObject();
-//                        object_send.put("cmd", "set_interval");
-//                        object_send.put("mid", mid);
-//                        object_send.put("interval", 1);
-//
-//                        Intent send_intent = new Intent(bg_service.SENDER);
-//                        send_intent.putExtra(bg_service.JSON, object_send.toString());
-//                        sendBroadcast(send_intent);
 
                         } catch (Exception e) {
                             int ignore = 0;

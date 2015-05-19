@@ -27,13 +27,6 @@ public class ListAdapter extends ArrayAdapter<ListContainer> {
     int layoutResourceId;
     ListContainer data[]=null;
 
-    ArrayList<ImageView> webcam_pics=new ArrayList<ImageView>();
-    ArrayList<TextView> updated = new ArrayList<TextView>();
-    ArrayList<TextView> state = new ArrayList<TextView>();
-
-
-
-
 
     public ListAdapter (Context context, int layoutResourceId, ListContainer[] data) {
         super(context, layoutResourceId, data);
@@ -45,22 +38,22 @@ public class ListAdapter extends ArrayAdapter<ListContainer> {
     @Override
     public View getView(final int position, View convertView, ViewGroup parent) {
         View row = convertView;
-        ListInfoHolder holder = new ListInfoHolder();
+        //ListInfoHolder holder = new ListInfoHolder();
 
         LayoutInflater inflater = ((Activity)context).getLayoutInflater();
         row = inflater.inflate(layoutResourceId, parent, false);
 
         // button
-        holder.webcam_on_off = (ImageButton) row.findViewById(R.id.webcam_on_off);
-        holder.webcam_on_off.setTag(position);
+        ImageButton webcam_on_off = (ImageButton) row.findViewById(R.id.webcam_on_off);
+        webcam_on_off.setTag(position);
 
         if(data[position].webcam_on){
-            holder.webcam_on_off.setImageResource(R.drawable.red);
+            webcam_on_off.setImageResource(R.drawable.red);
         } else {
-            holder.webcam_on_off.setImageResource(R.drawable.green);
+            webcam_on_off.setImageResource(R.drawable.green);
         }
 
-        holder.webcam_on_off.setOnClickListener(new View.OnClickListener() {
+        webcam_on_off.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
@@ -96,48 +89,37 @@ public class ListAdapter extends ArrayAdapter<ListContainer> {
         });
 
         //// image /////
-        holder.webcam_pic=(ImageView)row.findViewById(R.id.webcam_pic);
-        holder.webcam_pic.setTag(position);
+        ImageView webcam_pic=(ImageView)row.findViewById(R.id.webcam_pic);
+        webcam_pic.setTag(position);
         // save it to the queue
-        if(webcam_pics.size()>position) {
-            webcam_pics.set(position, holder.webcam_pic);
-        } else {
-            webcam_pics.add(position, holder.webcam_pic);
-        }
+        data[position].webcam_pic=webcam_pic;
+
         // this must be under the saving, otherwise everything go to hell ... why ever
         if(isPicOpen(position)){ // in this case this is more like a: should it be open
             showPic(position);
             if(data[position].last_img!=null) {
-                holder.webcam_pic.setImageBitmap(data[position].last_img);
+                webcam_pic.setImageBitmap(data[position].last_img);
             }
         }
 
         //// text ////
-        holder.Alias=(TextView)row.findViewById(R.id.Alias);
-        holder.Alias.setTag(position);
-        holder.Alias.setText(data[position].alias);
+        TextView alias=(TextView)row.findViewById(R.id.Alias);
+        alias.setTag(position);
+        alias.setText(data[position].alias);
 
-        holder.updated=(TextView)row.findViewById(R.id.LastUpdated);
-        holder.updated.setTag(position);
-        holder.updated.setText(String.valueOf(data[position].last_seen));
-        if(updated.size()>position) {
-            updated.set(position, holder.updated);
-        } else {
-            updated.add(position, holder.updated);
-        }
+        TextView updated=(TextView)row.findViewById(R.id.LastUpdated);
+        updated.setTag(position);
+        updated.setText(String.valueOf(data[position].last_seen));
+        data[position].updateLabel=updated;
         setUpdated(position);
 
-        holder.state=(TextView)row.findViewById(R.id.State);
-        holder.state.setTag(position);
-        if(state.size()>position) {
-            state.set(position, holder.state);
-        } else {
-            state.add(position, holder.state);
-        }
+        TextView stateLabel=(TextView)row.findViewById(R.id.State);
+        stateLabel.setTag(position);
+        data[position].stateLabel=stateLabel;
         setState(position);
 
 
-        row.setTag(holder);
+        //row.setTag(holder);
         return row;
     }
 
@@ -150,7 +132,7 @@ public class ListAdapter extends ArrayAdapter<ListContainer> {
     }
 
     private void setPicSize(Integer pos, int width, int height) {
-        ImageView webcam_pic=webcam_pics.get(pos);
+        ImageView webcam_pic=data[pos].webcam_pic;
         ViewGroup.LayoutParams params = webcam_pic.getLayoutParams();
         if(params.width!=width || params.height!=height) {
             params.width = width;
@@ -164,12 +146,22 @@ public class ListAdapter extends ArrayAdapter<ListContainer> {
     }
 
     public void setState(Integer pos){
-        TextView label=state.get(pos);
+        TextView label=data[pos].stateLabel;
         String textversion="Status: ";
         if(data[pos].state==0){
-            textversion+="Idle";
+            textversion+="No Movement";
         } else if(data[pos].state==1){
-            textversion+="Alarm";
+            textversion+="Movement";
+        } else {
+            textversion+="Error";
+        }
+
+        if(data[pos].detection==0){
+            textversion+=", not protected";
+        } else if(data[pos].detection==1){
+            textversion+=", protected";
+        } else if(data[pos].detection==2){
+            textversion+=", premium protected";
         } else {
             textversion+="Error";
         }
@@ -177,7 +169,7 @@ public class ListAdapter extends ArrayAdapter<ListContainer> {
     }
 
     public void setUpdated(Integer pos){
-        TextView label=updated.get(pos);
+        TextView label=data[pos].updateLabel;
         String textversion="Last Ping: ";
         DateFormat sdf = new SimpleDateFormat("H:m:s");
         Date netDate = (new Date(data[pos].last_seen*1000));

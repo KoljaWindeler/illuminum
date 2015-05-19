@@ -4,41 +4,29 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
-    <Button
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="New Button"
-        android:id="@+id/save_id"
-        android:layout_gravity="right" />
-
-    <EditText
-        android:layout_width="253dp"
-        android:layout_height="wrap_content"
-        android:id="@+id/id"
-        android:layout_gravity="top" />
-
-    <TextView
-        android:id="@+id/log"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_weight="0.375"
-        android:gravity="right"
-        android:text=""
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:textColor="#22222222" />
+        android:orientation="horizontal" >
+        <EditText
+            android:layout_width="253dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/id" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New Button"
+            android:id="@+id/save_id" />
+    </LinearLayout>
 
     <ListView
         android:id="@+id/listScroller"
+        android:layout_marginTop="50dp"
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="fill_parent"
         android:cacheColorHint="#00000000" >
     </ListView>
 
-    <LinearLayout
-        android:id="@+id/TextLayout"
-        android:layout_width="wrap_content"
-        android:layout_height="5dp"
-        android:orientation="horizontal" />
 
     <LinearLayout
         android:id="@+id/TextLayout5"

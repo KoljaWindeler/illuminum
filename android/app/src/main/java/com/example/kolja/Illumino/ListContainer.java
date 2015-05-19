@@ -2,6 +2,9 @@ package com.example.kolja.Illumino;
 
 import android.graphics.Bitmap;
 import android.location.Location;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 /**
  * Created by kolja on 5/1/15.
@@ -16,6 +19,13 @@ public class ListContainer {
     public String alias;
     public boolean webcam_on=false;
     public Bitmap last_img=null;
+
+    public TextView stateLabel=null;
+    public TextView updateLabel=null;
+    public ImageButton onOffButton=null;
+    public ImageView webcam_pic=null;
+
+
 
     public ListContainer(){
         super();

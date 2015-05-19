@@ -229,7 +229,7 @@ public class bg_service extends Service {
             if (intent!=null && s_wakeup.ACTION_PING.equals(intent.getAction())) {
                 JSONObject object = new JSONObject();
                 try {
-                    object.put("cmd", "hb");
+                    object.put("cmd", "ws_hb");
                 } catch (JSONException e) {
                     mDebug.write_to_file("exeption on put hb to JSON");
                     e.printStackTrace();
