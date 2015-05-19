@@ -1,33 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
-    android:layout_height="220dp"
+    android:layout_height="wrap_content"
+    android:paddingLeft="20dp"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp"
+    android:paddingRight="20dp"
+    android:contentDescription="MainWrapper, holding the always displayed part and the potential image"
     android:orientation="vertical" >
 
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="fill_parent"
-        android:layout_weight="0.80"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:contentDescription="Always visible part, left the three texts, right the on/off button"
         android:orientation="horizontal" >
 
-        <TextView
-            android:id="@+id/current_state"
+        <LinearLayout
+            android:contentDescription="left three texts"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="asdasd"
-            android:textAppearance="?android:attr/textAppearanceSmall"
-            android:textColor="#FFFFFFFF" />
+            android:layout_weight="0.80"
+            android:orientation="vertical" >
 
+            <TextView
+                android:id="@+id/Alias"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:paddingLeft="40dp"
+                android:text="Garage"
+                android:textAppearance="?android:attr/textAppearanceLarge"
+                android:textColor="#ff545454" />
+            <TextView
+                android:id="@+id/State"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:text="State: No Motion detected"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="#ff03033f" />
+            <TextView
+                android:id="@+id/LastUpdated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:text="Last Update: 12:03:34"
+                android:textAppearance="?android:attr/textAppearanceSmall"
+                android:textColor="#ff03033f" />
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/webcam_on_off"
+            android:layout_width="60dp "
+            android:paddingLeft="20dp"
+            android:layout_height="60dp"
+            android:background="@null"
+            android:contentDescription="This is the switch to turn the webcam on an off"
+            android:src= "@drawable/green"/>
     </LinearLayout>
 
-    <ImageButton
-        android:id="@+id/webcam"
-        android:layout_width="1280px"
-        android:layout_marginRight="10dp"
-        android:layout_height="720px"
-        android:background="@null"
-        android:contentDescription=""
-        android:src= "@drawable/webcam"/>
-
+    <ImageView
+        android:id="@+id/webcam_pic"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:src= "@drawable/webcam"
+        />
 </LinearLayout>
