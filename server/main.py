@@ -222,7 +222,7 @@ def recv_m2m_msg_handle(data,m2m):
 						#print("this client has account "+viewer.account)
 						if(viewer.account==m2m.account):
 							# introduce them to each other
-							connect_ws_m2m(m2m,viewer)
+							connect_ws_m2m(m2m,viewer,1)
 							info_viewer+=1
 							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
 					p.m2m_login(m2m,info_viewer)
@@ -234,7 +234,7 @@ def recv_m2m_msg_handle(data,m2m):
 			msg_q_m2m.append((msg,m2m))
 
 		#### heartbeat, for M2M
-		elif(enc.get("cmd")=="hb"):
+		elif(enc.get("cmd")=="m2m_hb"):
 			# respond
 			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' HB updating "+str(len(m2m.m2v))+" clients","h")
 			msg={}
@@ -330,6 +330,7 @@ def recv_m2m_msg_handle(data,m2m):
 				msg["mid"]=m2m.mid
 				msg["cmd"]="rf"
 				msg["state"]=m2m.state
+				msg["detection"]=m2m.detection
 
 				# all image data in one packet
 				if(enc.get("sof",0)==1):
@@ -566,9 +567,18 @@ def recv_ws_msg_handle(data,ws):
 				msg_ws["ok"]=-2 # not logged in
 				msg_q_ws.append((msg_ws,ws))
 
+		#### refresh, this will be called by the app, on a start. the service is already connected to us, so no need for a complete reconnect, but the app will need an update about all clients
+		elif(enc.get("cmd")=="refresh_ws"):
+			 # search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
+			# introduce them to each other
+			for m2m in server_m2m.clients:
+				if(m2m.account==ws.account):
+					connect_ws_m2m(m2m,ws,0) # call with 0 will avoid that we append us to a list
+			# and finally connect all disconnected m2m to the ws
+			connect_ws_m2m("",ws,0) # call with 0 will avoid that we append us to a list
 
 		#### heartbeat, for WS
-		elif(enc.get("cmd")=="hb"):
+		elif(enc.get("cmd")=="ws_hb"):
 			# respond
 			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' HB","h")
 			msg={}
@@ -581,7 +591,6 @@ def recv_ws_msg_handle(data,ws):
 		#### set a color 
 		elif(enc.get("cmd")=="set_color"):
 			# respond
-			#p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' HB","h")
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["r"]=enc.get("r")
@@ -657,12 +666,13 @@ def snd_ws_msg_dq_handle():
 # when ever a websocket or a m2m device signs-on this function will be called
 # the purpose is that the web socket shall be informed about the new, available client
 # and the m2m shall know that there is a viewer to inform
-def connect_ws_m2m(m2m,ws):
+def connect_ws_m2m(m2m,ws,update_m2m=1):
 	if(m2m!=""): # first lets assume that we shall connect a given pair right here
 		# add us to their (machine to viewer) list, to be notified whats going on
-		m2m.m2v.append(ws)
-		# and add them to us to give us the change to tell them if they should be sharp or not
-		ws.v2m.append(m2m)
+		if(update_m2m):
+			m2m.m2v.append(ws)
+			# and add them to us to give us the change to tell them if they should be sharp or not
+			ws.v2m.append(m2m)
 		# send a nice and shiny message to the viewer to tell him what boxes are online,
 		p.connect_ws_m2m(m2m,ws)
 		msg_ws2={}
@@ -1011,14 +1021,6 @@ while 1:
 		debug_ts=time.time()-last_rulecheck_ts
 		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(debug_ts),"r")
 
-
-	if(time.time()-last_ws_bh_time>60):
-		last_ws_bh_time=time.time()
-		msg={}
-		msg["cmd"]="shb"
-		for ws in server_ws.clients:
-			msg_q_ws.append((msg,ws))
-			print("[A     "+time.strftime("%H:%M:%S")+"] -> Server ping to "+ws.login)
 			
 #***************************************************************************************#
 #********************************** End of Main loop ***********************************#
