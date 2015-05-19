@@ -22,7 +22,13 @@ import de.tavendo.autobahn.WebSocketException;
 import de.tavendo.autobahn.WebSocketHandler;
 
 public class s_ws {
-    public static final String JSON = "JSON";
+    //public static final String JSON = "JSON";
+    public static final String TYPE = "TYPE";
+    public static final String PAYLOAD = "PAYLOAD";
+    public static final String APP2SERVER = "APP2SERVER";
+    public static final String APP2SERVICE = "APP2SERVICE";
+    public static final String SERVICE2APP = "SERVICE2APP";
+    public static final String SERVER2APP = "SERVER2APP";
     public static final String NOTIFICATION = "BG_RECEIVER";
 
 
@@ -129,7 +135,8 @@ public class s_ws {
 
         // forward message to possible listening apps
         Intent intent = new Intent(NOTIFICATION);
-        intent.putExtra(JSON, message);
+        intent.putExtra(TYPE, SERVER2APP);
+        intent.putExtra(PAYLOAD, message);
         mContext.sendBroadcast(intent);
 
         // but check if we could use it
@@ -237,11 +244,13 @@ public class s_ws {
             // receive a image
             else if (cmd.equals("rf")) {
                 mDebug.write_to_file("Websocket: Received file");
-                byte[] decodedString = Base64.decode(o_recv.getString("img"), Base64.NO_OPTIONS);
-                mNofity.set_image(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length)); // todo: we need a kind of, if app has started reset picture to null
-                mNofity.set_time();
-                // show notification
-                mNofity.showNotification("Illumino read file", mNofity.Notification_text_builder(false, areas), "");
+                if(Integer.parseInt(o_recv.getString("state"))!=0) {
+                    byte[] decodedString = Base64.decode(o_recv.getString("img"), Base64.NO_OPTIONS);
+                    mNofity.set_image(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length)); // todo: we need a kind of, if app has started reset picture to null
+                    mNofity.set_time();
+                    // show notification
+                    mNofity.showNotification("Illumino read file", mNofity.Notification_text_builder(false, areas), "");
+                }
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
@@ -352,4 +361,23 @@ public class s_ws {
             //mDebug.write_to_file("Hab noch "+String.valueOf(msg_out.size())+" Nachrichten");
         }
     }
+
+//    public void broadcast_areas() {
+//        try {
+//            for(int i=0; i<areas.size(); i++) {
+//                JSONObject o_snd = new JSONObject();
+//                o_snd.put("cmd","m2v_login");
+//                o_snd.put("cmd",areas.get(i).getName());
+//
+//                {"account": "jkw", "area": "baker", "cmd": "m2v_login", "mid": "202481600132415", "longitude": "-95.369136", "detection": 1, "alias": "livingroom rpi2b", "state": 0, "latitude": "29.968327", "last_seen": 1432058785.419504}
+//
+//                Intent intent = new Intent(NOTIFICATION);
+//                intent.putExtra(TYPE, SERVICE2APP);
+//                intent.putExtra(PAYLOAD, o_snd.toString());
+//                mContext.sendBroadcast(intent);
+//            }
+//        } catch (Exception ex){
+//
+//        }
+//    }
 }
