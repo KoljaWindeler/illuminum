@@ -271,10 +271,14 @@ public class bg_service extends Service {
 
                     Bundle bundle = intent.getExtras();
                     if (bundle != null) {
-                        String data = bundle.getString(s_ws.JSON, "");
-                        if (!data.equals("")) {
-                            mWs.send_msg(data);
+                        String type = bundle.getString(s_ws.TYPE, "");
+                        String payload = bundle.getString(s_ws.PAYLOAD, "");
+                        if (type.equals(s_ws.APP2SERVER)) {
+                            mWs.send_msg(payload);
+                        } else if(type.equals(s_ws.APP2SERVICE)){
+
                         }
+                        // here we could have a "get area" between app and service without the server communication
                     }
                 }
             } catch (Exception ex) {

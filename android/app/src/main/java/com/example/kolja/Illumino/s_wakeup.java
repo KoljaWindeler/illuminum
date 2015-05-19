@@ -50,7 +50,7 @@ public class s_wakeup {
         if(state) {
             mDebug.write_to_file("Wakeup,is_pinging: ping intent is running");
         } else {
-            mDebug.write_to_file("Wakeup,is_pinging: ping intent is not running");
+            mDebug.write_to_file("Wakeup,is_pinging: ping intent is not running!");
         }
         return  state;
     }
