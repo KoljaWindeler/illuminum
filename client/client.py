@@ -3,6 +3,7 @@ import hashlib,select,trigger,uuid
 import sys,light
 from binascii import unhexlify, hexlify
 from login import *
+from math import *
 
 MAX_MSG_SIZE = 512000
 SERVER_IP = "192.168.1.80"
@@ -25,6 +26,10 @@ light_dimming_q=[]
 my_state=-1
 my_detection=-1
 
+#******************************************************#
+def get_time():
+	return time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
+#******************************************************#
 #******************************************************#
 def trigger_handle(event,data):
 	global msg_q
@@ -57,13 +62,17 @@ def trigger_handle(event,data):
 			if(my_detection==0 and my_state==1): # deactive and motion
 				light_dimming_q.append((time.time(),100,70,2,4000)) # 4 sec to dimm to warm orange - now
 			elif(my_detection==0 and my_state==0): # deactive and no motion
-				light_dimming_q.append((time.time()+5*60*1000,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
+				delay_off=5*60*1000 # usually 5 min
+				off_time=get_time()+delay_off/1000
+				if(off_time>22*60*60 or (off_time%86400)<6*60*60): # switch off after 22h and before 6
+					delay_off=0
+				light_dimming_q.append((time.time()+delay_off,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 				#light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			elif(my_detection==1 and my_state==1):
 				light_dimming_q.append((time.time(),100,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			elif(my_detection==1 and my_state==0):
 				light_dimming_q.append((time.time(),0,0,100,4000)) # 4 sec to dimm to off - in 10 min from now
-			
+
 	elif(event=="uploading_str"):
 		file_str_q.append(data)
 
@@ -271,7 +280,7 @@ while 1:
 						else:
 							logged_in=0
 							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
-					elif(enc.get("cmd")=="hb"):
+					elif(enc.get("cmd")=="m2m_hb"):
 						hb_out=0
 						print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
 					elif(enc.get("cmd")=="set_detection"):
@@ -308,7 +317,7 @@ while 1:
 		if(time.time()-last_transfer>60*5 and hb_out==0):
 			print("[A "+time.strftime("%H:%M:%S")+"] -> checking connection")
 			msg={}
-			msg["cmd"]="hb"
+			msg["cmd"]="m2m_hb"
 			msg_q.append(msg)
 			hb_out=1
 		#************* timeout check end ******************#
