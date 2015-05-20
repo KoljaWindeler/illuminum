@@ -4,4 +4,7 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="debug_id">websocket</string>
+
+
+    <color name="area_header_bg">#ffdddddd</color>
 </resources>

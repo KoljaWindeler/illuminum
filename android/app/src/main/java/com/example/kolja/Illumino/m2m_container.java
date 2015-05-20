@@ -22,6 +22,7 @@ public class m2m_container {
 
     public TextView stateLabel=null;
     public TextView updateLabel=null;
+    public TextView aliasLabel=null;
     public ImageButton onOffButton=null;
     public ImageView webcam_pic=null;
 

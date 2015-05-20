@@ -1,11 +1,12 @@
 package com.example.kolja.Illumino;
 
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,9 +15,9 @@ import android.widget.CheckedTextView;
 import android.widget.ExpandableListView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.util.SparseArray;
-import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,24 +27,18 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class ListAdapter extends BaseExpandableListAdapter {
-    Context context;
-    private final SparseArray<areas> data;
-    private final SparseArray<areas> groups;
-    public LayoutInflater inflater;
-    public Activity activity;
+    Context context;                        // reference to the App
+    private final SparseArray<areas> data;  // reference to all the data
 
-
+    // constructor has to be callen with references to app and data
     public ListAdapter (Activity act, SparseArray<areas> groups) {
         this.context = act;
         this.data = groups;
-        this.groups = groups;
-        this.inflater = act.getLayoutInflater();
-        this.activity = act;
     }
 
     @Override
     public Object getChild(int groupPosition, int childPosition) {
-        return groups.get(groupPosition).m2mList.get(childPosition);
+        return data.get(groupPosition).m2mList.get(childPosition);
     }
 
     @Override
@@ -53,44 +48,48 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
     @Override
     public View getChildView(int groupPosition, final int childPosition,boolean isLastChild, View convertView, ViewGroup parent) {
-        TextView text = null;
+        // check if we have to create it
         if (convertView == null) {
-            convertView = inflater.inflate(R.layout.listentry, null);
+            convertView = ((LayoutInflater)((MainActivity)context).getLayoutInflater()).inflate(R.layout.listentry, null);
         }
-        // button
+
+        // button, there is no need to set our image here, we'll do that later when we check for the displayed image anyway
         ImageButton webcam_on_off = (ImageButton) convertView.findViewById(R.id.webcam_on_off);
         webcam_on_off.setTag(String.valueOf(groupPosition)+","+String.valueOf(childPosition));
-
+        data.get(groupPosition).m2mList.get(childPosition).onOffButton=webcam_on_off;
         webcam_on_off.setOnClickListener(new View.OnClickListener() {
 
             @Override
             public void onClick(View v) {
-                int interval=0;
-                String Tag=(String) v.getTag();
+                int interval=0;                         // speed of image updates
+                String Tag=(String) v.getTag();         // get our gid and cid from the tag
                 String[] TagArray=Tag.split(",");
                 int gid=Integer.parseInt(TagArray[0]);
                 int cid=Integer.parseInt(TagArray[1]);
 
-
+                // lookup if the picture is displayed, in this case, close it and send stop message
                 if(isPicOpen(gid,cid)){
-                    ((ImageButton) v).setImageResource(R.drawable.green);
-                    closePic(gid,cid);
+                    ((ImageButton) v).setImageResource(R.drawable.livestream_icon_v01);
+                    closePic((View)v.getParent().getParent().getParent(),gid,cid);
                     data.get(gid).m2mList.get(cid).webcam_on=false;
-                    // fire message to switch off
+                    // set interval to 0, this will be send to the Server below
                     interval=0;
-                } else {
+                }
+                // else it is not shown, therefor show the picture and see if you have already an old picture we can show
+                else {
                     ((ImageButton) v).setImageResource(R.drawable.red);
-                    showPic(gid,cid);
+                    showPic((View)v.getParent().getParent().getParent(), gid,cid);
                     if(data.get(gid).m2mList.get(cid).last_img!=null) {
                         data.get(gid).m2mList.get(cid).webcam_pic.setImageBitmap(data.get(gid).m2mList.get(cid).last_img);
                     } else {
                         data.get(gid).m2mList.get(cid).webcam_pic.setImageBitmap(BitmapFactory.decodeResource(v.getContext().getResources(), R.drawable.webcam));
                     }
                     data.get(gid).m2mList.get(cid).webcam_on=true;
+                    // set interval to 1 fps, this will be send to the Server below
                     interval=1;
                 }
 
-                // fire message
+                // fire message to the server, via our Service
                 JSONObject object_send = new JSONObject();
                 try {
                     object_send.put("cmd", "set_interval");
@@ -100,64 +99,80 @@ public class ListAdapter extends BaseExpandableListAdapter {
                     Intent send_intent = new Intent(bg_service.SENDER);
                     send_intent.putExtra(s_ws.TYPE, s_ws.APP2SERVER);
                     send_intent.putExtra(s_ws.PAYLOAD, object_send.toString());
-                    ((MainActivity) context).sendBroadcast(send_intent);
+                    ((MainActivity)context).sendBroadcast(send_intent);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
         });
 
-        //// image /////
-        ImageView webcam_pic=(ImageView)convertView.findViewById(R.id.webcam_pic);
-        webcam_pic.setTag(String.valueOf(groupPosition)+","+String.valueOf(childPosition));
-        // save it to the queue
-        data.get(groupPosition).m2mList.get(childPosition).webcam_pic=webcam_pic;
-
-        // this must be under the saving, otherwise everything go to hell ... why ever
-        if(isPicOpen(groupPosition,childPosition)){ // in this case this is more like a: should it be open
-            Log.i("Websocket22", "Picture "+String.valueOf(groupPosition) + "/" + String.valueOf(childPosition)+" shall be shown!");
+        //// webcam image /////
+        if(isPicOpen(groupPosition,childPosition)){ // in this case this is more like a: "should it be open?"
             webcam_on_off.setImageResource(R.drawable.red);
-            showPic(groupPosition,childPosition);
+            ImageView webcam_pic=(ImageView)convertView.findViewById(R.id.webcam_picture_in_single_view);
+
+            if(webcam_pic==null) {
+                // show it if
+                showPic(convertView, groupPosition, childPosition);
+                // grab it again, showPic will destory every view and ours was null anyway
+                webcam_pic = (ImageView) convertView.findViewById(R.id.webcam_picture_in_single_view);
+                webcam_pic.setTag(String.valueOf(groupPosition)+","+String.valueOf(childPosition));
+
+                // save it to the queue, supprising that this works and is able to distinguish between two lines of the same type
+                data.get(groupPosition).m2mList.get(childPosition).webcam_pic=webcam_pic;
+            };
+
+            // if we have a stored picture, even if it might be a little older, display it. Otherwise show the simple loading picture
             if(data.get(groupPosition).m2mList.get(childPosition).last_img!=null) {
                 webcam_pic.setImageBitmap(data.get(groupPosition).m2mList.get(childPosition).last_img);
+            } else {
+                webcam_pic.setImageBitmap(BitmapFactory.decodeResource(convertView.getContext().getResources(), R.drawable.webcam));
             }
-        } else {
-            Log.i("Websocket22", "Picture "+String.valueOf(groupPosition) + "/" + String.valueOf(childPosition)+" shall NOT be shown!");
-            webcam_on_off.setImageResource(R.drawable.green);
-            closePic(groupPosition,childPosition);
+        }
+        // just make sure that the picture is really closed
+        else {
+            webcam_on_off.setImageResource(R.drawable.livestream_icon_v01);
+            if(convertView.findViewById(R.id.webcam_picture_in_single_view)!=null) {
+                closePic(convertView, groupPosition, childPosition);
+            };
         }
 
-        //// text ////
+        //// text Alias ////
         TextView alias=(TextView)convertView.findViewById(R.id.Alias);
         alias.setTag(String.valueOf(groupPosition)+","+String.valueOf(childPosition));
         alias.setText(data.get(groupPosition).m2mList.get(childPosition).alias);
+        data.get(groupPosition).m2mList.get(childPosition).aliasLabel=alias;
 
+        //// text last updated ////
         TextView updated=(TextView)convertView.findViewById(R.id.LastUpdated);
-        updated.setTag(String.valueOf(groupPosition)+","+String.valueOf(childPosition));
+        updated.setTag(String.valueOf(groupPosition) + "," + String.valueOf(childPosition));
         updated.setText(String.valueOf(data.get(groupPosition).m2mList.get(childPosition).last_seen));
         data.get(groupPosition).m2mList.get(childPosition).updateLabel=updated;
         setUpdated(groupPosition,childPosition);
 
+        //// text state ////
         TextView stateLabel=(TextView)convertView.findViewById(R.id.State);
         stateLabel.setTag(String.valueOf(groupPosition)+","+String.valueOf(childPosition));
         data.get(groupPosition).m2mList.get(childPosition).stateLabel=stateLabel;
         setState(groupPosition,childPosition);
+
+
         return convertView;
     }
 
     @Override
     public int getChildrenCount(int groupPosition) {
-        return groups.get(groupPosition).m2mList.size();
+        return data.get(groupPosition).m2mList.size();
     }
 
     @Override
     public Object getGroup(int groupPosition) {
-        return groups.get(groupPosition);
+        return data.get(groupPosition);
     }
 
     @Override
     public int getGroupCount() {
-        return groups.size();
+        return data.size();
     }
 
     @Override
@@ -178,11 +193,17 @@ public class ListAdapter extends BaseExpandableListAdapter {
     @Override
     public View getGroupView(int groupPosition, boolean isExpanded,View convertView, ViewGroup parent) {
         if (convertView == null) {
-            convertView = inflater.inflate(R.layout.listgroup, null);
+            convertView = ((LayoutInflater)((MainActivity)context).getLayoutInflater()).inflate(R.layout.listgroup, null);
         }
         areas group = (areas) getGroup(groupPosition);
-        ((CheckedTextView) convertView).setText(group.name);
-        ((CheckedTextView) convertView).setChecked(isExpanded);
+        ((TextView)convertView.findViewById(R.id.area_name)).setText(group.name);
+        ((CheckedTextView)convertView.findViewById(R.id.opener)).setChecked(isExpanded);
+        ((ImageView)convertView.findViewById(R.id.area_symbol)).setImageBitmap(group.symbol);
+        if(data.get(groupPosition).m2mList.get(0).detection==0) {
+            ((TextView) convertView.findViewById(R.id.area_detection)).setText("Not protected");
+        } else {
+            ((TextView) convertView.findViewById(R.id.area_detection)).setText("Protected");
+        }
         return convertView;
     }
 
@@ -198,22 +219,41 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
 
 
-    public void showPic(Integer gid,Integer cid) {
-        setPicSize(gid, cid, 1280, 720);
+    public void showPic(View v, Integer gid, Integer cid) {
+        setPicSize(v, gid, cid, 1280, 720);
+        data.get(gid).m2mList.get(cid).webcam_on=true;
     }
 
-    public void closePic(Integer gid, Integer cid) {
-        setPicSize(gid, cid, 0, 0);
+    public void closePic(View v, Integer gid, Integer cid) {
+        setPicSize(v, gid, cid, 0, 0);
+        data.get(gid).m2mList.get(cid).webcam_on=false;
     }
 
-    private void setPicSize(Integer gid, Integer cid, int width, int height) {
-        ImageView webcam_pic=data.get(gid).m2mList.get(cid).webcam_pic;
-        ViewGroup.LayoutParams params = webcam_pic.getLayoutParams();
-        if(params.width!=width || params.height!=height) {
-            params.width = width;
-            params.height = height;
-            webcam_pic.setLayoutParams(params);
-        };
+    private void setPicSize(View v, Integer gid, Integer cid, int width, int height) {
+        LinearLayout insertPoint = (LinearLayout) v.findViewById(R.id.work);
+        if(insertPoint!=null) {
+            if (width == 0 && height == 0) {
+                insertPoint.removeAllViews();
+            } else {
+                // remove all
+                insertPoint.removeAllViews();
+                // inflate our webcamview
+                LayoutInflater vi = (LayoutInflater) context.getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                View inserter = vi.inflate(R.layout.show_webcam_pic, null);
+                // grab out webcam_picture
+                ImageView webcam_pic;
+                webcam_pic = (ImageView) inserter.findViewById(R.id.webcam_picture_in_single_view);
+                // add the view to our inserPoint
+                LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(width, height);
+                params.topMargin=60; //?
+                insertPoint.addView(inserter, 0,params );
+                // save? it for later <- i don't think this works
+                data.get(gid).m2mList.get(cid).webcam_pic = webcam_pic;
+            }
+        }
+        //webcam_pic.setImageBitmap(Bitmap.createScaledBitmap(decodedByte, width, height, false)); //TODO
+
+
     }
 
     public boolean isPicOpen(Integer gid, Integer cid) {
@@ -276,7 +316,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
     public void setUpdated(Integer gid, Integer cid, TextView label){
         String textversion="Last Ping: ";
-        DateFormat sdf = new SimpleDateFormat("H:m:s");
+        DateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         Date netDate = (new Date(data.get(gid).m2mList.get(cid).last_seen*1000));
         textversion+= sdf.format(netDate);
         label.setText(textversion);

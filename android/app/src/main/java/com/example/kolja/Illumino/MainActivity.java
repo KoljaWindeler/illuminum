@@ -4,12 +4,14 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.SparseArray;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.app.Activity;
 import android.util.Log;
 import android.content.Context;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -42,6 +44,10 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        View view = View.inflate(this, R.layout.expendable_header, null);
+        ExpandableListView liste = (ExpandableListView)findViewById(R.id.listScroller);
+        liste.addHeaderView(view, null, false);
+
         Intent intent = new Intent(this, bg_service.class);
         startService(intent);
 
@@ -58,10 +64,12 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         }
 
 
-        settings = getSharedPreferences(PREFS_NAME, 0);
+        /*settings = getSharedPreferences(PREFS_NAME, 0);
         String login =settings.getString("LOGIN","Kolja");
         ((Button)findViewById(R.id.save_id)).setOnClickListener(this);
         ((EditText)findViewById(R.id.id)).setText(login);
+        */
+
         if (mDebug == null) {
             mDebug = new s_debug(this);
         }
@@ -71,7 +79,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
     @Override
     public void onClick(View arg0) {
         switch (arg0.getId()) {
-            case R.id.save_id:
+            /*case R.id.save_id:
                 String login=((EditText)findViewById(R.id.id)).getText().toString();
                 SharedPreferences.Editor editor = settings.edit();
                 editor.putString("LOGIN", login);
@@ -80,7 +88,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                 Intent intent = new Intent(this, bg_service.class);
                 stopService(intent);
                 startService(intent);
-                break;
+                break;*/
         }
     };
 
@@ -143,21 +151,26 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                                 Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
 
                                 // save it
-                                data.get(id[0]).m2mList.get(id[1]).last_img=decodedByte;
+                                data.get(id[0]).m2mList.get(id[1]).last_img = decodedByte;
                                 //mAdapter.showpic(id[0],id[1]);
 
+
                                 // display it or not?
-                                // is this a alert picture, it has movement and detection, both flagged as on
-                                if (Integer.parseInt(object.getString("state")) > 0 && Integer.parseInt(object.getString("detection")) > 0) {
-                                    // if this is a alert, then the picture is not open. there for we have to open it
-                                    if (!((ListAdapter) WebcamView.getAdapter()).isPicOpen(id[0], id[1])) {
-                                        ((ListAdapter) WebcamView.getAdapter()).showPic(id[0], id[1]);
+                                View v = getView_ifVisible(id[0], id[1], WebcamView);
+                                if (v != null) {
+                                    // is this a alert picture, it has movement and detection, both flagged as on
+                                    if (Integer.parseInt(object.getString("state")) > 0 && Integer.parseInt(object.getString("detection")) > 0) {
+                                        // if this is a alert, then the picture is not open. there for we have to open it
+                                        if (!((ListAdapter) WebcamView.getAdapter()).isPicOpen(id[0], id[1])) {
+                                            ((ListAdapter) WebcamView.getAdapter()).showPic(v, id[0], id[1]);
+                                        }
                                     }
+                                    View v2 = ((ViewGroup) v.findViewById(R.id.work)).getChildAt(0);
+                                    ImageView webcam_pic = (ImageView) v2.findViewById(R.id.webcam_picture_in_single_view);
+                                    int height=webcam_pic.getLayoutParams().height;
+                                    int width=webcam_pic.getLayoutParams().width;
+                                    webcam_pic.setImageBitmap(Bitmap.createScaledBitmap(decodedByte, width, height, false)); //TODO
                                 }
-                                View v=getView_ifVisible(id[0],id[1],WebcamView);
-                                ImageView webcam_pic;
-                                webcam_pic = (ImageView) v.findViewById(R.id.webcam_pic);
-                                webcam_pic.setImageBitmap(decodedByte);
                             }
 
                             //((ImageView)findViewById(R.id.Foto)).setImageBitmap(decodedByte);
@@ -182,7 +195,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
 
                             // if not, generate new area
                             if(area_id==-1){
-                                data.append(data.size(), new areas(area_name));
+                                data.append(data.size(), new areas(context, area_name,1));
                                 area_id=data.size()-1;
                             }
 
@@ -230,7 +243,8 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                         }
                     }
 
-                    else if(cmd.equals("hb")){
+                    else if(cmd.equals("m2m_hb")){
+                        Log.i("Websocket","Received hb");
                         if(id[0]>-1){
                             try {
                                 View v=getView_ifVisible(id[0],id[1],WebcamView);
