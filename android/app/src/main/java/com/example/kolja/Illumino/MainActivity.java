@@ -88,6 +88,17 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
     protected void onResume() {
         super.onResume();
         registerReceiver(receiver, new IntentFilter(s_ws.NOTIFICATION));
+        // set message that we need an update
+        try {
+            JSONObject o_snd = new JSONObject();
+            o_snd.put("cmd", "refresh_ws");
+            Intent send_intent = new Intent(bg_service.SENDER);
+            send_intent.putExtra(s_ws.TYPE,s_ws.APP2SERVER);
+            send_intent.putExtra(s_ws.PAYLOAD,o_snd.toString());
+            sendBroadcast(send_intent);
+        } catch (Exception e) {
+
+        }
     }
     @Override
     protected void onPause() {
@@ -136,36 +147,17 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                                 //mAdapter.showpic(id[0],id[1]);
 
                                 // display it or not?
-                                int firstVis = WebcamView.getFirstVisiblePosition();
-                                int lastVis = WebcamView.getLastVisiblePosition();
-                                int count = lastVis - firstVis;
-                                for(int i=0;i<=count;i++) {
-                                    View v = WebcamView.getChildAt(i);
-                                    if (v != null) {
-                                        long packedPosition = WebcamView.getExpandableListPosition(i + firstVis);
-                                        int packedPositionType = ExpandableListView.getPackedPositionType(packedPosition);
-
-                                        if (packedPositionType != ExpandableListView.PACKED_POSITION_TYPE_NULL) {
-                                            int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
-                                            if (packedPositionType == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
-                                                int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
-                                                if(groupPosition==id[0] && childPosition==id[1]) {
-                                                    // is this a alert picture, it has movement and detection, both flagged as on
-                                                    if (Integer.parseInt(object.getString("state")) > 0 && Integer.parseInt(object.getString("detection")) > 0) {
-                                                        // if this is a alert, then the picture is not open. there for we have to open it
-                                                        if (!((ListAdapter) WebcamView.getAdapter()).isPicOpen(id[0], id[1])) {
-                                                            ((ListAdapter) WebcamView.getAdapter()).showPic(id[0], id[1]);
-                                                        }
-                                                    }
-
-                                                    ImageView webcam_pic;
-                                                    webcam_pic = (ImageView) v.findViewById(R.id.webcam_pic);
-                                                    webcam_pic.setImageBitmap(decodedByte);
-                                                }
-                                            }
-                                        }
+                                // is this a alert picture, it has movement and detection, both flagged as on
+                                if (Integer.parseInt(object.getString("state")) > 0 && Integer.parseInt(object.getString("detection")) > 0) {
+                                    // if this is a alert, then the picture is not open. there for we have to open it
+                                    if (!((ListAdapter) WebcamView.getAdapter()).isPicOpen(id[0], id[1])) {
+                                        ((ListAdapter) WebcamView.getAdapter()).showPic(id[0], id[1]);
                                     }
                                 }
+                                View v=getView_ifVisible(id[0],id[1],WebcamView);
+                                ImageView webcam_pic;
+                                webcam_pic = (ImageView) v.findViewById(R.id.webcam_pic);
+                                webcam_pic.setImageBitmap(decodedByte);
                             }
 
                             //((ImageView)findViewById(R.id.Foto)).setImageBitmap(decodedByte);
@@ -241,9 +233,12 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                     else if(cmd.equals("hb")){
                         if(id[0]>-1){
                             try {
-                                float intermediat=Float.parseFloat(object.getString("ts"));
-                                data.get(id[0]).m2mList.get(id[1]).last_seen = (long)intermediat;
-                                mAdapter.setUpdated(id[0],id[1]);
+                                View v=getView_ifVisible(id[0],id[1],WebcamView);
+                                if(v!=null) {
+                                    float intermediat = Float.parseFloat(object.getString("ts"));
+                                    data.get(id[0]).m2mList.get(id[1]).last_seen = (long) intermediat;
+                                    mAdapter.setUpdated(id[0], id[1], (TextView) v.findViewById(R.id.LastUpdated));
+                                }
                             } catch(Exception ex){
                                 Log.i("Websocket","Exception:"+ex.toString());
                             }
@@ -254,6 +249,33 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
             }
         }
     };
+
+    private View getView_ifVisible(int gid, int cid, ExpandableListView WebcamView) {
+        // display it or not?
+        View x=null;
+        View v=null;
+        int firstVis = WebcamView.getFirstVisiblePosition();
+        int lastVis = WebcamView.getLastVisiblePosition();
+        int count = lastVis - firstVis;
+        for(int i=0;i<=count;i++) {
+            x = WebcamView.getChildAt(i);
+            if (x != null) {
+                long packedPosition = WebcamView.getExpandableListPosition(i + firstVis);
+                int packedPositionType = ExpandableListView.getPackedPositionType(packedPosition);
+
+                if (packedPositionType != ExpandableListView.PACKED_POSITION_TYPE_NULL) {
+                    int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
+                    if (packedPositionType == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
+                        int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
+                        if(groupPosition==gid && childPosition==cid) {
+                            v=x;
+                        }
+                    }
+                }
+            }
+        }
+        return v;
+    }
 
     private int[] mid2id(String mid) {
         int id[] = {-1,-1};

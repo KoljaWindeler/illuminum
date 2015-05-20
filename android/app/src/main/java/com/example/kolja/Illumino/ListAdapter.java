@@ -271,6 +271,10 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
     public void setUpdated(Integer gid, Integer cid){
         TextView label=data.get(gid).m2mList.get(cid).updateLabel;
+        setUpdated(gid,cid,label);
+    }
+
+    public void setUpdated(Integer gid, Integer cid, TextView label){
         String textversion="Last Ping: ";
         DateFormat sdf = new SimpleDateFormat("H:m:s");
         Date netDate = (new Date(data.get(gid).m2mList.get(cid).last_seen*1000));
