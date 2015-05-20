@@ -3,17 +3,18 @@ package com.example.kolja.Illumino;
 import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.app.Activity;
 import android.util.Log;
 import android.content.Context;
 import android.view.View;
-import android.view.ViewGroup;
+import android.widget.BaseExpandableListAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ExpandableListView;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -24,17 +25,17 @@ import org.java_websocket.util.Base64;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Vector;
 
 import android.widget.ListView;
-
+import android.widget.TextView;
 
 
 public class MainActivity extends Activity implements android.view.View.OnClickListener {
     public static final String PREFS_NAME = "IlluminoSettings";
-    ArrayList<ListContainer> res_data = new ArrayList<ListContainer>();
     SharedPreferences settings;
     private s_debug mDebug = null;
+    SparseArray<areas> data = new SparseArray<areas>();
+    private ListAdapter mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,70 +103,107 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
             if (bundle != null) {
                 if(bundle.containsKey(s_ws.TYPE) && bundle.containsKey(s_ws.PAYLOAD)) {
                     String type = bundle.getString(s_ws.TYPE,"");
-                    String data = bundle.getString(s_ws.PAYLOAD,"");
+                    String payload = bundle.getString(s_ws.PAYLOAD,"");
                     String cmd;
                     String mid="";
 
                     JSONObject object = new JSONObject();
 
                     try {
-                        object = new JSONObject(data);
+                        object = new JSONObject(payload);
                         cmd = object.getString("cmd");
-                        mid=object.getString("mid");
+                        if(object.has("mid")) {
+                            mid = object.getString("mid");
+                        }
                     } catch (Exception e) {
                         cmd = "";
                     }
-                    int id = mid2id(mid);
-                    ListView WebcamView = (ListView) findViewById(R.id.listScroller);
+                    int id[] = mid2id(mid);
+                    ExpandableListView WebcamView = (ExpandableListView) findViewById(R.id.listScroller);
 
 
                     if (cmd.equals("rf")) {
                         try {
                             Long tsLong = System.currentTimeMillis();
-                            if (id > -1) {
+                            if (id[0] > -1) {
                                 // decode it
                                 String encodedImage = object.getString("img");
                                 byte[] decodedString = Base64.decode(encodedImage, Base64.NO_OPTIONS);
                                 Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
 
                                 // save it
-                                res_data.get(id).last_img=decodedByte;
+                                data.get(id[0]).m2mList.get(id[1]).last_img=decodedByte;
+                                //mAdapter.showpic(id[0],id[1]);
 
                                 // display it or not?
-                                if(id>=WebcamView.getFirstVisiblePosition() && id<=WebcamView.getLastVisiblePosition()) {
+                                int firstVis = WebcamView.getFirstVisiblePosition();
+                                int lastVis = WebcamView.getLastVisiblePosition();
+                                int count = lastVis - firstVis;
+                                for(int i=0;i<=count;i++) {
+                                    View v = WebcamView.getChildAt(i);
+                                    if (v != null) {
+                                        long packedPosition = WebcamView.getExpandableListPosition(i + firstVis);
+                                        int packedPositionType = ExpandableListView.getPackedPositionType(packedPosition);
 
-                                    int pos = id - WebcamView.getFirstVisiblePosition();
-                                    View v = WebcamView.getChildAt(pos);
+                                        if (packedPositionType != ExpandableListView.PACKED_POSITION_TYPE_NULL) {
+                                            int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
+                                            if (packedPositionType == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
+                                                int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
+                                                if(groupPosition==id[0] && childPosition==id[1]) {
+                                                    // is this a alert picture, it has movement and detection, both flagged as on
+                                                    if (Integer.parseInt(object.getString("state")) > 0 && Integer.parseInt(object.getString("detection")) > 0) {
+                                                        // if this is a alert, then the picture is not open. there for we have to open it
+                                                        if (!((ListAdapter) WebcamView.getAdapter()).isPicOpen(id[0], id[1])) {
+                                                            ((ListAdapter) WebcamView.getAdapter()).showPic(id[0], id[1]);
+                                                        }
+                                                    }
 
-                                    // is this a alert picture, it has movement and detection, both flagged as on
-                                    if(Integer.parseInt(object.getString("state"))>0 && Integer.parseInt(object.getString("detection"))>0) {
-                                        // if this is a alert, then the picture is not open. there for we have to open it
-                                        if(!((ListAdapter)WebcamView.getAdapter()).isPicOpen(id)){
-                                            ((ListAdapter) WebcamView.getAdapter()).showPic(id);
+                                                    ImageView webcam_pic;
+                                                    webcam_pic = (ImageView) v.findViewById(R.id.webcam_pic);
+                                                    webcam_pic.setImageBitmap(decodedByte);
+                                                }
+                                            }
                                         }
                                     }
-
-                                    ImageView webcam_pic;
-                                    webcam_pic = (ImageView) v.findViewById(R.id.webcam_pic);
-                                    webcam_pic.setImageBitmap(decodedByte);
                                 }
                             }
 
                             //((ImageView)findViewById(R.id.Foto)).setImageBitmap(decodedByte);
                             Log.i("websocket", "bitmap set");
 
-                            Long tsLong2 = System.currentTimeMillis() - tsLong;
-                            String ts = tsLong2.toString();
-                            //textView.setText(textView.getText() + "\n" + ts);
 
                         } catch (Exception e) {
                             int ignore = 0;
                         }
                     } else if (cmd.equals("m2v_login")) {
                         try {
-                            // add an object that will hold the ID "mid", "s_area","state","account"
-                            if(id==-1) { // MID not known
-                                String area = object.getString("area");
+                            int area_id=-1;
+                            int client_id=-1;
+                            // first check: does this area exist
+                            String area_name = object.getString("area");
+                            for (int i = 0; i < data.size(); i++) {
+                                if(data.get(i).name.equals(area_name)){
+                                    area_id=i;
+                                    break;
+                                }
+                            }
+
+                            // if not, generate new area
+                            if(area_id==-1){
+                                data.append(data.size(), new areas(area_name));
+                                area_id=data.size()-1;
+                            }
+
+                            // now check if the client already existed
+                            for (int i = 0; i < data.get(area_id).m2mList.size(); i++) {
+                                if(data.get(area_id).m2mList.get(i).mid.equals(mid)){
+                                    client_id=i;
+                                    break;
+                                }
+                            }
+
+                            // if not, add client to area
+                            if(client_id==-1) {
                                 String alias = object.getString("alias");
                                 int state = object.getInt("state");
                                 int detection = object.getInt("detection");
@@ -178,9 +216,11 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                                     new_loc.setLatitude(0.0);
                                     new_loc.setLongitude(0.0);
                                 }
-
-                                prepare_adapter(mid, state, area, detection, new_loc, last_seen, alias);
+                                data.get(area_id).m2mList.add(new m2m_container(mid, state, area_name, detection, new_loc, last_seen, alias));
                             }
+
+                            // and now show it
+                            prepare_adapter();
 
                         } catch (Exception e) {
                             int ignore = 0;
@@ -188,24 +228,24 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                     }
 
                     else if(cmd.equals("state_change")){
-                        if(id>-1){
+                        if(id[0]>-1){
                             try {
-                                res_data.get(id).state = Integer.parseInt(object.getString("state"));
-                                ((ListAdapter)WebcamView.getAdapter()).setState(id);
+                                data.get(id[0]).m2mList.get(id[1]).state = Integer.parseInt(object.getString("state"));
+                                mAdapter.setState(id[0],id[1]);
                             } catch(Exception ex){
-
+                                Log.i("Websocket","Exception:"+ex.toString());
                             }
                         }
                     }
 
                     else if(cmd.equals("hb")){
-                        if(id>-1){
+                        if(id[0]>-1){
                             try {
                                 float intermediat=Float.parseFloat(object.getString("ts"));
-                                res_data.get(id).last_seen = (long)intermediat;
-                                ((ListAdapter)WebcamView.getAdapter()).setUpdated(id);
+                                data.get(id[0]).m2mList.get(id[1]).last_seen = (long)intermediat;
+                                mAdapter.setUpdated(id[0],id[1]);
                             } catch(Exception ex){
-
+                                Log.i("Websocket","Exception:"+ex.toString());
                             }
                         }
                     }
@@ -215,23 +255,29 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         }
     };
 
-    private int mid2id(String mid) {
-        int id = -1;
-        for (int i = 0; i < res_data.size(); i++) {
-            if (res_data.get(i).mid.equals(mid)) {
-                id = i;
+    private int[] mid2id(String mid) {
+        int id[] = {-1,-1};
+        for (int i = 0; i < data.size(); i++) {
+            for (int j = 0; j < data.get(i).m2mList.size(); j++) {
+                if (data.get(i).m2mList.get(j).mid.equals(mid)) {
+                    id[0] = i;
+                    id[1] = j;
+                }
             }
         }
         return id;
     }
 
-    private void prepare_adapter(String mid, int state, String area, int detection, Location l, int last_seen, String alias){
-        ListView liste = (ListView)findViewById(R.id.listScroller);
+    private void prepare_adapter(){
+        ExpandableListView liste = (ExpandableListView)findViewById(R.id.listScroller);
         if(liste!=null){
-            res_data.add(new ListContainer(mid, state, area, detection, l, last_seen, alias));
-
-            ListAdapter adapter = new ListAdapter(this,R.layout.listentry,res_data.toArray(new ListContainer[res_data.size()]));
+            ListAdapter adapter = new ListAdapter(this,data);
+            mAdapter = adapter;
             liste.setAdapter(adapter);
+        }
+        // present all lists unfolded
+        for (int position = 0; position < data.size(); position++) {
+            liste.expandGroup(position);
         }
     }
 

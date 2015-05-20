@@ -19,13 +19,13 @@
             android:id="@+id/save_id" />
     </LinearLayout>
 
-    <ListView
+    <ExpandableListView
         android:id="@+id/listScroller"
         android:layout_marginTop="50dp"
         android:layout_width="match_parent"
         android:layout_height="fill_parent"
         android:cacheColorHint="#00000000" >
-    </ListView>
+    </ExpandableListView>
 
 
     <LinearLayout

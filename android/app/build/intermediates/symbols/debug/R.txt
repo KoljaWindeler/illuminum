@@ -424,7 +424,7 @@ int id action_menu_presenter 0x7f090003
 int id action_mode_bar 0x7f09003d
 int id action_mode_bar_stub 0x7f09003c
 int id action_mode_close_button 0x7f090025
-int id action_settings 0x7f09005a
+int id action_settings 0x7f09005b
 int id activity_chooser_view_content 0x7f090026
 int id alertTitle 0x7f090030
 int id always 0x7f090016
@@ -489,6 +489,7 @@ int id src_over 0x7f090022
 int id submit_area 0x7f09004b
 int id tabMode 0x7f09000b
 int id textSpacerNoButtons 0x7f090033
+int id textView1 0x7f09005a
 int id title 0x7f09002c
 int id title_template 0x7f09002f
 int id topPanel 0x7f09002e
@@ -528,10 +529,11 @@ int layout abc_select_dialog_material 0x7f040017
 int layout abc_simple_dropdown_hint 0x7f040018
 int layout activity_main 0x7f040019
 int layout listentry 0x7f04001a
-int layout select_dialog_item_material 0x7f04001b
-int layout select_dialog_multichoice_material 0x7f04001c
-int layout select_dialog_singlechoice_material 0x7f04001d
-int layout support_simple_spinner_dropdown_item 0x7f04001e
+int layout listgroup 0x7f04001b
+int layout select_dialog_item_material 0x7f04001c
+int layout select_dialog_multichoice_material 0x7f04001d
+int layout select_dialog_singlechoice_material 0x7f04001e
+int layout support_simple_spinner_dropdown_item 0x7f04001f
 int menu menu_main 0x7f0d0000
 int mipmap ic_launcher 0x7f030000
 int string abc_action_bar_home_description 0x7f0b0000

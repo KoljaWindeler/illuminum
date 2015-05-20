@@ -9,7 +9,7 @@ import android.widget.TextView;
 /**
  * Created by kolja on 5/1/15.
  */
-public class ListContainer {
+public class m2m_container {
     public String mid;
     public int state;
     public String area;
@@ -27,11 +27,11 @@ public class ListContainer {
 
 
 
-    public ListContainer(){
+    public m2m_container(){
         super();
     }
 
-    public ListContainer(String mid, int state, String area, int detection, Location l, int last_seen, String alias){
+    public m2m_container(String mid, int state, String area, int detection, Location l, int last_seen, String alias){
         this.mid=mid;
         this.state=state;
         this.area=area;
