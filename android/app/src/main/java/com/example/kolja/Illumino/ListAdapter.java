@@ -150,7 +150,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
                     // close webcam if open
                     if(isWebCamPicOpen(gid,cid)){
-                        stop_ColorPicker_view(((View) v.getParent()).findViewById(R.id.webcam_on_off));
+                        stop_webcam_view(((View) v.getParent()).findViewById(R.id.webcam_on_off));
                     }
 
                     // start us!
@@ -186,7 +186,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
                     // close webcam if open
                     if (isWebCamPicOpen(gid, cid)) {
-                        stop_ColorPicker_view(((View) v.getParent()).findViewById(R.id.webcam_on_off));
+                        stop_webcam_view(((View) v.getParent()).findViewById(R.id.webcam_on_off));
                     }
 
                     // start us!
@@ -269,7 +269,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         ///////// AlertLog /////////////
         ////////////////////////////////
         if(isAlertLogOpen(groupPosition,childPosition)){    // in this case this is more like a: "should it be open?"
-            color_picker_on_off.setImageResource(R.drawable.red);
+            alert_log_on_off.setImageResource(R.drawable.red);
             LinearLayout colorPickerLayout = (LinearLayout) convertView.findViewById(R.id.alertlog_in_single_view);
             if(colorPickerLayout==null){
                 // show it if
@@ -280,7 +280,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         }
 
         else {
-            color_picker_on_off.setImageResource(R.drawable.alarms_icon_v01);
+            alert_log_on_off.setImageResource(R.drawable.alarms_icon_v01);
             if(convertView.findViewById(R.id.alertlog_in_single_view)!=null){
                 closeAlertLog(convertView,groupPosition,childPosition);
             }
@@ -460,7 +460,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
     ///////// WEBCAM ////////////
     public void showPic(View v, Integer gid, Integer cid) {
-        View inserter=insertViewInWorker(R.id.webcam_picture_in_single_view,v,1280,720);
+        View inserter=insertViewInWorker(R.layout.show_webcam_pic,v,1280,720);
         if(inserter!=null) {
             // grab out webcam_picture
             ImageView webcam_pic;
