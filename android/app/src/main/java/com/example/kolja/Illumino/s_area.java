@@ -2,6 +2,8 @@ package com.example.kolja.Illumino;
 
 import android.location.Location;
 
+import java.util.ArrayList;
+
 /**
  * Created by windkol on 18.05.2015.
  */
@@ -11,14 +13,17 @@ class s_area {
     private Location coordinates;
     private Integer range;
     private Integer state; // debugging
+    public ArrayList<String> clients = new ArrayList<String>();
 
-    public s_area(String name, Integer detection, Location coordinates, Integer range, Integer state){
+    public s_area(String name, Integer detection, Location coordinates, Integer range, Integer state, String client){
         super();
         this.name=name;                 // like "home"
         this.detection=detection;       // 0=off, 1=on, 2=fast fire
         this.coordinates=coordinates;   // a android location
         this.range = range;         // range around the center
         this.state=state;
+        this.clients.clear();
+        this.clients.add(client);
     }
 
     public void setState(int st) {          this.state=st;              }

@@ -30,6 +30,7 @@ public class s_ws {
     public static final String SERVICE2APP = "SERVICE2APP";
     public static final String SERVER2APP = "SERVER2APP";
     public static final String NOTIFICATION = "BG_RECEIVER";
+    public static final String CLEAR_ALARM = "CLEAR_ALARM";
 
 
     private final Context mContext;
@@ -118,7 +119,7 @@ public class s_ws {
         mConnected = false;
         mLoggedIn = false;
         ((bg_service)mContext).resetLocation();
-        mNofity.showNotification("Illumino", "disconnected", "");
+        mNofity.showNotification(mContext.getString(R.string.app_name), "disconnected", "");
 
         mWakeup.stop_pinging(mContext);
 
@@ -129,7 +130,7 @@ public class s_ws {
 
     // handle message that came in
     private void read_msg(String message){
-        PowerManager.WakeLock wakelock = ((PowerManager)((bg_service)mContext).getSystemService(mContext.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Illumino");
+        PowerManager.WakeLock wakelock = ((PowerManager)((bg_service)mContext).getSystemService(mContext.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, mContext.getString(R.string.app_name));
         wakelock.acquire();
         last_ts_in = System.currentTimeMillis();
 
@@ -197,18 +198,8 @@ public class s_ws {
                 for (int i = 0; i < areas.size(); i++) {
                     if (areas.get(i).getName().equals(o_recv.getString("area"))) {
                         found = 1;
-                        areas.get(i).setDetection(o_recv.getInt("detection"));
-
-                        if (o_recv.has("state")) {
-                            //mDebug.write_to_file("state:" + String.valueOf(o_recv.getInt("state")) + " " + String.valueOf(o_recv.getInt("detection")));
-                            if (o_recv.getInt("state") == 1 && o_recv.getInt("detection") >= 1) {
-                                if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
-                                    v.vibrate(500);
-                                }
-                                mNofity.set_area(o_recv.getString("area"));
-                            }
-                            areas.get(i).setState(o_recv.getInt("state"));
-                        }
+                        update_state_detection(o_recv);
+                        break;
                     }
                 }
 
@@ -217,6 +208,7 @@ public class s_ws {
                     String name = o_recv.getString("area");
                     Integer det = o_recv.getInt("detection");
                     Location new_loc = new Location("new");
+                    String mid= o_recv.getString("mid");
                     if (!o_recv.getString("latitude").equals("") && !o_recv.getString("longitude").equals("")) {
                         new_loc.setLatitude(Float.parseFloat(o_recv.getString("latitude")));
                         new_loc.setLongitude(Float.parseFloat(o_recv.getString("longitude")));
@@ -232,12 +224,12 @@ public class s_ws {
 
                     // add it to the structure
                     //mDebug.write_to_file("creating new area");
-                    areas.add(new s_area(name, det, new_loc, 500, state));
+                    areas.add(new s_area(name, det, new_loc, 500, state, mid));
                     //mDebug.write_to_file("Done");
                 }
 
                 // show notification
-                mNofity.showNotification("Illumino read message", mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
+                mNofity.showNotification(mContext.getString(R.string.app_name)+" read message", mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
@@ -248,43 +240,37 @@ public class s_ws {
                 int state=Integer.parseInt(o_recv.getString("state"));
                 int detection=Integer.parseInt(o_recv.getString("detection"));
                 if(state!=0 && detection!=0) {
-                    // just make sure that we have vibrated
-                    for (int i = 0; i < areas.size(); i++) {
-                        if (areas.get(i).getName().equals(o_recv.getString("area"))) {
-                            if(areas.get(i).getDetection()!=detection || areas.get(i).getState()!=state) {
-                                if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
-                                    v.vibrate(500);
-                                }
-                                areas.get(i).setState(state);
-                                areas.get(i).setDetection(detection);
-                            }
-                        }
-                    }
+                    update_state_detection(o_recv);
+
 
                     byte[] decodedString = Base64.decode(o_recv.getString("img"), Base64.NO_OPTIONS);
                     mNofity.set_image(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length)); // todo: we need a kind of, if app has started reset picture to null
                     mNofity.set_time();
                     // show notification
-                    mNofity.showNotification("Illumino read file", mNofity.Notification_text_builder(false, areas), "");
+                    mNofity.showNotification(mContext.getString(R.string.app_name)+" read file", mNofity.Notification_text_builder(false, areas), "");
                 }
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
             // receive a heartbeat answer
-            //else if (cmd.equals("hb")){
-            else if (cmd.equals("shb")) {
-                mDebug.write_to_file("Websocket: Received: " + message);
-                try {
-                    o_snd.put("cmd", "shb");
-                    o_snd.put("ok", 1);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                //Log.i(getString(R.string.debug_id), o_snd.toString());
-                //console.log(JSON.stringify(cmd_data));
-                mDebug.write_to_file("Websocket: send: " + o_snd.toString());
-                send_msg(o_snd.toString());
+            else if (cmd.equals("ws_hb")){
+                // this is just the "ok"
+                // last_ts_in will be set by EVERY message
+                mDebug.write_to_file("HB_return");
             }
+//            else if (cmd.equals("shb")) {
+//                mDebug.write_to_file("Websocket: Received: " + message);
+//                try {
+//                    o_snd.put("cmd", "shb");
+//                    o_snd.put("ok", 1);
+//                } catch (JSONException e) {
+//                    e.printStackTrace();
+//                }
+//                //Log.i(getString(R.string.debug_id), o_snd.toString());
+//                //console.log(JSON.stringify(cmd_data));
+//                mDebug.write_to_file("Websocket: send: " + o_snd.toString());
+//                send_msg(o_snd.toString());
+//            }
 
             else {
                 mDebug.write_to_file("Websocket: I got no idea why i've received this: " + message);
@@ -294,6 +280,45 @@ public class s_ws {
             mDebug.write_to_file("Websocket: Error on decoding incoming message " + e.getMessage());
         }
         wakelock.release();
+    }
+
+
+    private void update_state_detection(JSONObject o_recv) {
+        int state= -1;
+        int detection= -1;
+        String area ="";
+        // try to get it
+        try {
+            state = Integer.parseInt(o_recv.getString("state"));
+            detection = Integer.parseInt(o_recv.getString("detection"));
+            area = o_recv.getString("area");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        // if got state successful
+        if(state!=-1 && detection!=-1 && !area.equals("")) {
+            // just make sure that we have vibrated
+            for (int i = 0; i < areas.size(); i++) {
+                // find correct area
+                if (areas.get(i).getName().equals(area)) {
+                    // check if detection is not in sync
+                    if (areas.get(i).getDetection() != detection || areas.get(i).getState() != state) {
+                        // update and vibrate if needed
+                        areas.get(i).setState(state);
+                        areas.get(i).setDetection(detection);
+
+                        if(detection>0 && state>0) {
+                            mNofity.set_area(area); // set last alarm area
+                            if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
+                                v.vibrate(500);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public ArrayList<s_area> get_areas(){
@@ -378,22 +403,19 @@ public class s_ws {
         }
     }
 
-//    public void broadcast_areas() {
-//        try {
-//            for(int i=0; i<areas.size(); i++) {
-//                JSONObject o_snd = new JSONObject();
-//                o_snd.put("cmd","m2v_login");
-//                o_snd.put("cmd",areas.get(i).getName());
-//
-//                {"account": "jkw", "area": "baker", "cmd": "m2v_login", "mid": "202481600132415", "longitude": "-95.369136", "detection": 1, "alias": "livingroom rpi2b", "state": 0, "latitude": "29.968327", "last_seen": 1432058785.419504}
-//
-//                Intent intent = new Intent(NOTIFICATION);
-//                intent.putExtra(TYPE, SERVICE2APP);
-//                intent.putExtra(PAYLOAD, o_snd.toString());
-//                mContext.sendBroadcast(intent);
-//            }
-//        } catch (Exception ex){
-//
-//        }
-//    }
+    // check if we have received the ping answer on time
+    public boolean check_ping_received() {
+        // if there was a ping out within the last 90 sec but no ping in after that .. bad .. return false
+        mDebug.write_to_file("Ping check:"+String.valueOf(last_ts_out)+"+1000*90>"+String.valueOf(System.currentTimeMillis())+" vs "+String.valueOf(last_ts_in));
+
+        if(last_ts_out+1000*90 > System.currentTimeMillis()){
+            if(last_ts_out>last_ts_in){
+                mDebug.write_to_file("problem");
+                return false;
+            }
+            mDebug.write_to_file("No problem");
+        }
+        mDebug.write_to_file("No ping send within the last 60 sec");
+        return true;
+    }
 }

@@ -29,7 +29,6 @@ public class bg_service extends Service {
 
 
     private IBinder mBinder;
-
     private SharedPreferences mSettings = null;
     private LocationManager mLocationManager = null;
     private s_notify mNofity = null;
@@ -53,6 +52,10 @@ public class bg_service extends Service {
         return last_known_location;
     }
 
+    // this is callen by the android service handle. When ever our location changes,
+    // we are checking if we are IN a critical range of one of our known areas
+    // if so, we check if that is still the same location that we've told the server
+    // if now, we'll update the server
     public void check_locations(Location location) {
         last_known_location.setCoordinaes(location);
         int closest_area = -1;
@@ -82,8 +85,9 @@ public class bg_service extends Service {
             }
         }
 
+        // only send an update if we are logged in
         if (mWs.mConnected && mWs.mLoggedIn) {
-            // check if we should tell the server
+            // check if we should update the server
             if (server_told_location != closest_area) {
                 server_told_location = closest_area;
 
@@ -108,10 +112,11 @@ public class bg_service extends Service {
             }
 
             // update once we've change our position, just for the DUBUG line!!
-            mNofity.showNotification("Illumino check location", mNofity.Notification_text_builder(false, areas), mNofity.Notification_text_builder(true, areas));
+            mNofity.showNotification(getString(R.string.app_name)+" check location", mNofity.Notification_text_builder(false, areas), mNofity.Notification_text_builder(true, areas));
         }
     };
 
+    // this will be called by the reconnect handle. this will enforce us to resend our current location
     public void resetLocation(){
         server_told_location=-1;
     }
@@ -143,10 +148,9 @@ public class bg_service extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // aquire wakelock to run the complete onStartCommand routine without beeing interrupted
-        WakeLock wakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Illumino Service");
+        WakeLock wakelock = ((PowerManager) getSystemService(POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, getString(R.string.app_name)+" Service");
         wakelock.acquire();
 
-        //mShutDown = false;
         mContext = this;
 
         // get services
@@ -167,7 +171,7 @@ public class bg_service extends Service {
 
         mDebug.write_to_file("==== This is on start ====");
 
-        // establish comm interface
+        // establish comm interfaces to the APP and the NETWORK
         registerReceiver(app_receiver, new IntentFilter(bg_service.SENDER));
         registerReceiver(network_change_receiver, new IntentFilter(android.net.ConnectivityManager.CONNECTIVITY_ACTION));
 
@@ -182,9 +186,9 @@ public class bg_service extends Service {
             mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
         }
 
-        //////////////////////////////////////////////
-        ///////////// WEBSOCKET KRAMS ///////////////
-        //////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////// WEBSOCKET KRAMS /////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
         // now we are getting serious .. start the websocket connection if it doesn't exist
         if (mWs == null) {
             // if this is the first start, create the object and link all the helper in
@@ -207,24 +211,33 @@ public class bg_service extends Service {
         if (mWs.mWebSocketClient == null || !mWs.mWebSocketClient.isConnected() || !mWs.mConnected) {
             recreate = true;
         }
-        // are we started with a JOB? ACTION_CONNECT -> reconnect
+        // are we started with a JOB?
+        // ACTION_CONNECT -> reconnect
+        // ACTION_CHECK_PING -> check if we have received the ping ok, if not -> reconnect
         if (intent != null) {
             if (s_wakeup.ACTION_CONNECT.equals(intent.getAction())) { // that tells us that "disconenct" was called before this restart, so we have to reconnet
                 recreate = true;
                 mDebug.write_to_file("yes, this is ACTION CONNECT");
+            } else if (s_wakeup.ACTION_CHECK_PING.equals(intent.getAction())) { // that tells us that "disconenct" was called before this restart, so we have to reconnet
+                mDebug.write_to_file("This is a ping check");
+                if(mWs.check_ping_received()==false) {
+                    recreate = true;
+                    mDebug.write_to_file("yes, we haven't received the ping ok from the server");
+                }
             }
         }
 
+        // execute the reconnect NOW
         if (recreate) {
             try {
-                mNofity.showNotification("Illumino", "connecting..", "");
+                mNofity.showNotification(getString(R.string.app_name), "connecting..", "");
                 mDebug.write_to_file("bg_service, onstart: state is 'not connected', try to reconnect");
-                mWs.createWebSocket(); // create a new websockets, reuse is forbidden
+                mWs.createWebSocket(); // create and connected to a new websockets, reuse is forbidden
             } catch (Exception ex) {
                 mDebug.write_to_file("exeption on connect:" + ex.toString());
             }
         } else {
-            mDebug.write_to_file("connection seams to be fine");
+            mDebug.write_to_file("WS connection seams to be fine");
             // if we are connected .. or at least we think so .. try to ping if thats why we started
             if (intent!=null && s_wakeup.ACTION_PING.equals(intent.getAction())) {
                 JSONObject object = new JSONObject();
@@ -234,15 +247,20 @@ public class bg_service extends Service {
                     mDebug.write_to_file("exeption on put hb to JSON");
                     e.printStackTrace();
                 }
+                mDebug.write_to_file("This is a PING intent, fireing a ping to the server!");
                 mDebug.write_to_file("Websocket: send: " + object.toString());
-                mWs.send_msg(object.toString());
+                mWs.send_msg(object.toString()); // send ws_hb
+                mWakeup.start_ping_check(this); // schedule check in 60 sec
                 mWs.last_ts_out = System.currentTimeMillis();
             }
         }
-        //////////////////////////////////////////////
-        ///////////// WEBSOCKET KRAMS ///////////////
-        //////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////// WEBSOCKET KRAMS /////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////////////////////////////
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////// WAKE UP /////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////////////
         // just check if there is a timer, waiting for us or install one if there is none
         if (intent == null || (intent.getAction() == null) || (intent.getAction() != null && !intent.getAction().equals(s_wakeup.ACTION_SHUT_DOWN))) {
             if (!mWakeup.is_pinging(mContext)) {
@@ -251,6 +269,9 @@ public class bg_service extends Service {
                 mDebug.write_to_file("bg_service, OnStartCommand: There is a ping-timer-intent waiting for us, no need to create a new one.");
             }
         }
+        ////////////////////////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////// WAKE UP /////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////////////////////////
 
         mDebug.write_to_file("==== on start DONE ====");
         wakelock.release();
@@ -263,31 +284,38 @@ public class bg_service extends Service {
         return mBinder;
     }
 
+    // this block handles the messages FROM THE APP to SERVER or US
     private BroadcastReceiver app_receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
                 if (intent != null && intent.getExtras() != null) {
-
                     Bundle bundle = intent.getExtras();
                     if (bundle != null) {
                         String type = bundle.getString(s_ws.TYPE, "");
                         String payload = bundle.getString(s_ws.PAYLOAD, "");
+                        // message for the server, forward it
                         if (type.equals(s_ws.APP2SERVER)) {
                             mWs.send_msg(payload);
-                        } else if(type.equals(s_ws.APP2SERVICE)){
-
                         }
-                        // here we could have a "get area" between app and service without the server communication
-                    }
-                }
+
+                        // Message for us, let's see
+                        else if(type.equals(s_ws.APP2SERVICE)){
+                            // check what we should do
+                            if(payload.equals(s_ws.CLEAR_ALARM)){
+                                // unset the image in the notification
+                                mNofity.clear_image();
+                            }
+                        }
+                    } // bundle null
+                } // extras null
             } catch (Exception ex) {
                 mDebug.write_to_file("catched this on app_receiving " + ex.toString());
             }
         }
     };
 
-    // this shall give us some infor if the network changes
+    // this shall give us some information if the network changes
     private BroadcastReceiver network_change_receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -298,11 +326,13 @@ public class bg_service extends Service {
 
                     if (ni != null) {
                         if (ni.isConnectedOrConnecting()) {
+                            // if connection is different now than it was last time -> reconnect
                             if (mNetworkType != null && !mNetworkType.equals(ni.getTypeName())) {
                                 mDebug.write_to_file("Network was " + mNetworkType + " and changed to " + ni.getTypeName() + " calling restart ");
                                 mWs.restart_connection();
                             }
                         }
+                        // save every time, even if the type is "". This will result in a reconnect if we've lost the connection in between. Mobile -> "" -> Mobile
                         mNetworkType = ni.getTypeName();
                     } else if (intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, Boolean.FALSE)) {
                         mDebug.write_to_file("There's no network connectivity");

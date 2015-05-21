@@ -123,4 +123,8 @@ public class s_notify {
         }
         return not;
     }
+
+    public void clear_image() {
+        set_image(null);
+    }
 }

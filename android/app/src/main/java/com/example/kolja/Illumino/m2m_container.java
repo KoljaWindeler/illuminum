@@ -18,6 +18,8 @@ public class m2m_container {
     public long last_seen;
     public String alias;
     public boolean webcam_on=false;
+    public boolean colorpicker_on=false;
+    public boolean alertlog_on=false;
     public Bitmap last_img=null;
 
     public TextView stateLabel=null;

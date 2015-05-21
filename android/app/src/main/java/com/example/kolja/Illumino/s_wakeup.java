@@ -13,6 +13,7 @@ public class s_wakeup {
     private AlarmManager mAlarmManager=null;
     public static final String ACTION_PING = "illumino.ACTION_PING";
     public static final String ACTION_CONNECT = "illumino.ACTION_CONNECT";
+    public static final String ACTION_CHECK_PING = "illumino.ACTION_CHECK_PING";
     public static final String ACTION_SHUT_DOWN = "illumino.ACTION_SHUT_DOWN";
     private s_debug mDebug = null;
 
@@ -43,6 +44,14 @@ public class s_wakeup {
         mDebug.write_to_file("wakeup for ping scheduled for now+5min");
     }
 
+    public void start_ping_check(Context ct){
+        Intent i = new Intent(ct, bg_service.class);
+        i.setAction(ACTION_CHECK_PING);
+        PendingIntent operation = PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        mAlarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis()+60000L, operation); // 5 min
+        mDebug.write_to_file("wakeup for ping check in 60sec");
+    }
+
     public boolean is_pinging(Context ct){
         Intent i = new Intent(ct, bg_service.class);
         i.setAction(ACTION_PING);
@@ -57,9 +66,16 @@ public class s_wakeup {
 
     public void stop_pinging(Context ct){
         Intent i = new Intent(ct, bg_service.class);
+        // stop pings
         i.setAction(ACTION_PING);
         mDebug.write_to_file("cancel all wakeups!!!");
         PendingIntent operation = PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_CANCEL_CURRENT);
+        mAlarmManager.cancel(operation);//important
+        operation.cancel();//important
+
+        // stop ping checks
+        i.setAction(ACTION_CHECK_PING);
+        operation = PendingIntent.getService(ct, 0, i, PendingIntent.FLAG_CANCEL_CURRENT);
         mAlarmManager.cancel(operation);//important
         operation.cancel();//important
     }
@@ -71,4 +87,5 @@ public class s_wakeup {
         i.setAction(ACTION_SHUT_DOWN);
         return i;
     }
+
 }

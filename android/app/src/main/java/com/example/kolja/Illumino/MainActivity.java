@@ -4,7 +4,6 @@ import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.SparseArray;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.app.Activity;
@@ -12,9 +11,6 @@ import android.util.Log;
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseExpandableListAdapter;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ImageView;
 import android.content.BroadcastReceiver;
@@ -26,14 +22,11 @@ import android.graphics.BitmapFactory;
 import org.java_websocket.util.Base64;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-
-import android.widget.ListView;
 import android.widget.TextView;
 
 
 public class MainActivity extends Activity implements android.view.View.OnClickListener {
-    public static final String PREFS_NAME = "IlluminoSettings";
+    public static final String PREFS_NAME = "illuminoSettings";
     SharedPreferences settings;
     private s_debug mDebug = null;
     SparseArray<areas> data = new SparseArray<areas>();
@@ -73,6 +66,22 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         if (mDebug == null) {
             mDebug = new s_debug(this);
         }
+
+        // check if this is a call from the notification
+        int i=this.getIntent().getFlags();
+        if((i&Intent.FLAG_ACTIVITY_CLEAR_TOP)==Intent.FLAG_ACTIVITY_CLEAR_TOP){
+            // set message that we need an update
+            try {
+                Intent send_intent = new Intent(bg_service.SENDER);
+                send_intent.putExtra(s_ws.TYPE,s_ws.APP2SERVICE);
+                send_intent.putExtra(s_ws.PAYLOAD,s_ws.CLEAR_ALARM);
+                sendBroadcast(send_intent);
+            } catch (Exception e) {
+
+            }
+        }
+
+
 
     }
 
@@ -161,7 +170,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                                     // is this a alert picture, it has movement and detection, both flagged as on
                                     if (Integer.parseInt(object.getString("state")) > 0 && Integer.parseInt(object.getString("detection")) > 0) {
                                         // if this is a alert, then the picture is not open. there for we have to open it
-                                        if (!((ListAdapter) WebcamView.getAdapter()).isPicOpen(id[0], id[1])) {
+                                        if (!((ListAdapter) WebcamView.getAdapter()).isWebCamPicOpen(id[0], id[1])) {
                                             ((ListAdapter) WebcamView.getAdapter()).showPic(v, id[0], id[1]);
                                         }
                                     }
@@ -271,7 +280,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         }
     };
 
-    private View getView_ifVisible(int gid, int cid, ExpandableListView WebcamView) {
+    public View getView_ifVisible(int gid, int cid, ExpandableListView WebcamView) {
         // display it or not?
         View x=null;
         View v=null;
