@@ -208,20 +208,26 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                             }
 
                             // if not, add client to area
+                            String alias = object.getString("alias");
+                            int state = object.getInt("state");
+                            int detection = object.getInt("detection");
+                            int last_seen = object.getInt("last_seen");
+                            Location new_loc = new Location("new");
+                            if (!object.getString("latitude").equals("") && !object.getString("longitude").equals("")) {
+                                new_loc.setLatitude(Float.parseFloat(object.getString("latitude")));
+                                new_loc.setLongitude(Float.parseFloat(object.getString("longitude")));
+                            } else {
+                                new_loc.setLatitude(0.0);
+                                new_loc.setLongitude(0.0);
+                            }
                             if(client_id==-1) {
-                                String alias = object.getString("alias");
-                                int state = object.getInt("state");
-                                int detection = object.getInt("detection");
-                                int last_seen = object.getInt("last_seen");
-                                Location new_loc = new Location("new");
-                                if (!object.getString("latitude").equals("") && !object.getString("longitude").equals("")) {
-                                    new_loc.setLatitude(Float.parseFloat(object.getString("latitude")));
-                                    new_loc.setLongitude(Float.parseFloat(object.getString("longitude")));
-                                } else {
-                                    new_loc.setLatitude(0.0);
-                                    new_loc.setLongitude(0.0);
-                                }
                                 data.get(area_id).m2mList.add(new m2m_container(mid, state, area_name, detection, new_loc, last_seen, alias));
+                            } else {
+                                m2m_container cli = data.get(area_id).m2mList.get(client_id);
+                                cli.detection=detection;
+                                cli.last_seen=last_seen;
+                                cli.state=state;
+                                data.get(area_id).m2mList.set(client_id, cli);
                             }
 
                             // and now show it
