@@ -244,7 +244,23 @@ public class s_ws {
             // receive a image from the server
             else if (cmd.equals("rf")) {
                 mDebug.write_to_file("Websocket: Received file");
-                if(Integer.parseInt(o_recv.getString("state"))!=0 && Integer.parseInt(o_recv.getString("detection "))!=0) {
+
+                int state=Integer.parseInt(o_recv.getString("state"));
+                int detection=Integer.parseInt(o_recv.getString("detection"));
+                if(state!=0 && detection!=0) {
+                    // just make sure that we have vibrated
+                    for (int i = 0; i < areas.size(); i++) {
+                        if (areas.get(i).getName().equals(o_recv.getString("area"))) {
+                            if(areas.get(i).getDetection()!=detection || areas.get(i).getState()!=state) {
+                                if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
+                                    v.vibrate(500);
+                                }
+                                areas.get(i).setState(state);
+                                areas.get(i).setDetection(detection);
+                            }
+                        }
+                    }
+
                     byte[] decodedString = Base64.decode(o_recv.getString("img"), Base64.NO_OPTIONS);
                     mNofity.set_image(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length)); // todo: we need a kind of, if app has started reset picture to null
                     mNofity.set_time();

@@ -242,6 +242,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                         if(id[0]>-1){
                             try {
                                 data.get(id[0]).m2mList.get(id[1]).state = Integer.parseInt(object.getString("state"));
+                                data.get(id[0]).m2mList.get(id[1]).detection = Integer.parseInt(object.getString("detection"));
                                 mAdapter.setState(id[0],id[1]);
                             } catch(Exception ex){
                                 Log.i("Websocket","Exception:"+ex.toString());

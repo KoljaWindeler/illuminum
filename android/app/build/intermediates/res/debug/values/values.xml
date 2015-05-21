@@ -198,7 +198,7 @@
     <!-- From: file:/home/kolja/Desk/26-illumino/illumino/android/app/src/main/res/values/strings.xml -->
     <eat-comment/>
     <string name="action_settings">Settings</string>
-    <string name="app_name">Illumino</string>
+    <string name="app_name">illumino</string>
     <string name="debug_id">websocket</string>
     <string name="hello_world">Hello world!</string>
     <!-- From: file:/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.1.1/res/values/values.xml -->
