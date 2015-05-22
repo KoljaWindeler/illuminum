@@ -177,7 +177,14 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.alias=db_r["alias"]
 					m2m.longitude=db_r["longitude"]
 					m2m.latitude=db_r["latitude"]
-					msg["alias"]=m2m.alias
+					m2m.brightness_pos=db_r["brightness_pos"]
+					m2m.color_pos=db_r["color_pos"]
+					
+					msg["alias"]=m2m.alias		# this goes to the m2m
+					msg["mRed"]=db_r["mRed"]
+					msg["mGreen"]=db_r["mGreen"]
+					msg["mBlue"]=db_r["mBlue"]
+					
 
 					# add rules to the rule manager for this area if it wasn there before
 					# first check if the account is known to the rule manager at all and add it if not
@@ -330,6 +337,7 @@ def recv_m2m_msg_handle(data,m2m):
 				msg["mid"]=m2m.mid
 				msg["cmd"]="rf"
 				msg["state"]=m2m.state
+				msg["area"]=m2m.area
 				msg["detection"]=m2m.detection
 
 				# all image data in one packet
@@ -597,7 +605,13 @@ def recv_ws_msg_handle(data,ws):
 			msg["g"]=enc.get("g")
 			msg["b"]=enc.get("b")
 			for m2m in server_m2m.clients:
-				msg_q_m2m.append((msg,m2m))
+				if(enc.get("mid")==m2m.mid):
+					# TODO we would have to write this to the DB, but wounldn't that take to long?
+					db.update_color(m2m,int(enc.get("r")),int(enc.get("g")),int(enc.get("b")),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
+					
+					m2m.color_pos=int(enc.get("color_pos"))
+					m2m.brightness_pos=int(enc.get("brightness_pos"))
+					msg_q_m2m.append((msg,m2m))
 
 		## Detection on/off handle, for WS --> this should be obsolete as the server can decide on its own when to activate the detection
 		elif(enc.get("cmd")=="detection"):
@@ -686,6 +700,8 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["account"]=m2m.account
 		msg_ws2["alias"]=m2m.alias
 		msg_ws2["last_seen"]=m2m.last_comm
+		msg_ws2["color_pos"]=m2m.color_pos
+		msg_ws2["brightness_pos"]=m2m.brightness_pos
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# 1. get all boxed with the same account
@@ -719,6 +735,8 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 					msg_ws2["detection"]=detection
 					msg_ws2["account"]=ws.account
 					msg_ws2["last_seen"]=m2m["last_seen"]
+					msg_ws2["color_pos"]=m2m["color_pos"]
+					msg_ws2["brightness_pos"]=m2m["brightness_pos"]
 			# 3. send data to the websocket
 					msg_q_ws.append((msg_ws2,ws))
 #******************************************************#
