@@ -26,6 +26,8 @@ class m2m_clients:
 		self.longitude = -1					# longitude
 		self.detection = -1					# detection state 0=off,1=on,2=on + heavy-fire
 		self.detection_on_mode=1			# can be 1 or 2 and will be copied to detection on "switch on". Should come from database. it is the same for all boxes in the same area on the same account
+		self.brightness_pos = 0				# position for the brightness slider for the ws
+		self.color_pos = 0					# position for the color slider for the ws
 
 # dies ist der WEBSOCKET client
 class ws_clients:
