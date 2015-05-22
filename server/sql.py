@@ -58,14 +58,14 @@ class sql:
 				#print("try:")
 				with self.connection.cursor() as cursor:
 					# Read a single record
-					print("get_data gen req:")
+					#print("get_data gen req:")
 					req = "SELECT COUNT(*) FROM m2m WHERE mid="+str(mid)
 					cursor.execute(req)
 					result = cursor.fetchone()
-					print(result)
+					#print(result)
 					#print(result)
 					if(result["COUNT(*)"]==1):
-						req = "SELECT  pw, area, account, alias, longitude, latitude FROM m2m WHERE mid="+str(mid)
+						req = "SELECT  pw, area, account, alias, longitude, latitude, color_pos, brightness_pos, mRed, mGreen, mBlue FROM m2m WHERE mid="+str(mid)
 						#print(req)
 						cursor.execute(req)
 						#print("setting result to ")
@@ -107,6 +107,18 @@ class sql:
 				self.connection=""
 				self.connect()
 				result=self.update_location(login,location)
+		return result
+	#############################################################
+	def update_color(self, m2m,r,g,b,brightness_pos,color_pos):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "UPDATE  `m2m` SET  `mRed` =  "+str(r)+", `mGreen` =  "+str(g)+",`mBlue` =  "+str(b)+", `color_pos` =  "+str(color_pos)+", `brightness_pos` =  "+str(brightness_pos)+" WHERE  `m2m`.`mid` ="+m2m.mid
+				cursor.execute(req, )
+			self.connection.commit()
+			result=0
+		except:
+			result=1
 		return result
 	#############################################################
 	def update_det(self,login,account,area,state):
@@ -208,7 +220,7 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias`, `longitude`, `latitude` FROM  `m2m` WHERE  `account` =  %s"
+				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias`, `longitude`, `latitude`, `brightness_pos`, `color_pos` FROM  `m2m` WHERE  `account` =  %s"
 				cursor.execute(req, (str(account)))
 				result = cursor.fetchall()
 		except:
