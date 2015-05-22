@@ -1,6 +1,7 @@
 package com.example.kolja.Illumino;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.SparseArray;
@@ -31,6 +32,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
     private s_debug mDebug = null;
     SparseArray<areas> data = new SparseArray<areas>();
     private ListAdapter mAdapter;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,9 +82,6 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
 
             }
         }
-
-
-
     }
 
     @Override
@@ -221,6 +220,8 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                             int state = object.getInt("state");
                             int detection = object.getInt("detection");
                             int last_seen = object.getInt("last_seen");
+                            int brightness_pos = object.getInt("brightness_pos");
+                            int color_pos = object.getInt("color_pos");
                             Location new_loc = new Location("new");
                             if (!object.getString("latitude").equals("") && !object.getString("longitude").equals("")) {
                                 new_loc.setLatitude(Float.parseFloat(object.getString("latitude")));
@@ -230,7 +231,7 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
                                 new_loc.setLongitude(0.0);
                             }
                             if(client_id==-1) {
-                                data.get(area_id).m2mList.add(new m2m_container(mid, state, area_name, detection, new_loc, last_seen, alias));
+                                data.get(area_id).m2mList.add(new m2m_container(mid, state, area_name, detection, new_loc, last_seen, alias,brightness_pos,color_pos));
                             } else {
                                 m2m_container cli = data.get(area_id).m2mList.get(client_id);
                                 cli.detection=detection;

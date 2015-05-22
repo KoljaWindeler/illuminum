@@ -5,8 +5,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
 import android.util.SparseArray;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
@@ -15,6 +20,7 @@ import android.widget.ExpandableListView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -25,6 +31,8 @@ import java.util.Date;
 public class ListAdapter extends BaseExpandableListAdapter {
     Context context;                        // reference to the App
     private final SparseArray<areas> data;  // reference to all the data
+    private ColorPicker cP_color;
+    private ColorPicker cP_bw;
 
     // constructor has to be callen with references to app and data
     public ListAdapter (Activity act, SparseArray<areas> groups) {
@@ -440,6 +448,32 @@ public class ListAdapter extends BaseExpandableListAdapter {
         }
     }
 
+    // helper function for setting the color
+    private void send_color(int gid, int cid) {
+        // fire message to the server, via our Service
+        JSONObject object_send = new JSONObject();
+        try {
+            int b = Color.blue(cP_bw.getColor(data.get(gid).m2mList.get(cid).brightness_pos));
+            int c = cP_color.getColor(data.get(gid).m2mList.get(cid).color_pos);
+
+            object_send.put("cmd", "set_color");
+            object_send.put("mid", data.get(gid).m2mList.get(cid).mid);
+            object_send.put("r", (int)(((float)Color.red(c))  /255f*100f*b/255f)); // rgb in rage of 0-100 for the light controll to do the half-log trick
+            object_send.put("g", (int)(((float)Color.green(c))/255f*100f*b/255f));
+            object_send.put("b", (int)(((float)Color.blue(c)) /255f*100f*b/255f));
+            object_send.put("brightness_pos", data.get(gid).m2mList.get(cid).brightness_pos);
+            object_send.put("color_pos", data.get(gid).m2mList.get(cid).color_pos);
+
+
+            Intent send_intent = new Intent(bg_service.SENDER);
+            send_intent.putExtra(s_ws.TYPE, s_ws.APP2SERVER);
+            send_intent.putExtra(s_ws.PAYLOAD, object_send.toString());
+            ((MainActivity)context).sendBroadcast(send_intent);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public View getGroupView(int groupPosition, boolean isExpanded,View convertView, ViewGroup parent) {
         if (convertView == null) {
@@ -482,6 +516,67 @@ public class ListAdapter extends BaseExpandableListAdapter {
     private void showColorPicker(View v, int gid, int cid) {
         data.get(gid).m2mList.get(cid).colorpicker_on=true;
         insertViewInWorker(R.layout.show_color_picker,v, LinearLayout.LayoutParams.WRAP_CONTENT,LinearLayout.LayoutParams.WRAP_CONTENT); // TODO FILL_PARENT,WRAP_CONTENT
+
+        SeekBar ColorView=((SeekBar)v.findViewById(R.id.Color));
+        cP_color = new ColorPicker(v);
+        cP_color.prepare(ColorView, 0, false);
+        cP_color.generate_bitmap();
+        LayerDrawable background = new LayerDrawable(new Drawable[]{new BitmapDrawable(cP_color.mBitmap)});
+        ColorView.setBackground(background);
+        ColorView.setTag(String.valueOf(gid) + "," + String.valueOf(cid));
+        ColorView.setProgress(data.get(gid).m2mList.get(cid).color_pos);
+        ColorView.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            @Override
+            public void onProgressChanged(SeekBar arg0, int arg1, boolean arg2) {
+                String Tag = (String) arg0.getTag();         // get our gid and cid from the tag
+                String[] TagArray = Tag.split(",");
+                int gid = Integer.parseInt(TagArray[0]);
+                int cid = Integer.parseInt(TagArray[1]);
+                data.get(gid).m2mList.get(cid).color_pos = arg1;
+                send_color(gid,cid);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        SeekBar BlackWhiteView=((SeekBar)v.findViewById(R.id.BlackWhite));
+        cP_bw = new ColorPicker(v);
+        cP_bw.prepare(BlackWhiteView, 0, true);
+        cP_bw.generate_bitmap();
+        background = new LayerDrawable(new Drawable[]{new BitmapDrawable(cP_bw.mBitmap)});
+        BlackWhiteView.setBackground(background);
+        BlackWhiteView.setTag(String.valueOf(gid) + "," + String.valueOf(cid));
+        BlackWhiteView.setProgress(data.get(gid).m2mList.get(cid).brightness_pos);
+        BlackWhiteView.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+            @Override
+            public void onProgressChanged(SeekBar arg0, int arg1, boolean arg2) {
+
+
+                String Tag = (String) arg0.getTag();         // get our gid and cid from the tag
+                String[] TagArray = Tag.split(",");
+                int gid = Integer.parseInt(TagArray[0]);
+                int cid = Integer.parseInt(TagArray[1]);
+                data.get(gid).m2mList.get(cid).brightness_pos = arg1;
+                send_color(gid,cid);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
     }
 
     public void closeColorPicker(View v, Integer gid, Integer cid) {

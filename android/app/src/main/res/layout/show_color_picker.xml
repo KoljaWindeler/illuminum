@@ -18,4 +18,19 @@
         android:textColor="#ff000000"
         android:id="@+id/textView2"
         android:layout_gravity="center_horizontal" />
+
+
+    <SeekBar
+        android:id="@+id/Color"
+        android:layout_width="300dp"
+        android:layout_height="30dp"
+        android:layout_marginTop="10dp"
+        android:layout_gravity="center_horizontal" />
+
+    <SeekBar
+        android:id="@+id/BlackWhite"
+        android:layout_marginTop="20dp"
+        android:layout_width="300dp"
+        android:layout_height="30dp"
+        android:layout_gravity="center_horizontal" />
 </LinearLayout>

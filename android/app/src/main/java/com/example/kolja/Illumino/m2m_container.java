@@ -1,6 +1,7 @@
 package com.example.kolja.Illumino;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.location.Location;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -27,14 +28,15 @@ public class m2m_container {
     public TextView aliasLabel=null;
     public ImageButton onOffButton=null;
     public ImageView webcam_pic=null;
-
+    public int color_pos=100;
+    public int brightness_pos=100;
 
 
     public m2m_container(){
         super();
     }
 
-    public m2m_container(String mid, int state, String area, int detection, Location l, int last_seen, String alias){
+    public m2m_container(String mid, int state, String area, int detection, Location l, int last_seen, String alias, int brightness_pos, int color_pos){
         this.mid=mid;
         this.state=state;
         this.area=area;
@@ -42,5 +44,7 @@ public class m2m_container {
         this.l=l;
         this.last_seen=last_seen;
         this.alias=alias;
+        this.color_pos=color_pos;
+        this.brightness_pos=brightness_pos;
     }
 }
