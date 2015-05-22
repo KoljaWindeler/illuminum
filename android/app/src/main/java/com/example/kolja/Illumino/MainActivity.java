@@ -285,21 +285,23 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         // display it or not?
         View x=null;
         View v=null;
-        int firstVis = WebcamView.getFirstVisiblePosition();
-        int lastVis = WebcamView.getLastVisiblePosition();
-        int count = lastVis - firstVis;
-        for(int i=0;i<=count;i++) {
-            x = WebcamView.getChildAt(i);
-            if (x != null) {
-                long packedPosition = WebcamView.getExpandableListPosition(i + firstVis);
-                int packedPositionType = ExpandableListView.getPackedPositionType(packedPosition);
+        if(WebcamView!=null) {
+            int firstVis = WebcamView.getFirstVisiblePosition();
+            int lastVis = WebcamView.getLastVisiblePosition();
+            int count = lastVis - firstVis;
+            for (int i = 0; i <= count; i++) {
+                x = WebcamView.getChildAt(i);
+                if (x != null) {
+                    long packedPosition = WebcamView.getExpandableListPosition(i + firstVis);
+                    int packedPositionType = ExpandableListView.getPackedPositionType(packedPosition);
 
-                if (packedPositionType != ExpandableListView.PACKED_POSITION_TYPE_NULL) {
-                    int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
-                    if (packedPositionType == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
-                        int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
-                        if(groupPosition==gid && childPosition==cid) {
-                            v=x;
+                    if (packedPositionType != ExpandableListView.PACKED_POSITION_TYPE_NULL) {
+                        int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
+                        if (packedPositionType == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
+                            int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
+                            if (groupPosition == gid && childPosition == cid) {
+                                v = x;
+                            }
                         }
                     }
                 }
@@ -355,6 +357,40 @@ public class MainActivity extends Activity implements android.view.View.OnClickL
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();  // Always call the superclass method first
+        ExpandableListView WebcamView = (ExpandableListView) findViewById(R.id.listScroller);
+
+        // switch off all webcams
+        for (int i = 0; i < data.size(); i++) {
+            for (int j = 0; j < data.get(i).m2mList.size(); j++) {
+                if (data.get(i).m2mList.get(j).webcam_on) {
+                    boolean running=true;
+
+                    // we have to shut it down, is it visible?
+                    View v=getView_ifVisible(i,j,WebcamView);
+
+                    // yes, so try to do it the gentle way by executing the function
+                    if(v!=null){
+                        ImageView webcam_on_off = (ImageView) v.findViewById(R.id.webcam_on_off);
+                        if(webcam_on_off!=null){
+                            mAdapter.stop_webcam_view(webcam_on_off);
+                            running=false;
+                        }
+                    }
+
+                    // if it is still running, or the view was not visible, just send the message
+                    if(running){
+                        mAdapter.send_webcam_interval(0, i, j);     // set interval to 0 = off
+                        data.get(i).m2mList.get(j).webcam_on=false;
+                    }
+                }
+            }
+        }
+
     }
 
 
