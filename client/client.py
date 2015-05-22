@@ -26,6 +26,10 @@ light_dimming_q=[]
 my_state=-1
 my_detection=-1
 
+mRed=0
+mGreen=0
+mBlue=0
+
 #******************************************************#
 def get_time():
 	return time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
@@ -36,6 +40,9 @@ def trigger_handle(event,data):
 	global my_state
 	global my_detection
 	global trigger
+	global mRed
+	global mGreen
+	global mBlue
 
 	if(event=="uploading"):
 		#print("Event uploading, q:"+str(len(file_q)))
@@ -60,7 +67,7 @@ def trigger_handle(event,data):
 		# light dimming stuff
 		if(trigger.get_interval()==0):
 			if(my_detection==0 and my_state==1): # deactive and motion
-				light_dimming_q.append((time.time(),100,70,2,4000)) # 4 sec to dimm to warm orange - now
+				light_dimming_q.append((time.time(),mRed,mGreen,mBlue,4000)) # 4 sec to dimm to warm orange - now
 			elif(my_detection==0 and my_state==0): # deactive and no motion
 				print("back to lights off")
 				delay_off=5*60*1000 # usually 5 min
@@ -275,6 +282,11 @@ while 1:
 					elif(enc.get("cmd")=="login"):
 						if(enc.get("ok")==1):
 							logged_in=1
+							
+							mRed=enc.get("mRed")
+							mGreen=enc.get("mGreen")
+							mBlue=enc.get("mBlue")
+							
 							print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
 							print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("detection")))
 							trigger.set_alias(enc.get("alias"))
@@ -291,7 +303,11 @@ while 1:
 					elif(enc.get("cmd")=="wf"):
 						ignore=1
 					elif(enc.get("cmd")=="set_color"):
-						light_dimming_q.append((time.time(),enc.get("r",0),enc.get("g",0),enc.get("b",0),100)) # 4 sec to dimm to warm orange - now
+						mRed=enc.get("r",0)
+						mGreen=enc.get("g",0)
+						mBlue=enc.get("b",0)
+						light_dimming_q.append((time.time(),mRed,mGreen,mBlue,100)) # 4 sec to dimm to warm orange - now
+						
 					elif(enc.get("cmd")=="set_interval"):
 						print("setting interval to "+str(enc.get("interval",0)))
 						trigger.set_interval(enc.get("interval",0))
