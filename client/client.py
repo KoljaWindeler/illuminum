@@ -80,7 +80,7 @@ def trigger_handle(event,data):
 			elif(my_detection==1 and my_state==1):
 				light_dimming_q.append((time.time(),100,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			elif(my_detection==1 and my_state==0):
-				light_dimming_q.append((time.time(),0,0,100,4000)) # 4 sec to dimm to off - in 10 min from now
+				light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 
 	elif(event=="uploading_str"):
 		file_str_q.append(data)
