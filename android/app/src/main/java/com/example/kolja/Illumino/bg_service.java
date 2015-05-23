@@ -192,6 +192,7 @@ public class bg_service extends Service {
         // now we are getting serious .. start the websocket connection if it doesn't exist
         if (mWs == null) {
             // if this is the first start, create the object and link all the helper in
+            mDebug.write_to_file("bg_serivce: create a new sharedPrefereces");
             mWs = new s_ws(mContext, mDebug, mNofity, mWakeup, mSettings);
         }
 
@@ -301,10 +302,20 @@ public class bg_service extends Service {
 
                         // Message for us, let's see
                         else if(type.equals(s_ws.APP2SERVICE)){
+                            mDebug.write_to_file("I've received a message from the app");
                             // check what we should do
                             if(payload.equals(s_ws.CLEAR_ALARM)){
                                 // unset the image in the notification
                                 mNofity.clear_image();
+                            } else if(payload.equals("login_req")){
+                                // send our mLogin state
+                                Intent msg = new Intent(s_ws.NOTIFICATION);
+                                msg.putExtra(s_ws.TYPE, s_ws.SERVICE2APP);
+                                msg.putExtra(s_ws.PAYLOAD, "login");
+                                msg.putExtra("logged_in", mWs.mLoggedIn);
+                                msg.putExtra("abs", "service");
+                                mContext.sendBroadcast(msg);
+                                mDebug.write_to_file("I've received a login request");
                             }
                         }
                     } // bundle null
