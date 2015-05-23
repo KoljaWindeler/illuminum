@@ -155,12 +155,14 @@ public class s_ws {
                     TelephonyManager tManager = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
                     String uuid = tManager.getDeviceId();
 
+                    mDebug.write_to_file("s_ws: read from sharedPrefereces");
                     String login = settings.getString("LOGIN", "Kolja");
                     String pw = settings.getString("PW", "hui");
+                    mDebug.write_to_file("Websocket: send login:" + login+ "/"+pw);
                     o_snd.put("cmd", "login");
                     o_snd.put("login", login);
                     o_snd.put("uuid", uuid);
-                    o_snd.put("pw", pw);
+                    o_snd.put("client_pw", pw);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -177,6 +179,14 @@ public class s_ws {
                     mDebug.write_to_file("Websocket: We are logged in!");
                     mLoggedIn = true;
 
+                    // tell that potential listening apps
+                    Intent msg = new Intent(s_ws.NOTIFICATION);
+                    msg.putExtra(s_ws.TYPE, s_ws.SERVICE2APP);
+                    msg.putExtra(s_ws.PAYLOAD, "login");
+                    msg.putExtra("logged_in", mLoggedIn);
+                    msg.putExtra("abs", "websocket");
+                    mContext.sendBroadcast(msg);
+
                     // assuming we reconnected as a reaction on a server reboot, the server has no idea where we are. we should tell him right away if we know it
                     if ((((bg_service)mContext).get_last_known_location()).isValid()) {
                         mDebug.write_to_file("i have a valid location");
@@ -186,6 +196,17 @@ public class s_ws {
 
                     // check if we have messages in the q
                     send_msg("");
+                } else {
+                    mDebug.write_to_file("Websocket: Damn, login rejected!");
+                    mLoggedIn = false;
+
+                    // tell that potential listening apps
+                    Intent msg = new Intent(s_ws.NOTIFICATION);
+                    msg.putExtra(s_ws.TYPE, s_ws.SERVICE2APP);
+                    msg.putExtra(s_ws.PAYLOAD, "login");
+                    msg.putExtra("logged_in", mLoggedIn);
+                    msg.putExtra("abs", "websocket");
+                    mContext.sendBroadcast(msg);
                 }
             }
 

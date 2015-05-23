@@ -110,19 +110,19 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
                 // close webcam if open
                 if(isWebCamPicOpen(gid, cid)){
-                    stop_webcam_view(((View) v.getParent()).findViewById(R.id.webcam_on_off));
+                    stop_webcam_view(((View) v.getParent().getParent()).findViewById(R.id.webcam_on_off));
                 }
 
                 // open webcam view
                 else {
                     // close alert Log if open
                     if(isAlertLogOpen(gid, cid)){
-                        stop_AlertLog_view(((View) v.getParent()).findViewById(R.id.alertlog_on_off));
+                        stop_AlertLog_view(((View) v.getParent().getParent()).findViewById(R.id.alertlog_on_off));
                     }
 
                     // close color picker if open
                     if(isColorPickerOpen(gid,cid)){
-                        stop_ColorPicker_view(((View) v.getParent()).findViewById(R.id.colorpicker_on_off));
+                        stop_ColorPicker_view(((View) v.getParent().getParent()).findViewById(R.id.colorpicker_on_off));
                     }
 
                     // start us!
@@ -146,19 +146,19 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
                 // close colorpicker if open
                 if(isColorPickerOpen(gid, cid)){
-                    stop_ColorPicker_view(((View) v.getParent()).findViewById(R.id.colorpicker_on_off));
+                    stop_ColorPicker_view(((View) v.getParent().getParent()).findViewById(R.id.colorpicker_on_off));
                 }
 
                 // open colorpicker view
                 else {
                     // close alert Log if open
                     if(isAlertLogOpen(gid, cid)){
-                        stop_AlertLog_view(((View) v.getParent()).findViewById(R.id.alertlog_on_off));
+                        stop_AlertLog_view(((View) v.getParent().getParent()).findViewById(R.id.alertlog_on_off));
                     }
 
                     // close webcam if open
                     if(isWebCamPicOpen(gid,cid)){
-                        stop_webcam_view(((View) v.getParent()).findViewById(R.id.webcam_on_off));
+                        stop_webcam_view(((View) v.getParent().getParent()).findViewById(R.id.webcam_on_off));
                     }
 
                     // start us!
@@ -182,19 +182,19 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
                 // close alert log if open
                 if (isAlertLogOpen(gid, cid)) {
-                    stop_AlertLog_view(((View) v.getParent()).findViewById(R.id.alertlog_on_off));
+                    stop_AlertLog_view(((View) v.getParent().getParent()).findViewById(R.id.alertlog_on_off));
                 }
 
                 // open colorpicker view
                 else {
                     // close webcam view if open
                     if (isColorPickerOpen(gid, cid)) {
-                        stop_ColorPicker_view(((View) v.getParent()).findViewById(R.id.colorpicker_on_off));
+                        stop_ColorPicker_view(((View) v.getParent().getParent()).findViewById(R.id.colorpicker_on_off));
                     }
 
                     // close webcam if open
                     if (isWebCamPicOpen(gid, cid)) {
-                        stop_webcam_view(((View) v.getParent()).findViewById(R.id.webcam_on_off));
+                        stop_webcam_view(((View) v.getParent().getParent()).findViewById(R.id.webcam_on_off));
                     }
 
                     // start us!
@@ -240,7 +240,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         }
         // just make sure that the webcam picture is really closed
         else {
-            webcam_on_off.setImageResource(R.drawable.livestream_icon_v01);
+            webcam_on_off.setImageResource(R.drawable.livestream_mdpi);
             if(convertView.findViewById(R.id.webcam_picture_in_single_view)!=null) {
                 closePic(convertView, groupPosition, childPosition);
             };
@@ -264,7 +264,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         }
 
         else {
-            color_picker_on_off.setImageResource(R.drawable.lightcontrol_icon_v01);
+            color_picker_on_off.setImageResource(R.drawable.lightcontrol_mdpi);
             if(convertView.findViewById(R.id.colorpicker_in_single_view)!=null){
                 closeColorPicker(convertView,groupPosition,childPosition);
             }
@@ -288,7 +288,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         }
 
         else {
-            alert_log_on_off.setImageResource(R.drawable.alarms_icon_v01);
+            alert_log_on_off.setImageResource(R.drawable.alarms_mdpi);
             if(convertView.findViewById(R.id.alertlog_in_single_view)!=null){
                 closeAlertLog(convertView,groupPosition,childPosition);
             }
@@ -342,7 +342,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         if(!isAlertLogOpen(gid, cid)){
             data.get(gid).m2mList.get(cid).alertlog_on=true;
             ((ImageButton) v).setImageResource(R.drawable.red);
-            showAlertLog((View) v.getParent().getParent().getParent(), gid, cid);
+            showAlertLog((View) v.getParent().getParent().getParent().getParent(), gid, cid);
         }
     }
 
@@ -356,8 +356,8 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
         // lookup if the picture is displayed, in this case, close it and send stop message
         if(isAlertLogOpen(gid, cid)){
-            ((ImageButton) v).setImageResource(R.drawable.alarms_icon_v01);
-            closeAlertLog((View) v.getParent().getParent().getParent(), gid, cid);
+            ((ImageButton) v).setImageResource(R.drawable.alarms_mdpi);
+            closeAlertLog((View) v.getParent().getParent().getParent().getParent(), gid, cid);
             data.get(gid).m2mList.get(cid).alertlog_on=false;
         }
     }
@@ -372,7 +372,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         if(!isColorPickerOpen(gid, cid)){
             data.get(gid).m2mList.get(cid).colorpicker_on=true;
             ((ImageButton) v).setImageResource(R.drawable.red);
-            showColorPicker((View) v.getParent().getParent().getParent(), gid, cid);
+            showColorPicker((View) v.getParent().getParent().getParent().getParent(), gid, cid);
         }
     }
 
@@ -385,8 +385,8 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
         // lookup if the picture is displayed, in this case, close it and send stop message
         if(isColorPickerOpen(gid, cid)){
-            ((ImageButton) v).setImageResource(R.drawable.lightcontrol_icon_v01);
-            closeColorPicker((View) v.getParent().getParent().getParent(), gid, cid);
+            ((ImageButton) v).setImageResource(R.drawable.lightcontrol_mdpi);
+            closeColorPicker((View) v.getParent().getParent().getParent().getParent(), gid, cid);
             data.get(gid).m2mList.get(cid).colorpicker_on=false;
         }
     }
@@ -401,7 +401,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
         // lookup if the picture is displayed, in this case, close it and send stop message
         if(!isWebCamPicOpen(gid, cid)){
             ((ImageButton) v).setImageResource(R.drawable.red);
-            showPic((View) v.getParent().getParent().getParent(), gid, cid);
+            showPic((View) v.getParent().getParent().getParent().getParent(), gid, cid);
             if(data.get(gid).m2mList.get(cid).last_img!=null) {
                 data.get(gid).m2mList.get(cid).webcam_pic.setImageBitmap(data.get(gid).m2mList.get(cid).last_img);
             } else {
@@ -414,7 +414,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
     }
 
     // arguement is the view on the button
-    private void stop_webcam_view(View v) {
+    public void stop_webcam_view(View v) {
         String Tag=(String) v.getTag();         // get our gid and cid from the tag
         String[] TagArray=Tag.split(",");
         int gid=Integer.parseInt(TagArray[0]);
@@ -422,8 +422,8 @@ public class ListAdapter extends BaseExpandableListAdapter {
 
         // lookup if the picture is displayed, in this case, close it and send stop message
         if(isWebCamPicOpen(gid, cid)){
-            ((ImageButton) v).setImageResource(R.drawable.livestream_icon_v01);
-            closePic((View) v.getParent().getParent().getParent(), gid, cid);
+            ((ImageButton) v).setImageResource(R.drawable.livestream_mdpi);
+            closePic((View) v.getParent().getParent().getParent().getParent(), gid, cid);
             data.get(gid).m2mList.get(cid).webcam_on=false;
             // set interval to 0, this will be send to the Server below
             send_webcam_interval(0, gid, cid);
@@ -431,7 +431,7 @@ public class ListAdapter extends BaseExpandableListAdapter {
     }
 
     // helper function for open and close the webcam view -> tell it the server
-    private void send_webcam_interval(float interval, int gid, int cid) {
+    public void send_webcam_interval(float interval, int gid, int cid) {
         // fire message to the server, via our Service
         JSONObject object_send = new JSONObject();
         try {
