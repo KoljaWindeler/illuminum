@@ -91,6 +91,13 @@ def rint(input,sc):
 			found=1
 			if(a.state==1):
 				print(input)
+				
+				input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
+				with open("log.txt", "a") as log_file:
+					log_file.write(input_log)
+					log_file.close()
+    				
+				
 	if(not(found)):
 		print("didn't recogice shortcut '"+sc+"'")
 
