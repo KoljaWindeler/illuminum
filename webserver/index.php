@@ -17,7 +17,7 @@ if(!empty($output[0])){	// python serer is running add everything
 		function start() {
 		        con = new WebSocket(\'ws://192.168.1.80:9876/\');
 			con.onopen = function(){
-				login("browser","huhu");
+				login("browser","hui");
 			};
 			// reacting on incoming messages
 		        con.onmessage = function(msg) {
@@ -274,7 +274,7 @@ if(!empty($output[0])){	// python serer is running add everything
 			if(con == null){
 				return;
 			}
-			var cmd_data = { "cmd":"login", "login":user, "pw":pw};
+			var cmd_data = { "cmd":"login", "login":user, "client_pw":pw};
 			console.log(JSON.stringify(cmd_data));
 			con.send(JSON.stringify(cmd_data));
 		}
