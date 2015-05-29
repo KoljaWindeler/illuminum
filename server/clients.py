@@ -61,3 +61,4 @@ class alert_event:
 		self.comm_path = 1					# +1 = via mail, +2 = via WS
 		self.email = ["kkoolljjaa@gmail.com"]	# list of all receivers
 		self.last_upload = 0
+		self.id=0
