@@ -47,6 +47,32 @@ class sql:
 					return self.load_rules(area,account,sub_rules)
 		return result
 	#############################################################
+	def rm_rule(self,id):
+		#print("get data mid:"+mid)
+		if(self.connection==''):
+			print("sql has to be called with connect() first")
+			result = -1
+		else:
+			#print("connection existing")
+			try:
+				#print("try:")
+				with self.connection.cursor() as cursor:
+					# Read a single record
+					#print("gen req:")
+					req = "DELETE FROM `rules` WHERE `id` ='"+str(id)+"'"
+					#print(req)
+					cursor.execute(req)
+					result =0
+			except:
+				if(self.connection_check()==0):
+					print("failed to delete rule") # failure based on the command, connection ok
+					result =-2
+				else:
+					self.connection=""
+					self.connect()
+					return self.rm_rule(id)
+		return result
+	#############################################################
 	def get_data(self,mid):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
@@ -188,6 +214,18 @@ class sql:
 			result = -1
 		return result
 	#############################################################
+	def user_on_area(self,account,area):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT login FROM  `ws` WHERE  `account` = '"+str(account)+"' and `location` = '"+str(area)+"'"
+				#print(req)
+				cursor.execute(req)
+				result = cursor.fetchall()
+		except:
+			result = -1
+		return result
+	#############################################################
 	def update_last_seen_m2m(self,mid,ip):
 		try:
 			with self.connection.cursor() as cursor:
@@ -207,7 +245,7 @@ class sql:
 				# Create a new record
 				req = "UPDATE  `ws` SET  `update` =  %s, `ip` = %s WHERE  `ws`.`login` =%s"
 				cursor.execute(req, (str(time.time()), str(ip),str(login)))
-			self.connection.commit()
+				self.connection.commit()
 			result=0
 		except:
 			result = -1
@@ -226,3 +264,34 @@ class sql:
 		except:
 			result = -1
 		return result
+	#############################################################
+	def create_alert(self, m2m, rm_string):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "INSERT INTO `alert`.`alerts` (`id`, `f_ts`, `mid`, `area`, `account`, `rm_string`, `ack`, `ack_ts`, `ack_by`) VALUES (NULL, '"+str(time.time())+"', '"+str(m2m.mid)+"', '"+str(m2m.area)+"', '"+str(m2m.account)+"', '"+str(rm_string)+"', '0', '0', '')"
+				cursor.execute(req)
+				self.connection.commit()
+				
+				req = "SELECT LAST_INSERT_ID();"
+				#print(req)
+				cursor.execute(req)
+				result = cursor.fetchone()
+				result = result['LAST_INSERT_ID()']
+		except:
+			result = -1
+		return result
+	############################################################# 
+	def append_alert_photo(self, m2m, des_location):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "INSERT INTO `alert`.`alert_pics` (`id`, `alert_id`, `path`,`ts`) VALUES (NULL, '"+str(m2m.alert.id)+"', '"+str(des_location)+"', '"+str(time.time())+"')"
+				print(req)
+				cursor.execute(req)
+				self.connection.commit()
+				result = 0
+		except:
+			result = -1
+		return result
+		
