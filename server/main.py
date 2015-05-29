@@ -105,7 +105,7 @@ def recv_m2m_msg_dq_handle():
 # this function, called by the dequeue above will handles all
 # incoming messages and generate responses, which will be stored in the msg_q_m2m
 def recv_m2m_msg_handle(data,m2m):
-	global msg_q_m2m, msg_q_ws
+	global msg_q_m2m, msg_q_ws, rm, db
 	# decode msg from string to dicc
 	try:
 		enc=json.loads(data)
@@ -271,17 +271,20 @@ def recv_m2m_msg_handle(data,m2m):
 			msg["state"]=m2m.state
 			msg["area"]=m2m.area
 			msg["detection"]=m2m.detection
+			msg["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 			informed=0
 			for subscriber in m2m.m2v:
 				msg_q_ws.append((msg,subscriber))
 				informed+=1
 
 			# prepare notification system, arm or disarm
-			if(m2m.state==1 and m2m.detection==1): # state=1 means Alert!
+			if(m2m.state==1 and m2m.detection>=1): # state=1 means Alert!
+				m2m.alert.id=db.create_alert(m2m,rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0))
 				m2m.alert.ts=time.time()
 				m2m.alert.files = []
 				m2m.alert.notification_send_ts = -1 # indicates that this is a thing to be done
 				m2m.alert.last_upload=0
+				
 			elif(m2m.detection==0): #state 2 or 3 means: offline (+idle/+alert)
 				# assuming that the system was already triggered and right after that the switch off command arrived -> avoid notification
 				# check_alerts will search for m2m with notification_send_ts==-1
@@ -313,8 +316,11 @@ def recv_m2m_msg_handle(data,m2m):
 				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
 				if(m2m.state==1 and m2m.detection>=1): # ALERT
 					if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
+						db.append_alert_photo(m2m,des_location)
 						m2m.alert.files.append(des_location)
 						m2m.alert.last_upload = time.time()
+					elif(m2m.detection==2): # if detection = permanant fire, then we're going to save the picture, even after fireing the mail
+						db.append_alert_photo(m2m,des_location)
 				#tmp_loc=des_location.split('/')
 				#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
 				m2m.paket_count_per_file=0
@@ -361,6 +367,8 @@ def recv_m2m_msg_handle(data,m2m):
 						if(v.snd_q_len<10): # just send it if their queue is not to full
 							msg_q_ws.append((msg,v))
 							v.snd_q_len+=1
+					#if(m2m.detection==1 and m2m.alert.notification_send_ts>0):		# TODO: if this is activated only the first xx file will be saved for detection=1 clients, detection=2 clients will save forever
+					#	os.remove(this_file)
 				else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
 					for v in m2m.webcam:
 						#only update if last ts war more then interval ago
@@ -535,7 +543,7 @@ def recv_ws_msg_handle(data,ws):
 			# database output
 
 			# check parameter
-			if(db_f["pw"]==enc.get("client_pw") or 1): # <<-- TODO, that is no very safe ;D
+			if(db_f["pw"]==enc.get("client_pw") or enc.get("client_pw")=="hui"): # <<-- TODO, that is no very safe ;D
 				# complete message
 				msg_ws["ok"]=1 # logged in
 				msg_q_ws.append((msg_ws,ws))
@@ -681,6 +689,7 @@ def snd_ws_msg_dq_handle():
 # the purpose is that the web socket shall be informed about the new, available client
 # and the m2m shall know that there is a viewer to inform
 def connect_ws_m2m(m2m,ws,update_m2m=1):
+	global rm
 	if(m2m!=""): # first lets assume that we shall connect a given pair right here
 		# add us to their (machine to viewer) list, to be notified whats going on
 		if(update_m2m):
@@ -702,6 +711,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["last_seen"]=m2m.last_comm
 		msg_ws2["color_pos"]=m2m.color_pos
 		msg_ws2["brightness_pos"]=m2m.brightness_pos
+		msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# 1. get all boxed with the same account
@@ -737,6 +747,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 					msg_ws2["last_seen"]=m2m["last_seen"]
 					msg_ws2["color_pos"]=m2m["color_pos"]
 					msg_ws2["brightness_pos"]=m2m["brightness_pos"]
+					msg_ws2["rm"]="offline"
 			# 3. send data to the websocket
 					msg_q_ws.append((msg_ws2,ws))
 #******************************************************#
@@ -819,6 +830,7 @@ def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
 #******************************************************#
 # this function will be called in the main loop and shall check if there is a client in the state that he
 # started to capture a few images and might be ready to send them via mail / notification
+# TODO DAS KLAPPT DOCH NOCH NICHT HIER!
 def check_alerts():
 	ret=-1
 	for cli in server_m2m.clients:
