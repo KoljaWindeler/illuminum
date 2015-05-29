@@ -158,6 +158,7 @@ public class s_ws {
                     mDebug.write_to_file("s_ws: read from sharedPrefereces");
                     String login = settings.getString("LOGIN", "Kolja");
                     String pw = settings.getString("PW", "hui");
+                    mDebug.write_to_file("s_ws: result "+pw);
                     mDebug.write_to_file("Websocket: send login:" + login+ "/"+pw);
                     o_snd.put("cmd", "login");
                     o_snd.put("login", login);

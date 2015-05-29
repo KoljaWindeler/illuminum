@@ -121,7 +121,7 @@ public class MainActivity extends Activity {
                 editor.putString("LOGIN", login);
                 editor.putString("PW", pw);
                 editor.commit();
-                mDebug.write_to_file("MainActivity: writing to the sharedPrefereces");
+                mDebug.write_to_file("MainActivity: writing to the sharedPrefereces "+pw);
                 // restart service
                 Intent intent = new Intent(mContext, bg_service.class);
                 stopService(intent);
@@ -285,6 +285,7 @@ public class MainActivity extends Activity {
                                 int last_seen = object.getInt("last_seen");
                                 int brightness_pos = object.getInt("brightness_pos");
                                 int color_pos = object.getInt("color_pos");
+                                String rm_state = object.getString("rm");
                                 Location new_loc = new Location("new");
                                 if (!object.getString("latitude").equals("") && !object.getString("longitude").equals("")) {
                                     new_loc.setLatitude(Float.parseFloat(object.getString("latitude")));
@@ -294,12 +295,13 @@ public class MainActivity extends Activity {
                                     new_loc.setLongitude(0.0);
                                 }
                                 if (client_id == -1) {
-                                    data.get(area_id).m2mList.add(new m2m_container(mid, state, area_name, detection, new_loc, last_seen, alias, brightness_pos, color_pos));
+                                    data.get(area_id).m2mList.add(new m2m_container(mid, state, area_name, detection, new_loc, last_seen, alias, brightness_pos, color_pos,rm_state));
                                 } else {
                                     m2m_container cli = data.get(area_id).m2mList.get(client_id);
                                     cli.detection = detection;
                                     cli.last_seen = last_seen;
                                     cli.state = state;
+                                    cli.rm_state= rm_state;
                                     data.get(area_id).m2mList.set(client_id, cli);
                                 }
 
@@ -314,6 +316,7 @@ public class MainActivity extends Activity {
                                 try {
                                     data.get(id[0]).m2mList.get(id[1]).state = Integer.parseInt(object.getString("state"));
                                     data.get(id[0]).m2mList.get(id[1]).detection = Integer.parseInt(object.getString("detection"));
+                                    data.get(id[0]).m2mList.get(id[1]).rm_state = object.getString("rm");
                                     mAdapter.setState(id[0], id[1]);
                                 } catch (Exception ex) {
                                     Log.i("Websocket", "Exception:" + ex.toString());

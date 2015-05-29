@@ -18,6 +18,7 @@ public class m2m_container {
     public Location l;
     public long last_seen;
     public String alias;
+    public String rm_state;
     public boolean webcam_on=false;
     public boolean colorpicker_on=false;
     public boolean alertlog_on=false;
@@ -36,7 +37,7 @@ public class m2m_container {
         super();
     }
 
-    public m2m_container(String mid, int state, String area, int detection, Location l, int last_seen, String alias, int brightness_pos, int color_pos){
+    public m2m_container(String mid, int state, String area, int detection, Location l, int last_seen, String alias, int brightness_pos, int color_pos, String rm_state){
         this.mid=mid;
         this.state=state;
         this.area=area;
@@ -46,5 +47,6 @@ public class m2m_container {
         this.alias=alias;
         this.color_pos=color_pos;
         this.brightness_pos=brightness_pos;
+        this.rm_state=rm_state;
     }
 }
