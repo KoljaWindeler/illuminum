@@ -70,11 +70,11 @@ def trigger_handle(event,data):
 				light_dimming_q.append((time.time(),mRed,mGreen,mBlue,4000)) # 4 sec to dimm to warm orange - now
 			elif(my_detection==0 and my_state==0): # deactive and no motion
 				print("back to lights off")
-				delay_off=5*60*1000 # usually 5 min
-				off_time=get_time()+delay_off/1000
+				delay_off=5*60 # usually 5 min
+				off_time=get_time()+delay_off
 				if(off_time>22*60*60 or (off_time%86400)<6*60*60): # switch off after 22h and before 6
 					delay_off=0
-				print("at "+str((datetime.datetime.fromtimestamp(int((time.time()+delay_off)))).strftime('%H:%M:%S')))
+				print("at "+str((datetime.datetime.fromtimestamp(int((time.time()+delay_off)))).strftime('%y_%m_%d %H:%M:%S')))
 				light_dimming_q.append((time.time()+delay_off,0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 				#light_dimming_q.append((time.time(),0,0,0,4000)) # 4 sec to dimm to off - in 10 min from now
 			elif(my_detection==1 and my_state==1):
