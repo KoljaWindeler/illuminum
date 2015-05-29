@@ -87,37 +87,37 @@ import time, datetime
 class rule_manager:
 	def __init__(self):
 		self.data = []
-		
+	#############################################################	
 	def add_account(self, account):
 		self.data.append(account)
-		
+	#############################################################	
 	def is_account(self, account):
 		for a in self.data:
 			if(a.account==account):
 				return 1
 		return 0
-		
+	#############################################################	
 	def rem_account(self, account):
 		for a in self.data:
 			if(a.account==account):
 				self.data.remove(a)
 				return 1
 		return 0
-		
+	#############################################################	
 	def is_area_in_account(self,account,area):
 		for a in self.data:
 			if(a.account==account):
 				return a.is_area(area)
 				break
 		return 0
-		
+	#############################################################	
 	def add_area_to_account(self, account, area):
 		for a in self.data:
 			if(a.account==account):
 				return a.add_area(area)
 				break
 		return 0
-
+	#############################################################
 	def print_all(self):
 		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
 		print("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered at ts: "+str(now)+"==")
@@ -129,7 +129,7 @@ class rule_manager:
 			i+=1
 		print()
 		print("== End of rule manager output ==")
-	
+	#############################################################
 	def get_account(self,account):
 		for a in self.data:
 			if(a.account==account):
@@ -148,11 +148,11 @@ class rule_account:
 		self.areas = []
 		self.next_ts = -1
 		self.day_last_check=-1
-	
+	#############################################################
 	def add_area(self, area):
 		self.areas.append(area)
 		self.update_next_ts()
-
+	#############################################################
 	def check_day_jump(self):
 		today=time.localtime()[2]
 		if(self.day_last_check!=today):
@@ -160,29 +160,35 @@ class rule_account:
 			if(self.next_ts==86400):
 				return 1
 		return 0
-
+	#############################################################
 	def update_next_ts(self):
 		for a in self.areas:
 			next_event_for_this_area=a.get_next_ts()
 			if(next_event_for_this_area>-1 and (next_event_for_this_area<self.next_ts or self.next_ts==-1)):
 				self.next_ts=next_event_for_this_area
 		return 0
-
-		
+	#############################################################
 	def rem_area(self, area):
 		for a in self.areas:
 			if(a.area==area):
 				self.areas.remove(a)
 				return 1
 		return 0
-		
+	#############################################################
 	def is_area(self,area):
 		for a in self.areas:
 			if(a.area==area):
 				return 1
 				break
 		return 0
-
+	#############################################################
+	def get_area(self,area):
+		for a in self.areas:
+			if(a.area==area):
+				return a
+				break
+		return 0
+	#############################################################
 	def print_account(self):
 		print("|+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:")
 		i=1
@@ -227,18 +233,17 @@ class area:
 						closest_event=86400
 
 		return closest_event
-
-
+	#############################################################
 	def add_sub_rule(self, id, conn, arg1, arg2):
 		self.sub_rules.append(rule(id,conn,arg1,arg2))
-
+	#############################################################
 	def add_rule(self, id, conn, arg1, arg2):
 		self.rules.append(rule(id,conn,arg1,arg2))
-
+	#############################################################
 	def clear_rules(self):
 		self.rules = []
 		self.sub_rules = []
-		
+	#############################################################
 	def reload_rules(self):
 		# clear all rules
 		self.clear_rules()
@@ -254,40 +259,140 @@ class area:
 		# print for debugging
 		#self.print_rules()
 		return 0
+	#############################################################
+	def explain_rule(self,r,on,i):
+		## msg
+		p_arg1=""
+		p_arg2=""
+		p_conn=""
 		
-	def print_rules(self):
-		print("|||+ This is area '"+self.area+"' on account '"+self.account+"'. I have "+str(len(self.rules))+" active rules + "+str(len(self.sub_rules))+" subrules")
-		i=1
-		print("|||+ Rules:")
-		for r in self.rules:
-			print("||||- "+str(i)+"/"+str(len(self.rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1)):
-				print("|||||- status: true")
+		###############
+		if(str(r.conn)=="nobody_at_my_geo_area"):
+			if(on):
+				p_conn="Activating protection, because nobody is near "+self.area+"."
 			else:
-				print("|||||- status: false")
+				p_conn="Not activating protection, because actually there are "
+				user_count=self.db.user_count_on_area(self.account, self.area)
+				if(user_count!=-1): # no db problem
+					user_count=int(user_count["COUNT(*)"])
+				p_conn+=str(user_count)+" user close to "+self.area
+				if(user_count>0):
+					p_conn+=": "
+					user_present=self.db.user_on_area(self.account,self.area)
+					ii=0
+					for u in user_present:
+						ii+=1
+						p_conn+=u["login"]
+						if(ii<user_count):
+							p_conn+=", "	
+										
+		###############
+		elif(str(r.conn)=="AND"):
+			if(on):
+				p_conn="Activating protection, because both subrules id="+str(r.arg1)+" and id="+str(r.arg2)+" are true"
+			else:
+				p_conn="Not activating protection, because not both subrules id="+str(r.arg1)+" and id="+str(r.arg2)+" are true"
+		###############
+		else:
+			p_conn="conn: "+str(r.conn)
+			if(not(str(r.arg1)=="")):
+				p_arg1=", arg1: "+str(r.arg1)
+			if(not(str(r.arg2)=="")):
+				p_arg2=", arg2: "+str(r.arg2)
+			p_conn+=p_arg1+p_arg2
+		###############
+			
+		return str(i)+"/"+str(len(self.rules))+" id: ("+str(r.id)+") "+p_conn
+		## msg
+		
+	#############################################################
+	def print_rules(self,bars=1,account_info=1,print_out=1):
+		ret=""
+		if(bars):
+			ret+="|||+ "
+		
+		if(account_info):
+			ret+="This is area '"+self.area+"' on account '"+self.account+"'. I have "
+			ret+=str(len(self.rules))+" active rules and "+str(len(self.sub_rules))+" subrules\r\n"
+		i=1
+		if(bars):
+			ret+="|||+ "
+		ret+="Rules: (protection activated if one or more of them is true)\r\n"
+		for r in self.rules:
+			## marker
+			g=0
+			if(bars):
+				ret+="||||- "
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)):
+				ret+="<g>"
+				g=1
+			else:
+				ret+="<r>"
+			## marker
+			ret+=self.explain_rule(r,g,i)
+			## marker
+			if(g):
+				ret+="</g>\r\n"
+			else:
+				ret+="</r>\r\n"
+			## marker
 			i+=1
+			
 		if(len(self.rules)==0):
-			print("||||- none")
+			if(bars):
+				ret+="||||- "
+			ret+="none\r\n"
 
 		i=1
-		print("|||+ Sub-Rules:")
+		if(bars):
+			ret+="|||\r\n"
+			ret+="|||+ "
+		ret+="Sub-Rules:\r\n"
+		
 		for r in self.sub_rules:
-			print("||||- "+str(i)+"/"+str(len(self.sub_rules))+" id: ("+str(r.id)+"), conn: "+str(r.conn)+", arg1: "+str(r.arg1)+", arg2:"+str(r.arg2))
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1)):
-				print("|||||- status: true")
+		## marker
+			g=0
+			if(bars):
+				ret+="||||- "
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)):
+				ret+="<g>"
+				g=1
 			else:
-				print("|||||- status: false")
-
+				ret+="<r>"
+			## marker
+			ret+=self.explain_rule(r,g,i)
+			## marker
+			if(g):
+				ret+="</g>\r\n"
+			else:
+				ret+="</r>\r\n"
+			## marker
 			i+=1
+			
 		if(len(self.sub_rules)==0):
-			print("||||- none")
+			if(bars):
+				ret+="||||- "
+			ret+="none\r\n"
+			
+		if(print_out):
+			print(ret,end="")
+			return 0
 		
+		return ret
+		
+	#############################################################		
 	def check_rules(self,use_db):
+		ret=0 					# assume false
 		for r in self.rules:
-			if(self.eval_rule(r.conn, r.arg1, r.arg2,10,use_db)):
+			res=self.eval_rule(r.conn, r.arg1, r.arg2,10,use_db,r.id)
+			if(res==-1): 		# -1 == override off (/), return 0 without further checks
+				return 0		
+			elif(res==2): 		# 2 == override on (*), return 1 without further checks
 				return 1
-		return 0
-		
+			elif(res):			# if 1, set ret but keep checking
+				ret=1
+		return ret
+	#############################################################	
 	def get_sub_rule(self, rule_id):
 		conn=""
 		arg1=""
@@ -299,8 +404,25 @@ class area:
 				arg1=sr.arg1
 				arg2=sr.arg2
 		return (conn,arg1,arg2)
-
-	def eval_rule(self,conn, arg1, arg2, depth, use_db):
+	#############################################################
+	def rm_rule(self, id):
+		found=0
+		for r in self.rules:
+			if(r.id==id):
+				self.rules.remove(r)
+				found=1
+				break;
+			
+		if(not(found)):
+			for r in self.sub_rules:
+				if(r.id==id):
+					self.sub_rules.remove(r)
+					break;
+				
+		if(not(self.db.rm_rule(id)==0)):
+			print("Delete rule "+str(id)+" failed")
+	#############################################################
+	def eval_rule(self,conn, arg1, arg2, depth, use_db, id):
 		if(depth<0):
 			return 0
 			
@@ -310,8 +432,8 @@ class area:
 			(conn_2,arg1_2,arg2_2) = self.get_sub_rule(arg2)
 			#print("fetched for subrule "+str(arg1)+" this:"+str(conn_1)+"/"+str(arg1_1)+"/"+str(arg2_1))
 			#print("fetched for subrule "+str(arg2)+" this:"+str(conn_2)+"/"+str(arg1_2)+"/"+str(arg2_2))
-			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1,use_db)
-			res_2=self.eval_rule(conn_2,arg1_2,arg2_2,depth-1,use_db)
+			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1,use_db,arg1) # arg1 is rule id
+			res_2=self.eval_rule(conn_2,arg1_2,arg2_2,depth-1,use_db,arg2)
 			if(res_1 and res_2):
 				return 1
 		## AND  sub rule based
@@ -319,14 +441,33 @@ class area:
 		## NOT sub rule based
 		elif(conn=="NOT"):
 			(conn_1,arg1_1,arg2_1) = self.get_sub_rule(arg1)
-			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1,use_db)
+			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1,use_db,arg1)
 			if(not(res_1)):
 				return 1
 		## NOT sub rule based
 		
+		## catch none - always off
+		elif(conn=="/"):
+			if(arg1>0): # with time limit
+				if(arg1>time.time()):					
+					return -1
+				else:
+					self.rm_rule(id)
+					#return 0 see below
+			else: # forever
+				return -1
+		## catch none - always off
+		
 		## catch all - always on
 		elif(conn=="*"):
-			return 1
+			if(arg1>0): # with time limit
+				if(arg1>time.time()):					
+					return 2
+				else:
+					self.rm_rule(id)
+					#return 0 see below
+			else: # forever
+				return 2
 		## catch all - always on
 		
 		## time based
@@ -382,7 +523,8 @@ class area:
 		## WLAN location based
 		
 		return 0
-
+#############################################################
+#############################################################
 class rule:
 	def __init__(self, id, conn, arg1, arg2):
 		self.id = id
