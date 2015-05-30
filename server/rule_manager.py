@@ -207,6 +207,8 @@ class area:
 		self.area = area
 		self.account = account
 		self.db = db
+		self.has_override_detection_on=0
+		self.has_override_detection_off=0
 		self.rules = []
 		self.sub_rules = []
 		self.reload_rules()
@@ -237,8 +239,16 @@ class area:
 	def add_sub_rule(self, id, conn, arg1, arg2):
 		self.sub_rules.append(rule(id,conn,arg1,arg2))
 	#############################################################
+	def append_rule(self, conn,arg1,arg2):
+		id=self.db.append_rule(self.account,self.area,conn,arg1,arg2)
+		self.add_rule(id,conn,arg1,arg2)
+	#############################################################
 	def add_rule(self, id, conn, arg1, arg2):
 		self.rules.append(rule(id,conn,arg1,arg2))
+		if(conn=="*"):
+			self.has_override_detection_on=1
+		elif(conn=="/"):
+			self.has_override_detection_off=1
 	#############################################################
 	def clear_rules(self):
 		self.rules = []
@@ -293,6 +303,16 @@ class area:
 			else:
 				p_conn="Not activating protection, because not both subrules id="+str(r.arg1)+" and id="+str(r.arg2)+" are true"
 		###############
+		elif(str(r.conn)=="/" or str(r.conn)=="*"):
+			if(str(r.conn)=="/"):
+				p_conn="OVERRIDE: this will deactivate the protection"
+			else:
+				p_conn="OVERRIDE: this will activate the protection"
+			if(int(r.arg1)>0):
+				p_conn+=", until "+str((datetime.datetime.fromtimestamp(int(r.arg1))).strftime('%y_%m_%d %H:%M:%S'))
+			else:
+				p_conn+=", until this rule is being deleted"
+		###############
 		else:
 			p_conn="conn: "+str(r.conn)
 			if(not(str(r.arg1)=="")):
@@ -323,7 +343,7 @@ class area:
 			g=0
 			if(bars):
 				ret+="||||- "
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)):
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)>=1):
 				ret+="<g>"
 				g=1
 			else:
@@ -354,7 +374,7 @@ class area:
 			g=0
 			if(bars):
 				ret+="||||- "
-			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)):
+			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)>=1):
 				ret+="<g>"
 				g=1
 			else:
@@ -405,6 +425,20 @@ class area:
 				arg2=sr.arg2
 		return (conn,arg1,arg2)
 	#############################################################
+	def rm_override(self, override):
+		if(override=="*"):
+			self.has_override_detection_on=0
+			for r in self.rules:
+				if(r.conn=="*"):
+					self.rm_rule(r.id)
+					break;
+		elif(override=="/"):
+			self.has_override_detection_off=0
+			for r in self.rules:
+				if(r.conn=="/"):
+					self.rm_rule(r.id)
+					break;
+	#############################################################
 	def rm_rule(self, id):
 		found=0
 		for r in self.rules:
@@ -448,6 +482,7 @@ class area:
 		
 		## catch none - always off
 		elif(conn=="/"):
+			arg1=int(arg1)
 			if(arg1>0): # with time limit
 				if(arg1>time.time()):					
 					return -1
@@ -460,6 +495,7 @@ class area:
 		
 		## catch all - always on
 		elif(conn=="*"):
+			arg1=int(arg1)
 			if(arg1>0): # with time limit
 				if(arg1>time.time()):					
 					return 2
