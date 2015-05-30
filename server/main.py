@@ -628,21 +628,27 @@ def recv_ws_msg_handle(data,ws):
 		elif(enc.get("cmd")=="set_override"):
 			area=enc.get("area")
 			rule=enc.get("rule") # can be "*" for on or "/" for off
-			duration=enc.get("duration")
+			duration=int(enc.get("duration"))
 			
-			r=rm.get_account(ws.account).get_area(area)
+			r=rm.get_account(ws.account)
 			if(r!=0):
-				if((rule=="*" and r.has_override_detection_on) or (rule=="/" and r.has_override_detection_off)):
-					r.rm_override(rule)
-				else:
-					# check if opposit rule existed and remove up front
-					if(rule=="*" and r.has_override_detection_off):
-						r.rm_override("/")
-					elif(rule=="/" and r.has_override_detection_on):
-						r.rm_override("*")
-						
-					r.append_rule(rule,duration,0)	
-					
+				rule_area=r.get_area(area)
+				if(rule_area!=0):
+					if((rule=="*" and rule_area.has_override_detection_on) or (rule=="/" and rule_area.has_override_detection_off)):
+						rule_area.rm_override(rule)
+					else:
+						# check if opposit rule existed and remove up front
+						if(rule=="*" and rule_area.has_override_detection_off):
+							rule_area.rm_override("/")
+						elif(rule=="/" and rule_area.has_override_detection_on):
+							rule_area.rm_override("*")
+							
+						if(duration>0): # duration can be a time in sec or -1 = forever
+							duration=int(time.time()+duration)
+						rule_area.append_rule(rule,duration,0)	
+				
+				# update next timestamp (the override could be timelimited) and run a rulecheck as the szenario has most certainly changed		
+				rm.get_account(ws.account).update_next_ts()
 				rm_check_rules(ws.account,ws.login,1)
 			else:
 				#todo return bad ack
