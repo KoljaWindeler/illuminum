@@ -233,6 +233,18 @@ class area:
 				elif(r.conn=="day"):
 					if(closest_event==-1 or now>closest_event):
 						closest_event=86400
+				elif(r.conn=="*" or r.conn=="/"): # override with enddate
+					if(int(r.arg1)>0):
+						# argh!! the "best before"-timestamp of an override is written in UTC sec since epoch.
+						# but our closest_event will be local time and only seconds since dawn of the day .. (as an event at 5pm should always be at 5pm)
+						if (time.localtime().tm_isdst == 0):
+							offset = time.timezone  
+						else:
+							offset = time.altzone 
+						# UTC ts - UTC ts @ dawn of the day - timezone offset = seconds after dawn in localtime
+						change=int(int(r.arg1)-(time.time()-time.time()%86400+offset)) # relativ time stamp to today
+						if(change>now and (closest_event==-1 or change<closest_event)):
+							closest_event=change
 
 		return closest_event
 	#############################################################
