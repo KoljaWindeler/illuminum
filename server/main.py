@@ -1071,6 +1071,9 @@ while 1:
 			if(now>acc.next_ts or acc.check_day_jump()): # next_ts hold the time when a rule will change
 				p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] full rule_check for account "+acc.account+" required","r")
 				rm_check_rules(acc.account,"timetrigger",1) # check with database
+				# reset next ts and check again, as this rule is "over"
+				acc.next_ts=-1
+				acc.update_next_ts()
 		debug_ts=time.time()-last_rulecheck_ts
 		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(debug_ts),"r")
 
