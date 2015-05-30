@@ -279,6 +279,9 @@ def recv_m2m_msg_handle(data,m2m):
 
 			# prepare notification system, arm or disarm
 			if(m2m.state==1 and m2m.detection>=1): # state=1 means Alert!
+				#start_new_alert(m2m)
+				m2m.alert.notification_send=0 
+				m2m.alert.collecting=1
 				m2m.alert.id=db.create_alert(m2m,rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0))
 				m2m.alert.ts=time.time()
 				m2m.alert.files = []
@@ -315,7 +318,7 @@ def recv_m2m_msg_handle(data,m2m):
 				# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
 				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
 				if(m2m.state==1 and m2m.detection>=1): # ALERT
-					if(m2m.alert.notification_send_ts<=0): # not yet send, append fn to list and save timestamp
+					if(m2m.alert.collecting==1 and m2m.alert.notification_send==0): # not yet send, append fn to list and save timestamp
 						db.append_alert_photo(m2m,des_location)
 						m2m.alert.files.append(des_location)
 						m2m.alert.last_upload = time.time()
@@ -614,29 +617,37 @@ def recv_ws_msg_handle(data,ws):
 			msg["b"]=enc.get("b")
 			for m2m in server_m2m.clients:
 				if(enc.get("mid")==m2m.mid):
-					# TODO we would have to write this to the DB, but wounldn't that take to long?
 					db.update_color(m2m,int(enc.get("r")),int(enc.get("g")),int(enc.get("b")),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
 					
 					m2m.color_pos=int(enc.get("color_pos"))
 					m2m.brightness_pos=int(enc.get("brightness_pos"))
 					msg_q_m2m.append((msg,m2m))
+					break
 
 		## Detection on/off handle, for WS --> this should be obsolete as the server can decide on its own when to activate the detection
-		elif(enc.get("cmd")=="detection"):
+		elif(enc.get("cmd")=="set_override"):
 			area=enc.get("area")
-			# step 1: update database
-			db.update_det(ws.login,ws.account,area,enc.get("state"))
-			# check what m2m clients are in the list of this observer and what area they are in
-			clients_affected=0
-			for m2m in ws.v2m:
-				if(area==m2m.area):
-					msg={}
-					msg["cmd"]="set_detection"
-					msg["state"]=enc.get("state")
-					msg_q_m2m.append((msg,m2m))
-					clients_affected+=1
-			print("[A_ws  "+time.strftime("%H:%M:%S")+"] set detection of area '"+area+"' to '"+str(enc.get("state"))+"' (->"+str(clients_affected)+" m2m_clients)")
-
+			rule=enc.get("rule") # can be "*" for on or "/" for off
+			duration=enc.get("duration")
+			
+			r=rm.get_account(ws.account).get_area(area)
+			if(r!=0):
+				if((rule=="*" and r.has_override_detection_on) or (rule=="/" and r.has_override_detection_off)):
+					r.rm_override(rule)
+				else:
+					# check if opposit rule existed and remove up front
+					if(rule=="*" and r.has_override_detection_off):
+						r.rm_override("/")
+					elif(rule=="/" and r.has_override_detection_on):
+						r.rm_override("*")
+						
+					r.append_rule(rule,duration,0)	
+					
+				rm_check_rules(ws.account,ws.login,1)
+			else:
+				#todo return bad ack
+				ignore=1
+			
 		## webcam interval -> sign in or out to webcam, for WS
 		elif(enc.get("cmd")=="set_interval"):
 			set_webcam_con(enc.get("mid"),enc.get("interval",0),ws)
@@ -712,6 +723,8 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["color_pos"]=m2m.color_pos
 		msg_ws2["brightness_pos"]=m2m.brightness_pos
 		msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
+		msg_ws2["rm_override_on"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_on
+		msg_ws2["rm_override_off"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_off
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# 1. get all boxed with the same account
@@ -834,7 +847,8 @@ def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
 def check_alerts():
 	ret=-1
 	for cli in server_m2m.clients:
-		if(cli.alert.notification_send_ts==-1): # -1 = we switch to alert, we haven't switched back to "no alert" otherwise send_ts=0 and we haven't send the mail for this alert, otherwise this would be a timestamp
+		if(cli.alert.notification_send==0 and cli.alert.collecting==1):
+		#if(cli.alert.notification_send_ts==-1): # -1 = we switch to alert, we haven't switched back to "no alert" otherwise send_ts=0 and we haven't send the mail for this alert, otherwise this would be a timestamp
 			# found client in "alert but not yet notified" state, see if it is time to notify
 			send = 0
 			# if the gab between the last_upload and now is > timeout, last_upload will be set every time a file arrives, and initialized to 0 once the state changes to alert
@@ -857,7 +871,9 @@ def check_alerts():
 					cli.alert.notification_send_ts=time.time()
 					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' triggered Email")
 					ret=0
-		return ret
+					cli.alert.collecting=0
+					cli.alert.notification_send=1
+	return ret
 #******************************************************#
 
 #******************************************************#
@@ -921,6 +937,7 @@ def rm_check_rules(account,login,use_db):
 							msg_q_ws.append((msg2,ws))
 							affected_ws_clients+=1
 						print("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"' (-> "+str(affected_ws_clients)+" ws clients)")
+						#break DO NOT! MIGHT HAVE MULTIPLE BOXES
 
 #******************************************************#
 
