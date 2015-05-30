@@ -153,13 +153,20 @@ public class bg_service extends Service {
 
         mContext = this;
 
-        // get services
-        if (mSettings == null) {
-            mSettings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, 0);
-        }
         if (mDebug == null) {
             mDebug = new s_debug(mContext);
         }
+
+        // get services
+        mDebug.write_to_file("settings check");
+        if (mSettings == null) {
+            mDebug.write_to_file("settings are null, recrating");
+            mSettings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, MODE_MULTI_PROCESS);
+            mDebug.write_to_file("settings pw is: "+mSettings.getString("PW","backup"));
+        }
+        mDebug.write_to_file("settings EOF");
+
+
         if (mWakeup == null) {
             mWakeup = new s_wakeup(mContext, (AlarmManager) getSystemService(Context.ALARM_SERVICE), mDebug);
         }
@@ -309,13 +316,14 @@ public class bg_service extends Service {
                                 mNofity.clear_image();
                             } else if(payload.equals("login_req")){
                                 // send our mLogin state
+                                mDebug.write_to_file("---> Service received login request");
                                 Intent msg = new Intent(s_ws.NOTIFICATION);
                                 msg.putExtra(s_ws.TYPE, s_ws.SERVICE2APP);
                                 msg.putExtra(s_ws.PAYLOAD, "login");
                                 msg.putExtra("logged_in", mWs.mLoggedIn);
                                 msg.putExtra("abs", "service");
                                 mContext.sendBroadcast(msg);
-                                mDebug.write_to_file("I've received a login request");
+                                mDebug.write_to_file("---> Service fired response");
                             }
                         }
                     } // bundle null

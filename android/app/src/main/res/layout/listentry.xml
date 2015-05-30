@@ -2,13 +2,14 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
-    android:paddingLeft="20dp"
-    android:paddingTop="10dp"
-    android:paddingBottom="10dp"
+    android:paddingLeft="3dp"
+    android:paddingTop="5dp"
+    android:paddingBottom="0dp"
     android:layout_marginBottom="20dp"
-    android:paddingRight="20dp"
+    android:paddingRight="3dp"
     android:contentDescription="MainWrapper, holding the always displayed part and the potential image"
     android:orientation="vertical" >
+    <!-- was 20 left and right -->
 
     <LinearLayout
         android:layout_width="fill_parent"
@@ -69,6 +70,8 @@
 
                     <TextView
                         android:id="@+id/State"
+                        android:onClick="onClick"
+                        android:clickable="true"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_gravity="left"

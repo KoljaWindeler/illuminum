@@ -205,6 +205,7 @@ public class s_ws {
                     Intent msg = new Intent(s_ws.NOTIFICATION);
                     msg.putExtra(s_ws.TYPE, s_ws.SERVICE2APP);
                     msg.putExtra(s_ws.PAYLOAD, "login");
+                    msg.putExtra("login_try", true);
                     msg.putExtra("logged_in", mLoggedIn);
                     msg.putExtra("abs", "websocket");
                     mContext.sendBroadcast(msg);

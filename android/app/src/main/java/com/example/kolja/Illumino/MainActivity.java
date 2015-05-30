@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.SparseArray;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.app.Activity;
@@ -36,13 +37,14 @@ public class MainActivity extends Activity {
     SparseArray<areas> data = new SparseArray<areas>();
     private ListAdapter mAdapter;
     private Context mContext;
+    private boolean mLoginShown=false;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mContext=this;
-        settings = getSharedPreferences(PREFS_NAME, 0);
+        settings = getSharedPreferences(PREFS_NAME, MODE_MULTI_PROCESS);
 
         registerReceiver(receiver, new IntentFilter(s_ws.NOTIFICATION));
 
@@ -79,10 +81,12 @@ public class MainActivity extends Activity {
         send_intent.putExtra(s_ws.TYPE,s_ws.APP2SERVICE);
         send_intent.putExtra(s_ws.PAYLOAD,"login_req");
         sendBroadcast(send_intent);
+        Log.i("websocket","---> Activity send login_req to Service");
     }
 
 
     private void show_cam_list() {
+        mLoginShown=false;
         setContentView(R.layout.activity_main);
 
         View view = View.inflate(this, R.layout.expendable_header, null);
@@ -93,44 +97,69 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 //Inform the user the button has been clicked
-                String pw="asd";
-                SharedPreferences.Editor editor = settings.edit();
-                editor.putString("PW", pw);
-                editor.commit();
+                String pw="";
+                settings.edit().putString("PW", pw).apply();
                 // restart service
                 Intent intent = new Intent(mContext, bg_service.class);
                 stopService(intent);
-                startService(intent);
-                req_loggin_status();
+                //startService(intent);
+                //req_loggin_status();
+                show_login();
             }
         });
 
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    /////////////////////// LOGIN PAGE ////////////////////////////////////////
     private void show_login() {
+        mLoginShown=true;
         setContentView(R.layout.login);
-        settings = getSharedPreferences(PREFS_NAME, 0);
-        String login =settings.getString("LOGIN","Kolja");
-        ((Button)findViewById(R.id.login_button)).setOnClickListener(new View.OnClickListener() {
+        // text, that will hold "login failed"
+        TextView login_info=(TextView)findViewById(R.id.login_info);
+        login_info.setText("");
+        // pw field
+        TextView login_pw=(TextView)findViewById(R.id.login_pw);
+        login_pw.setOnKeyListener(new View.OnKeyListener() {
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if ((event.getAction() == KeyEvent.ACTION_DOWN) && (keyCode == KeyEvent.KEYCODE_ENTER)) {
+                    try_login();
+                    return true;
+                }
+                return false;
+            }
+        });
+        // login button
+        Button login_button = (Button)findViewById(R.id.login_button);
+        login_button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //Inform the user the button has been clicked
-                String login=((EditText)((LinearLayout)v.getParent()).findViewById(R.id.login_name)).getText().toString();
-                String pw=((EditText)((LinearLayout)v.getParent()).findViewById(R.id.login_pw)).getText().toString();
-                SharedPreferences.Editor editor = settings.edit();
-                editor.putString("LOGIN", login);
-                editor.putString("PW", pw);
-                editor.commit();
-                mDebug.write_to_file("MainActivity: writing to the sharedPrefereces "+pw);
-                // restart service
-                Intent intent = new Intent(mContext, bg_service.class);
-                stopService(intent);
-                startService(intent);
-                req_loggin_status();
+                try_login();
             }
         });
+        login_button.setImeActionLabel("Sign-in", KeyEvent.KEYCODE_ENTER);
+        // user account
+        settings = getSharedPreferences(PREFS_NAME, 0);
+        String login =settings.getString("LOGIN","Kolja");
         ((EditText)findViewById(R.id.login_name)).setText(login);
     }
+    private void try_login(){
+        //Inform the user the button has been clicked
+        String login=((EditText)findViewById(R.id.login_name)).getText().toString();
+        String pw=((EditText)findViewById(R.id.login_pw)).getText().toString();
+        settings.edit().putString("LOGIN", login).apply();
+        settings.edit().putString("PW", pw).apply();
+        mDebug.write_to_file("MainActivity: writing to the sharedPrefereces " + pw);
+        // restart service
+        Intent intent = new Intent(mContext, bg_service.class);
+        stopService(intent);
+        startService(intent);
+        req_loggin_status();
+        ((Button)findViewById(R.id.login_button)).setEnabled(false);
+    }
+    /////////////////////// LOGIN PAGE ////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+
 
 
 
@@ -156,6 +185,7 @@ public class MainActivity extends Activity {
         unregisterReceiver(receiver);
     }
 
+
     private BroadcastReceiver receiver = new BroadcastReceiver() {
 
         @Override
@@ -174,6 +204,13 @@ public class MainActivity extends Activity {
                             boolean logged_in=bundle.getBoolean("logged_in",false);
                             mDebug.write_to_file("answer came from "+bundle.getString("abs","?"));
 
+
+                            if(logged_in) {
+                                mDebug.write_to_file("---> Activity received info from service, we are logged in");
+                            } else {
+                                mDebug.write_to_file("---> Activity received info from service, we are NOT logged in");
+                            }
+
                             if(logged_in) {
                                 // draw layout
                                 show_cam_list();
@@ -187,7 +224,12 @@ public class MainActivity extends Activity {
                                     sendBroadcast(send_intent);
                                 } catch(Exception ex){}
                             } else {
-                                show_login();
+                                if(mLoginShown){
+                                    ((Button)findViewById(R.id.login_button)).setEnabled(true);
+                                    ((TextView)findViewById(R.id.login_info)).setText("login rejected");
+                                } else {
+                                    show_login();
+                                }
                             }
                         }
                     }
@@ -352,7 +394,7 @@ public class MainActivity extends Activity {
             int firstVis = WebcamView.getFirstVisiblePosition();
             int lastVis = WebcamView.getLastVisiblePosition();
             int count = lastVis - firstVis;
-            for (int i = 0; i <= count; i++) {
+            for (int i = 0; i <= count+1; i++) {
                 x = WebcamView.getChildAt(i);
                 if (x != null) {
                     long packedPosition = WebcamView.getExpandableListPosition(i + firstVis);

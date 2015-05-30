@@ -2,7 +2,9 @@ package com.example.kolja.Illumino;
 
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -323,6 +325,28 @@ public class ListAdapter extends BaseExpandableListAdapter {
         stateLabel.setTag(String.valueOf(groupPosition)+","+String.valueOf(childPosition));
         data.get(groupPosition).m2mList.get(childPosition).stateLabel=stateLabel;
         setState(groupPosition,childPosition);
+
+        stateLabel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String Tag = (String) v.getTag();         // get our gid and cid from the tag
+                String[] TagArray = Tag.split(",");
+                int gid = Integer.parseInt(TagArray[0]);
+                int cid = Integer.parseInt(TagArray[1]);
+
+
+                AlertDialog alertDialog = new AlertDialog.Builder(context).create();
+                alertDialog.setTitle("Alert");
+                alertDialog.setMessage(data.get(gid).m2mList.get(cid).rm_state);
+                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                alertDialog.show();
+            }
+        });
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////
         /////////////////////////////////// Text Field /////////////////////////////////////////////////////
@@ -656,38 +680,17 @@ public class ListAdapter extends BaseExpandableListAdapter {
             textversion+="Error";
         }
 
-        // display it or not? TODO: THIS NEEDS TO BE TESTED, IF IT WORKS INSTALL IT in setUPdate
-        ExpandableListView WebcamView = (ExpandableListView) ((MainActivity)(context)).findViewById(R.id.listScroller);
+        // display it or not? das hier klappt nicht, warum auch immer nicht! aber dafür kann man es viel einfach haben
+        /*ExpandableListView WebcamView = (ExpandableListView) ((MainActivity)(context)).findViewById(R.id.listScroller);
         View v=((MainActivity)context).getView_ifVisible(gid,cid,WebcamView);
         if(v!=null){
             TextView vislabel;
             vislabel = (TextView) v.findViewById(R.id.State);
             vislabel.setText(textversion);
-        }
+        }*/
+        // nämlich so: warum auch immer nun genau klappen muss
+        data.get(gid).m2mList.get(cid).stateLabel.setText(textversion);
 
-//        int firstVis = WebcamView.getFirstVisiblePosition();
-//        int lastVis = WebcamView.getLastVisiblePosition();
-//        int count = lastVis - firstVis;
-//        for(int i=0;i<=count;i++) {
-//            View v = WebcamView.getChildAt(i);
-//            if (v != null) {
-//                long packedPosition = WebcamView.getExpandableListPosition(i + firstVis);
-//                int packedPositionType = ExpandableListView.getPackedPositionType(packedPosition);
-//
-//                if (packedPositionType != ExpandableListView.PACKED_POSITION_TYPE_NULL) {
-//                    int groupPosition = ExpandableListView.getPackedPositionGroup(packedPosition);
-//                    if (packedPositionType == ExpandableListView.PACKED_POSITION_TYPE_CHILD) {
-//                        int childPosition = ExpandableListView.getPackedPositionChild(packedPosition);
-//                        if(groupPosition==gid && childPosition==cid) {
-//
-//                            TextView vislabel;
-//                            vislabel = (TextView) v.findViewById(R.id.State);
-//                            vislabel.setText(textversion);
-//                        }
-//                    }
-//                }
-//            }
-//        }
     }
 
     public void setUpdated(Integer gid, Integer cid){

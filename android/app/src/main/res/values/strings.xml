@@ -6,5 +6,6 @@
     <string name="debug_id">websocket</string>
 
 
-    <color name="area_header_bg">#ffdddddd</color>
+    <color name="area_header_bg">#ffffffff</color>
+    <color name="main_bg">#388E3C</color>
 </resources>

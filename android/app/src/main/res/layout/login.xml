@@ -3,6 +3,7 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/main_bg"
     android:paddingBottom="20dp">
     <ImageButton
         android:id="@+id/logobw"
@@ -54,25 +55,49 @@
         android:id="@+id/login_pw"
         android:layout_gravity="center_horizontal" />
 
-    <TextView
-        android:layout_marginLeft="20dp"
-        android:layout_marginRight="30dp"
-        android:layout_marginBottom="10dp"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="forgot?"
-        android:id="@+id/textView4"
-        android:layout_gravity="right" />
+        android:weightSum="1">
+
+        <TextView
+            android:layout_marginLeft="30dp"
+            android:layout_marginRight="30dp"
+            android:layout_marginBottom="10dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="asdasd"
+            android:textColor="#ffb60000"
+            android:id="@+id/login_info"
+            android:layout_gravity="left"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_marginLeft="20dp"
+            android:layout_marginRight="30dp"
+            android:layout_marginBottom="10dp"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="forgot?"
+            android:id="@+id/textView4"
+            android:layout_gravity="right"
+            android:gravity="right"
+            android:textAlignment="gravity" />
+
+    </LinearLayout>
 
     <Button
         android:layout_marginLeft="20dp"
         android:layout_marginRight="30dp"
         android:layout_marginBottom="10dp"
-        android:layout_width="wrap_content"
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:text="login"
         android:id="@+id/login_button"
+        android:background="@color/main_bg"
         android:layout_gravity="right" />
 
 

@@ -21,7 +21,7 @@
     <color name="accent_material_light">@color/material_deep_teal_500</color>
     <!-- From: file:/home/kolja/Desk/26-illumino/illumino/android/app/src/main/res/values/strings.xml -->
     <eat-comment/>
-    <color name="area_header_bg">#ffdddddd</color>
+    <color name="area_header_bg">#ffffffff</color>
     <!-- From: file:/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.1.1/res/values/values.xml -->
     <eat-comment/>
     <color name="background_floating_material_dark">#ff424242</color>
@@ -46,6 +46,11 @@
     <color name="hint_foreground_material_light">@color/bright_foreground_disabled_material_light</color>
     <color name="link_text_material_dark">@color/material_deep_teal_200</color>
     <color name="link_text_material_light">@color/material_deep_teal_500</color>
+    <!-- From: file:/home/kolja/Desk/26-illumino/illumino/android/app/src/main/res/values/strings.xml -->
+    <eat-comment/>
+    <color name="main_bg">#388E3C</color>
+    <!-- From: file:/home/kolja/Desk/26-illumino/illumino/android/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.1.1/res/values/values.xml -->
+    <eat-comment/>
     <color name="material_blue_grey_800">#ff37474f</color>
     <color name="material_blue_grey_900">#ff263238</color>
     <color name="material_blue_grey_950">#ff21272b</color>
