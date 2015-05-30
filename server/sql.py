@@ -47,6 +47,23 @@ class sql:
 					return self.load_rules(area,account,sub_rules)
 		return result
 	#############################################################
+	def append_rule(self,account,area,conn,arg1,arg2):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "INSERT INTO `alert`.`rules` (`id`, `area`, `account`, `sub_rule`, `conn`, `arg1`, `arg2`) VALUES (NULL, '"+area+"', '"+account+"', '0', '"+str(conn)+"', '"+str(arg1)+"', '"+str(arg2)+"');"
+				cursor.execute(req)
+				self.connection.commit()
+				
+				req = "SELECT LAST_INSERT_ID();"
+				#print(req)
+				cursor.execute(req)
+				result = cursor.fetchone()
+				result = result['LAST_INSERT_ID()']
+		except:
+			result = -1
+		return result
+	#############################################################
 	def rm_rule(self,id):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
@@ -287,7 +304,7 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "INSERT INTO `alert`.`alert_pics` (`id`, `alert_id`, `path`,`ts`) VALUES (NULL, '"+str(m2m.alert.id)+"', '"+str(des_location)+"', '"+str(time.time())+"')"
-				print(req)
+				#print(req)
 				cursor.execute(req)
 				self.connection.commit()
 				result = 0
