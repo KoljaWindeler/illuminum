@@ -55,6 +55,8 @@ class alert_event:
 	def __init__(self):
 		self.ts = 0							# timestamp of the first recogition of the alert
 		self.files = []						# list of filenames for that event
+		self.notification_send = 0			# 0 or 1
+		self.collecting = 0					# 0 or 1
 		self.notification_send_ts = 0		# is the location send ? -1 means send it asap
 		self.files_expected = 5				# wait for 5 pictures till you send a mail
 		self.file_max_timeout_ms = 5000		# wait up to 5sec on pictures and send the mail if they don't appere
