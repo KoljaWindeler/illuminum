@@ -40,7 +40,7 @@ if(!empty($output[0])){	// python serer is running add everything
 							button.onclick=function(){
 								var msg_int=msg_dec;
 								return function(){
-									set_detection(msg_int["account"],msg_int["area"],2);
+									set_detection(msg_int["account"],msg_int["area"],"*");
 								}
 							   }();
 							button.className="button";
@@ -52,7 +52,7 @@ if(!empty($output[0])){	// python serer is running add everything
 							button.onclick=function(){
 								var msg_int=msg_dec;
 								return function(){
-									set_detection(msg_int["account"],msg_int["area"],0);
+									set_detection(msg_int["account"],msg_int["area"],"/");
 								}
 							   }();
 							button.className="button";
@@ -283,7 +283,7 @@ if(!empty($output[0])){	// python serer is running add everything
 			if(con == null) {
 				return;
 			}
-			var cmd_data = { "cmd":"detection", "state":on_off, "area":area, "user":user};
+			var cmd_data = { "cmd":"set_override", "rule":on_off, "area":area, "duration":"-1"};
 			console.log(JSON.stringify(cmd_data));
 			con.send(JSON.stringify(cmd_data));
 		}
