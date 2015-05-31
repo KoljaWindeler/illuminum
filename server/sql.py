@@ -1,4 +1,4 @@
-import pymysql.cursors, time
+import pymysql.cursors, time, p
 
 class sql:
 	def __init__(self):
@@ -24,7 +24,7 @@ class sql:
 	def load_rules(self,area,account,sub_rules):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
-			print("sql has to be called with connect() first")
+			p.rint("sql has to be called with connect() first","d")
 			result = -1
 		else:
 			#print("connection existing")
@@ -39,7 +39,7 @@ class sql:
 					result = cursor.fetchall()
 			except:
 				if(self.connection_check()==0):
-					print("failed to load rules") # failure based on the command, connection ok
+					p.rint("failed to load rules","d") # failure based on the command, connection ok
 					result =-2
 				else:
 					self.connection=""
@@ -67,7 +67,7 @@ class sql:
 	def rm_rule(self,id):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
-			print("sql has to be called with connect() first")
+			p.rint("sql has to be called with connect() first","d")
 			result = -1
 		else:
 			#print("connection existing")
@@ -82,7 +82,7 @@ class sql:
 					result =0
 			except:
 				if(self.connection_check()==0):
-					print("failed to delete rule") # failure based on the command, connection ok
+					p.rint("failed to delete rule","d") # failure based on the command, connection ok
 					result =-2
 				else:
 					self.connection=""
@@ -93,7 +93,7 @@ class sql:
 	def get_data(self,mid):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
-			print("sql has to be called with connect() first")
+			p.rint("sql has to be called with connect() first","d")
 			result = -1
 		else:
 			#print("connection existing")
@@ -115,18 +115,18 @@ class sql:
 						result = cursor.fetchone()
 					else:
 						result=-1
-						print("count not 1")
-						print(req)
+						p.rint("count not 1","d")
+						p.rint(req,"d")
 						exit()
 					#print(result)
 			except:
-				print("exception running self check")
+				p.rint("exception running self check","d")
 				if(self.connection_check()==0):
 					result = -2
-					print("cobnectuon checjlh ==0")
+					p.rint("cobnectuon checjlh ==0","d")
 					exit()
 				else:
-					print("self check return NOT 0")
+					p.rint("self check return NOT 0","d")
 					self.connection=""
 					self.connect()
 					result=self.get_data(mid)

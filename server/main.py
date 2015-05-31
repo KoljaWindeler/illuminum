@@ -58,14 +58,14 @@ def recv_m2m_con_handle(data,m2m):
 	# this function is is used to be callen if a m2m disconnects, we have to update all ws clients
 	#print("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
-		print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' disconneted")
+		p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' disconneted","l")
 		db.update_last_seen_m2m(m2m.mid,"") #<- this returns bad file descriptor
 
 		# try to find that m2m in all ws clients lists, so go through all clients and their lists
 		for ws in server_ws.clients:
 			for viewer in ws.v2m:
 				if(viewer==m2m):
-					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+ws.login+"' from "+m2m.mid)
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+ws.login+"' from "+m2m.mid,"l")
 					ws.v2m.remove(viewer)
 					msg={}
 					msg["cmd"]="disconnect"
@@ -111,14 +111,14 @@ def recv_m2m_msg_handle(data,m2m):
 		enc=json.loads(data)
 	except:
 		enc=""
-		print("-d--> json decoding failed on:" + data)
+		p.rint("-d--> json decoding failed on:" + data,"d")
 
 	#print("m2m:"+str(m2m.port)+"/"+str(m2m.ip))
 	if(type(enc) is dict):
 		# if the message would like to be debugged
 		if(enc.get("debug",0)==1):
 			for key, value in enc.items() :
-				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
+				p.rint("-d-->Key:'"+key+"' / Value:'"+str(value)+"'","d")
 
 		# set last_comm token
 		m2m.last_comm=time.time()
@@ -126,7 +126,7 @@ def recv_m2m_msg_handle(data,m2m):
 		#********* msg handling **************#
 		# assuming that we could decode the message from json to dicc: we have to distingush between the commands:
 		if(m2m.logged_in==0 and enc.get("cmd")!="login" and enc.get("cmd")!="prelogin"):
-			print("[A_m2m "+time.strftime("%H:%M:%S")+"] A client tried to interact without beeing logged in")
+			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] A client tried to interact without beeing logged in","l")
 			# send bad ack
 			msg={}
 			msg["cmd"]=enc.get("cmd")
@@ -155,7 +155,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 			if(type(db_r) is int): #user not found
 				#print("db error")
-				print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("mid"))+"' not found in DB, log-in: failed")
+				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("mid"))+"' not found in DB, log-in: failed","l")
 				msg["ok"]=-3 # not logged in
 			else:
 				h = hashlib.new('ripemd160')
@@ -233,9 +233,15 @@ def recv_m2m_msg_handle(data,m2m):
 							info_viewer+=1
 							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
 					p.m2m_login(m2m,info_viewer)
-					db.update_last_seen_m2m(m2m.mid,m2m.conn.getpeername()[0])
+						
+					try:
+						ip=m2m.conn.getpeername()[0]
+					except:
+						ip="???"
+					db.update_last_seen_m2m(m2m.mid,ip)
+						
 				else:
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' log-in: failed")
+					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' log-in: failed","l")
 					msg["ok"]=-2 # not logged in
 			# send message in any case
 			msg_q_m2m.append((msg,m2m))
@@ -243,7 +249,7 @@ def recv_m2m_msg_handle(data,m2m):
 		#### heartbeat, for M2M
 		elif(enc.get("cmd")=="m2m_hb"):
 			# respond
-			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' HB updating "+str(len(m2m.m2v))+" clients","h")
+			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+m2m.alias+"' HB updating "+str(len(m2m.m2v))+" clients","h")
 			msg={}
 			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
@@ -262,21 +268,6 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### confirm that is changed the state of detection or tell us that there is movement, for M2M
 		elif(enc.get("cmd")=="state_change"):
-			m2m.state=enc.get("state",4)
-			m2m.detection=enc.get("detection",-1)
-			# tell subscribers
-			msg={}
-			msg["mid"]=m2m.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["state"]=m2m.state
-			msg["area"]=m2m.area
-			msg["detection"]=m2m.detection
-			msg["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
-			informed=0
-			for subscriber in m2m.m2v:
-				msg_q_ws.append((msg,subscriber))
-				informed+=1
-
 			# prepare notification system, arm or disarm
 			if(m2m.state==1 and m2m.detection>=1): # state=1 means Alert!
 				#start_new_alert(m2m)
@@ -293,6 +284,21 @@ def recv_m2m_msg_handle(data,m2m):
 				# check_alerts will search for m2m with notification_send_ts==-1
 				m2m.alert.notification_send_ts = 0 # indicate that this is done
 
+			# prepare messages
+			m2m.state=enc.get("state",4)
+			m2m.detection=enc.get("detection",-1)
+			# tell subscribers
+			msg={}
+			msg["mid"]=m2m.mid
+			msg["cmd"]=enc.get("cmd")
+			msg["state"]=m2m.state
+			msg["area"]=m2m.area
+			msg["detection"]=m2m.detection
+			msg["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
+			informed=0
+			for subscriber in m2m.m2v:
+				msg_q_ws.append((msg,subscriber))
+				informed+=1
 
 			# print on console
 			p.change_state(m2m,informed)
@@ -403,11 +409,11 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### unsupported command, for M2M
 		else:
-				print("unsupported command: "+enc.get("cmd"))
+			p.rint("unsupported command: "+enc.get("cmd"),"d")
 		#********* msg handling **************#
 	#### comm error , for M2M
 	else:
-		print("-d--> json decode error")
+		p.rint("-d--> json decode error","d")
 		msg={}
 		msg["cmd"]=enc.get("cmd")
 		msg["ok"]=-1 #comm error
@@ -467,12 +473,12 @@ def recv_ws_con_handle(data,ws):
 	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients and their webcam lists
 	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
-		print("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted")
+		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted","l")
 		# try to find that websockets in all client lists, so go through all clients and their lists
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
 				if(viewer==ws):
-					print("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+ws.login)
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+ws.login,"l")
 					m2m.m2v.remove(viewer)
 
 					# also check if that ws has been one of the watchers of the webfeed
@@ -511,14 +517,14 @@ def recv_ws_msg_handle(data,ws):
 		enc=json.loads(data)
 	except:
 		enc=""
-		print("-d--> json decoding failed on:" + data)
+		p.rint("-d--> json decoding failed on:" + data,"d")
 
 		#print("ws:"+str(ws.port)+"/"+str(ws.ip))
 	if(type(enc) is dict):
 		if(enc.get("debug",0)==1):
-			print("websocket_msg")
+			p.rint("websocket_msg","d")
 			for key, value in enc.items() :
-				print("-d-->Key:'"+key+"' / Value:'"+str(value)+"'")
+				p.rint("-d-->Key:'"+key+"' / Value:'"+str(value)+"'","d")
 
 		#### pre login challange, for WS
 		elif(enc.get("cmd")=="prelogin"):
@@ -574,7 +580,7 @@ def recv_ws_msg_handle(data,ws):
 				connect_ws_m2m("",ws)
 				
 				# check if the same UUID has another open connection
-				if(enc.get("uuid","")!=""):
+				if(ws.uuid!=""):
 					for cli_ws in server_ws.clients:
 						if((cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login) or (cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60))  :
 							#print("disconnecting "+str(cli_ws.login)+" IP "+str(cli_ws.ip)+" as that has the same UUID")
@@ -582,7 +588,11 @@ def recv_ws_msg_handle(data,ws):
 							recv_ws_con_handle("disconnect", cli_ws)
 				
 			else:
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in: failed, '"+ws.login+"'")
+				try:
+					ip=ws.conn.getpeername()[0]
+				except:
+					ip="???"
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in from "+ip+" failed for login '"+ws.login+"', password not correct","l")
 				msg_ws["ok"]=-2 # not logged in
 				msg_q_ws.append((msg_ws,ws))
 
@@ -599,7 +609,7 @@ def recv_ws_msg_handle(data,ws):
 		#### heartbeat, for WS
 		elif(enc.get("cmd")=="ws_hb"):
 			# respond
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' HB","h")
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' HB","h")
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
@@ -661,7 +671,7 @@ def recv_ws_msg_handle(data,ws):
 		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
 		elif(enc.get("cmd")=="update_location"):
 			ws.location=enc.get("loc","")
-			print("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' moved to '"+enc.get("loc")+"'")
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' moved to '"+enc.get("loc")+"'","h")
 			# step 1: update database location for this login
 			db_r=db.update_location(ws.login,enc.get("loc"))
 			# step 2: run all rule checks and update every box on the account
@@ -672,7 +682,7 @@ def recv_ws_msg_handle(data,ws):
 
 		## unsupported cmd, for WS
 		else:
-			print("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+ws.login)
+			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+ws.login,"d")
 #******************************************************#
 
 #******************************************************#
@@ -736,7 +746,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		# 1. get all boxed with the same account
 		all_m2m4account=db.get_m2m4account(ws.account)
 		if(type(all_m2m4account) is int):
-			print("Error getting data for account "+ws.account)
+			p.rint("Error getting data for account "+ws.account,"d")
 		else:
 			# 2. loop through them and make sure that they are not part of the list, that the ws already knows
 			for m2m in all_m2m4account:
@@ -808,7 +818,7 @@ def set_webcam_con(mid,interval,ws):
 					# inform the webcam that we are watching
 					msg_q_m2m.append((msg,m2m))
 
-				print("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+ws.login+" to webcam stream from "+mid)
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+ws.login+" to webcam stream from "+mid,"c")
 					
 			# this clients switched off 
 			else:
@@ -834,7 +844,7 @@ def set_webcam_con(mid,interval,ws):
 							msg["interval"]=sm_interval
 
 						msg_q_m2m.append((msg,m2m))
-						print("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)")
+						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)","c")
 #******************************************************#
 
 #******************************************************#
@@ -875,7 +885,7 @@ def check_alerts():
 					#send_mail.send( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost"):
 					send_mail.send("alert", "oho", cli.alert.files)
 					cli.alert.notification_send_ts=time.time()
-					print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' triggered Email")
+					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' triggered Email","a")
 					ret=0
 					cli.alert.collecting=0
 					cli.alert.notification_send=1
@@ -942,7 +952,7 @@ def rm_check_rules(account,login,use_db):
 							msg2["detection"]=m2m.detection
 							msg_q_ws.append((msg2,ws))
 							affected_ws_clients+=1
-						print("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"' (-> "+str(affected_ws_clients)+" ws clients)")
+						p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"' (-> "+str(affected_ws_clients)+" ws clients)","a")
 						#break DO NOT! MIGHT HAVE MULTIPLE BOXES
 
 #******************************************************#
@@ -1064,7 +1074,7 @@ while 1:
 	if(time.time()>last_rulecheck_ts+60): # this is not a good way .. we should know when we have to call it for a timebased change, not guess it
 		busy=1
 		last_rulecheck_ts=time.time()
-		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] checking","r")
+		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] running periodically 60 sec check","r")
 		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
 		#print(time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5])
 		for acc in rm.data:
