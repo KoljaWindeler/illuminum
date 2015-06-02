@@ -1,5 +1,5 @@
 __author__ = 'kolja'
-import time, datetime
+import time, datetime, p
 
 # 4 # rule_manager, used to hold multiple rule_accounts
 # .data																			list of all "rule_accounts"
@@ -120,15 +120,15 @@ class rule_manager:
 	#############################################################
 	def print_all(self):
 		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
-		print("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered at ts: "+str(now)+"==")
+		p.rint("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered at ts: "+str(now)+"==","r")
 		i=1
 		for a in self.data:
-			print("")
-			print("|+ Account "+str(i)+"/"+str(len(self.data)))
+			p.rint("","r")
+			p.rint("|+ Account "+str(i)+"/"+str(len(self.data)),"r")
 			a.print_account()
 			i+=1
-		print()
-		print("== End of rule manager output ==")
+		p.rint("","r")
+		p.rint("== End of rule manager output ==","r")
 	#############################################################
 	def get_account(self,account):
 		for a in self.data:
@@ -190,13 +190,13 @@ class rule_account:
 		return 0
 	#############################################################
 	def print_account(self):
-		print("|+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:")
+		p.rint("|+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:","r")
 		i=1
 		for a in self.areas:
-			print("||+ Area "+str(i)+"/"+str(len(self.areas)))
+			p.rint("||+ Area "+str(i)+"/"+str(len(self.areas)),"r")
 			a.print_rules()
 			i+=1
-		print("|+ my next timebased trigger event is at '"+str(self.next_ts)+"'")
+		p.rint("|+ my next timebased trigger event is at '"+str(self.next_ts)+"'","r")
 	
 #*************************************#
 # an area is the third animal or second from the bottom
@@ -407,7 +407,7 @@ class area:
 			ret+="none\r\n"
 			
 		if(print_out):
-			print(ret,end="")
+			p.rint(ret,"r")
 			return 0
 		
 		return ret
@@ -466,7 +466,7 @@ class area:
 					break;
 				
 		if(not(self.db.rm_rule(id)==0)):
-			print("Delete rule "+str(id)+" failed")
+			p.rint("Delete rule "+str(id)+" failed","r")
 	#############################################################
 	def eval_rule(self,conn, arg1, arg2, depth, use_db, id):
 		if(depth<0):

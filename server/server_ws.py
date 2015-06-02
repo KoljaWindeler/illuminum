@@ -1,6 +1,6 @@
 #!/usr/bin/env python
  
-import socket, struct,  threading, cgi, time
+import socket, struct,  threading, cgi, time, p
 from clients import ws_clients
 from base64 import b64encode
 from hashlib import sha1
@@ -27,7 +27,7 @@ def recv_data (client, length):
 			callb("disconnect",client)
 		return -1
 	elif(len(data) < 6):
-		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Error reading data")
+		p.rint("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Error reading data","d")
 	else:
 		datalen = (0x7F & data[1])
 		
@@ -79,7 +79,7 @@ def send_data(client, data):
 	try:
 		client.conn.send(msg)
 	except:
-		print("ws send failed")
+		p.rint("ws send failed","d")
 		return -1
 
 	return 0
@@ -164,7 +164,7 @@ def handle (client, addr):
 		#lock.acquire()
 		#[send_data(c, data) for c in clients]
 		#lock.release()
-	print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Client "+client.login+" closed: "+str(client.ip))
+	p.rint("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Client "+client.login+" closed: "+str(client.ip),"l")
 	lock.acquire()
 	if(client in clients):
 		clients.remove(client)
@@ -176,12 +176,12 @@ def start_server ():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', PORT))
 	s.listen(MAX_CLIENTS)
-	print("[S_ws  "+time.strftime("%H:%M:%S")+"] Waiting on ws_clients")
+	p.rint("[S_ws  "+time.strftime("%H:%M:%S")+"] Waiting on ws_clients","l")
 	while 1:
 		conn, addr = s.accept()
 		new_client=ws_clients(conn)
 		clients.append(new_client)
-		print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" ws_clients now")
+		p.rint("[S_ws  "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" ws_clients now","l")
 		threading.Thread(target = handle, args = (new_client,addr)).start()
 		# send every subscr
 		for callb in callback_con:

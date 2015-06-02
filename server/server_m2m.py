@@ -1,6 +1,6 @@
 #!/usr/bin/env python
  
-import socket, struct,  threading, cgi, time, os
+import socket, struct,  threading, cgi, time, os, p
 from clients import m2m_clients
 from base64 import b64encode
 from hashlib import sha1
@@ -18,12 +18,12 @@ def start_server ():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', SERVER_PORT))
 	s.listen(MAX_CONN) # max clients
-	print("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients")
+	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients","l")
 	while 1:
 		conn, addr = s.accept()
 		new_client=m2m_clients(conn)
 		clients.append(new_client)
-		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" m2m_clients now")
+		p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" m2m_clients now","l")
 		threading.Thread(target = handle, args = (new_client, addr)).start()
 		# for what ever that might be good for
 		for callb in callback_con:
@@ -37,7 +37,7 @@ def handle (client, addr):
 		if res<0:
 			#print("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
 			break
-	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr))
+	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr),"l")
 
 	for callb in callback_con:
 		if(callb!=subscribe_callback):
@@ -56,17 +56,17 @@ def recv_data (client, length):
 	try:
 		data = bytearray(client.conn.recv(length))
 	except:	
-		print("recv killed")
+		p.rint("recv killed","d")
 		return -1;
 	#print("[S_m2m] -> Incoming")
 	if(len(data)==0):
-		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client disconnected!")
+		p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client disconnected!","l")
 		return -1
 	
 	try:
 		data_dec=data.decode("UTF-8")
 	except:
-		print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> UTF8 decoding failed!")
+		p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> UTF8 decoding failed!","d")
 		data_dec=""
 	#print("input:"+data_dec+"<-")
 	
@@ -115,7 +115,7 @@ def send_data(client, data):
 		#print('-s-->'+str(msg))
 		client.conn.send(msg)
 	except:
-		print("m2m send data failed")
+		p.rint("m2m send data failed","d")
 		return -1
 
 	return 0
@@ -136,7 +136,7 @@ def send_data_all_clients(data):
 	 
 def stop_server():
 	send_data_all_clients(bytes("shutdown","UTF-8"))
-	print("[S_m2m "+time.strftime("%H:%M:%S")+"] -> shutdown")
+	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> shutdown","d")
 	os._exit(1)
 
 def subscribe_callback(fun,method):

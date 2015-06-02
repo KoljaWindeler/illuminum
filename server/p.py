@@ -30,8 +30,11 @@ def start_listen():
 	print_out.append(poe("h","Heartbeats","Shows the Heartbeats of every client",1))
 	print_out.append(poe("r","Rulemanager","Rulemanager output",0))
 	print_out.append(poe("u","Uploades","Shows every uploaded file",1))
-	print_out.append(poe("l","Login","Shows every login",1))
+	print_out.append(poe("l","Login/logout","Shows every login/logout",1))
 	print_out.append(poe("s","State Change","Shows every state change via movement or rule change",1))
+	print_out.append(poe("d","Debug","Shows errors etc",1))
+	print_out.append(poe("c","Camera","Shows uploads, livestream starts etc",1))
+	print_out.append(poe("a","Alert","Shows alerts, emails etc",1))
 
 	while(1):
 		input=sys.stdin.readline()
@@ -90,6 +93,7 @@ def rint(input,sc):
 		if(a.shortcut==sc):
 			found=1
 			if(a.state==1):
+				input="("+sc+")"+input
 				print(input)
 				
 				input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
@@ -175,8 +179,29 @@ def show_m2m(id,l,m2m):
 
 
 def show_status():
+	i=0
+	p_out=""
+	p_out2=""
 	for a in print_out:
-		print("Shortcut '"+a.shortcut+"' for "+a.name+" is "+str(a.state))
+		p_out2="Shortcut '"+a.shortcut+"' for "+a.name
+		for b in range(0,50):
+			p_out2+="."
+		p_out2=p_out2[0:50]
+		if(a.state):
+			p_out2+=".....active | "
+		else:
+			p_out2+=".not active | "
+		i+=1
+		if(i%2==0):
+			print(p_out+p_out2)
+			p_out2=""
+		else:
+			p_out=p_out2
+	if(p_out!=""):
+		print(p_out)
+		
+	print("")
+		
 
 callback = [subscribe_callback]
 print_out =[]
