@@ -9,7 +9,9 @@ if(!empty($output[0])){	// python serer is running add everything
 	$body.='</h1>';
 	$extra_header='<script type="text/javascript" src="jscolor/jscolor.js"></script>
 		<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-		<script type="text/javascript" src="wsjq.js"></script>';
+		<script type="text/javascript" src="wsjq.js"></script>
+		<script src="jquery-ui.js"></script>
+		<link rel="stylesheet" href="jquery-ui.css">';
 	// Click here: <input class="color {onImmediateChange:\'updateInfo(this);\'}" value="66ff00">';
 	// add ws display stuff
 	$body.='<br>';

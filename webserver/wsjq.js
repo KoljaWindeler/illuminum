@@ -23,28 +23,22 @@ function open_ws() {
 };
 
 
-	
+
 function parse_msg(msg_dec){
 	// console.log(msg_dec);
 	if(msg_dec["cmd"]=="m2v_login"){
+		console.log("m2v_lgogin detected");
 		check_append_m2m(msg_dec);
+		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
+		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
 	}
 
-	else if(msg_dec["cmd"]=="hb"){
-		if($("#"+msg_dec["mid"]+"_hb")!=undefined){
-			var delay=Date.now()-(1000*parseFloat(msg_dec["ts"]));
-			$("#"+msg_dec["mid"]+"_hb").innerHTML=msg_dec["ts"]+" delay "+delay+" ms";
-			console.log("hb ts updated");
-		}
+	else if(msg_dec["cmd"]=="hb_m2m"){
+		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
 	}
 
 	else if(msg_dec["cmd"]=="state_change"){
-		e=$("#"+msg_dec["mid"]+"_state");
-		state=msg_dec["state"];
-		detection=msg_dec["detection"];
-		if(e!=undefined){
-			e.innerHTML=state2str(state)+" || "+det2str(detection);
-		}
+		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
 	}
 
 	else if(msg_dec["cmd"]=="rf"){
@@ -62,16 +56,11 @@ function parse_msg(msg_dec){
 		if(client.length){
 			show_liveview(msg_dec["mid"]);
 		}
-		console.log("searching image");
+
 		img=$("#"+msg_dec["mid"]+"_liveview_pic");
 		if(img.length){
-			console.log("image found");
-			console.log(msg_dec);
 			if(msg_dec["img"]!=""){
-				console.log("content found");
 				img.attr("src","data:image/jpeg;base64,"+msg_dec["img"]);
-			} else if(msg_dec["path"]!=""){
-				img.src="http://192.168.1.80/"+msg_dec["path"];
 			};
 
 		} else {
@@ -82,13 +71,11 @@ function parse_msg(msg_dec){
 	else if(msg_dec["cmd"]=="disconnect"){
 		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
 		var client=$("#"+msg_dec["mid"]);
-							if(area!=undefined){
+		if(area!=undefined){
 			console.log("area gefunden");
 			if(client!=undefined){
 				console.log("client gefunden");
-				$("#"+msg_dec["mid"]+"_state").innerHTML="disconnected"
-				//area.removeChild(client);
-				console.log("entfernt");
+				update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],-1,msg_dec["detection"]);
 			}
 		}
 	}
@@ -103,29 +90,29 @@ function check_append_m2m(msg_dec){
 		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
 		// check if area is already existing
 		if(area.length==0){
-			
-			
+
+
 			/////////////////// CREATE AREA ////////////////////////////(
 			var node=$("<p></p>");
 			node.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"],
 				"class": "area_header"
 			});
-			
+
 			var text=$("<p></p>").text(msg_dec["area"]);
 			text.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_title",
 				"class": "area_title"
 			});
 			node.append(text);
-			
+
 			text=$("<p></p>").text(det2str(msg_dec["detection"]));
 			text.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_status",
 				"class": "area_status"
 			});
 			node.append(text);
-			
+
 			var button=document.createElement("A");
 			button.setAttribute("id",+msg_dec["account"]+"_"+msg_dec["area"]+"_on");
 			button.className="button";
@@ -135,7 +122,7 @@ function check_append_m2m(msg_dec){
 				return function(){
 					set_detection(msg_int["account"],msg_int["area"],"*");
 				}
-			   }();
+			}();
 
 			node.append(button);
 
@@ -146,7 +133,7 @@ function check_append_m2m(msg_dec){
 				return function(){
 					set_detection(msg_int["account"],msg_int["area"],"/");
 				}
-			   }();
+			}();
 			button.className="button";
 			button.text="Detection off";
 			node.append(button);
@@ -167,15 +154,15 @@ function check_append_m2m(msg_dec){
 			"id":msg_dec["mid"],
 			"class":"area_m2m"
 		});
-		
+
 		var text=$("<div></div>").text(state2str(msg_dec["state"]));
 		text.attr({
 			"id" : msg_dec["mid"]+"_state",
 			"class": "m2m_text"
 		});
 		node.append(text);
-			
-		text=$("<div></div>").text("Last ping:"+msg_dec["last_seen"]);
+
+		text=$("<div></div>").text("--");
 		text.attr({
 			"id" : msg_dec["mid"]+"_lastseen",
 			"class": "m2m_text"
@@ -193,7 +180,7 @@ function check_append_m2m(msg_dec){
 		button.className="button";
 		button.text="Livestream";
 		node.append(button);
-		
+
 		button=document.createElement("A");
 		button.setAttribute("id",+msg_dec["mid"]+"_toggle_lightcontrol");
 		button.onclick=function(){
@@ -205,7 +192,7 @@ function check_append_m2m(msg_dec){
 		button.className="button";
 		button.text="lightcontrol";
 		node.append(button);
-		
+
 		button=document.createElement("A");
 		button.setAttribute("id",+msg_dec["mid"]+"_toggle_alarms");
 		button.onclick=function(){
@@ -217,61 +204,6 @@ function check_append_m2m(msg_dec){
 		button.className="button";
 		button.text="alarms";
 		node.append(button);
-		
-		//var cs=document.createElement("input");
-		//cs.setAttribute("id",+msg_dec["mid"]+"_img");
-		//cs.className="color";
-		//cs.value="66ff00";
-		//node.append(cs);
-
-		/*button=document.createElement("A");
-		button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
-		button.onclick=function(){
-			var msg_int=msg_dec;
-			return function(){
-				set_interval(msg_int["mid"],0.01);
-			}
-		}();
-		button.className="button";
-		button.text="Webcam 0.1s";
-		node.append(button);
-
-		var button=document.createElement("A");
-		button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
-		button.onclick=function(){
-			var msg_int=msg_dec;
-			return function(){
-				set_interval(msg_int["mid"],1);
-			}
-		}();
-		button.className="button";
-		button.text="Webcam 1s";
-		node.append(button);
-
-		var button=document.createElement("A");
-		button.setAttribute("id",+msg_dec["mid"]+"_set_interval_2");
-		button.onclick=function(){
-			var msg_int=msg_dec;
-			return function(){
-				set_interval(msg_int["mid"],5);
-			}
-		}();
-		button.className="button";
-		button.text="Webcam 5s";
-		node.append(button);
-
-
-		button=document.createElement("A");
-		button.setAttribute("id",+msg_dec["mid"]+"_set_interval_0");
-		button.onclick=function(){
-			var msg_int=msg_dec;
-			return function(){
-				set_interval(msg_int["mid"],0);
-			}
-		}();
-		button.className="button";
-		button.text="Webcam off";
-		node.append(button);*/
 
 		////////////////// LIVE VIEW ////////////////////////////
 		liveview=$("<div></div>").text("this is the liveview");
@@ -280,7 +212,7 @@ function check_append_m2m(msg_dec){
 		});
 		liveview.hide();
 		node.append(liveview);
-		
+
 		var img=$("<img></img>");
 		img.attr({
 			"src" : "https://www.google.de/images/srpr/logo11w.png",
@@ -288,7 +220,7 @@ function check_append_m2m(msg_dec){
 		});
 		liveview.append(img);
 		////////////////// LIVE VIEW ////////////////////////////
-		
+
 		////////////////// COLOR SLIDER ////////////////////////////
 		lightcontrol=$("<div></div>").text("this is the lightcontrol");
 		lightcontrol.attr({
@@ -296,23 +228,57 @@ function check_append_m2m(msg_dec){
 		});
 		lightcontrol.hide();
 		node.append(lightcontrol);
-		
-		var img=$("<img></img>");
-		img.attr({
-			"src" : "https://www.google.de/images/srpr/logo11w.png",
-		});
-		lightcontrol.append(img);
-		
-		var slider=$("<div></div>");
-		slider.attr({
-			"style" : "width: 300px",
-			"id": "slider1"
-		});
-		lightcontrol.append(slider);
-		
-		$('#slider1').slider({min:10, max:100, value:20});
+
+		var scroller=$("<div></div>");
+		scroller.append(createRainbowDiv(100));
+		scroller.css("width","500px").css("height","20px");
+		lightcontrol.append(scroller);
+
+		scroller=$("<div></div>");
+		scroller.attr("id","colorslider_"+msg_dec["mid"]);
+		scroller.css("clear","left");
+		scroller.css("width","500px");
+		scroller.slider({min:0, max:255, value:msg_dec["color_pos"], 
+			slide:function(){
+				var msg_int=msg_dec;
+				return function(){
+					refreshSwatch(msg_int["mid"]);
+				};
+			}(), 
+			change:function(){
+				var msg_int=msg_dec;
+				return function(){
+					refreshSwatch(msg_int["mid"]);
+				};
+			}()});
+		lightcontrol.append(scroller);
+
+		scroller=$("<div></div>");
+		scroller.append(createRainbowDiv(0));
+		scroller.css("width","500px").css("height","20px");
+		lightcontrol.append(scroller);
+
+		scroller=$("<div></div>");
+		scroller.attr("id","brightnessslider_"+msg_dec["mid"]);
+		scroller.css("clear","left");
+		scroller.css("width","500px");
+		scroller.slider({min:0, max:255, value:msg_dec["brightness_pos"], 
+			slide:function(){
+				var msg_int=msg_dec;
+				return function(){
+					refreshSwatch(msg_int["mid"]);
+				};
+			}(), 
+			change:function(){
+				var msg_int=msg_dec;
+				return function(){
+					refreshSwatch(msg_int["mid"]);
+				};
+			}()});
+		lightcontrol.append(scroller);
+
 		////////////////// COLOR SLIDER ////////////////////////////
-		
+
 		////////////////// ALARM MANAGER ////////////////////////////
 		alarms=$("<div></div>").text("this is the alarms");
 		alarms.attr({
@@ -320,7 +286,7 @@ function check_append_m2m(msg_dec){
 		});
 		alarms.hide();
 		node.append(alarms);
-		
+
 		var img=$("<img></img>");
 		img.attr({
 			"src" : "https://www.google.de/images/srpr/logo11w.png",
@@ -328,8 +294,8 @@ function check_append_m2m(msg_dec){
 		alarms.append(img);
 		////////////////// ALARM MANAGER ////////////////////////////
 		//<div style="width: 300px;" id="slider1"></div>
-		
-		
+
+
 		area.append(node);
 		console.log("hb feld in client angebaut");
 		/////////////////// CREATE M2M ////////////////////////////(
@@ -464,7 +430,7 @@ function set_interval(mid,interval){
 				setTimeout(function(){
 					//do what you need here
 					client.removeChild(img);
-				}, 1000)
+				}, 1000);
 			}
 		}
 	} else {
@@ -506,4 +472,66 @@ function send(app,cmd) {
 	var cmd_data = { "cmd":cmd, "app":app};
 	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
+}
+
+function createRainbowDiv(s){
+	var gradient = $("<div>").css({display:"flex", height:"100%"});
+	if(s>0){
+		for (var i = 0; i<=255; i++){
+			gradient.append($("<div>").css({"background-color":'hsl('+i+','+s+'%,50%)',flex:1}));
+		}
+	} else {
+		for (var i = 0; i<=255; i++){
+			gradient.append($("<div>").css({"background-color":'rgb('+i+','+i+','+i+')',flex:1}));
+		}
+	}
+	return gradient;
+}
+
+function refreshSwatch(mid) {
+	var c=($("<a>").css({"background-color":'hsl('+$( "#colorslider_"+mid ).slider( "value" )+',100%,50%)'})).css("background-color");
+	var rgb = c.replace(/^(rgb|rgba)\(/,'').replace(/\)$/,'').replace(/\s/g,'').split(',');
+	if($.isNumeric(rgb[0])){
+		var color=$("#colorslider_"+mid).slider( "value" );
+		var brightness=$("#brightnessslider_"+mid).slider( "value" );
+		var mul=brightness/255;
+
+		var cmd_data = { 
+				"cmd":"set_color", 
+				"r":parseInt(rgb[0]*mul), 
+				"g":parseInt(rgb[1]*mul),
+				"b":parseInt(rgb[2]*mul),
+				"brightness_pos":brightness,
+				"color_pos":color,
+				"mid":mid};
+		con.send(JSON.stringify(cmd_data));
+	}
+}
+
+function update_hb(mid,ts){
+	console.log("looking for hb field");
+	if($("#"+mid+"_lastseen").length){
+		console.log("ffound ");
+		var a = new Date(parseFloat(ts)*1000);
+		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes(); 
+		var hour = a.getHours();
+
+		var delay=(Date.now()-(1000*parseFloat(ts)))/1000;
+		var text = "Last Ping "+hour+":"+min+" - delay "+delay+" sec";
+		$("#"+mid+"_lastseen").text(text);
+		console.log("hb ts updated");
+	}
+}
+
+function update_state(account,area,mid,state,detection){
+	console.log("running update state on "+mid+"/"+state);
+	e=$("#"+mid+"_state");
+	if(e.length){
+		e.text(state2str(state)+" || "+det2str(detection));
+	}
+	
+	e=$("#"+account+"_"+area+"_status");
+	if(e.length){
+		e.text(det2str(detection));
+	}
 }
