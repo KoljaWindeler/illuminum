@@ -6,17 +6,19 @@ h1{color:#fff;font-size:30px;font-weight:bold;text-shadow:0 1px 4px rgba(0,0,0,0
 
 
 p.area_header {
-    text-align: center;
-   background-color: #b0c4de;
-   margin-left: 2cm;
-   margin-right: 2cm;
+	text-align: center;
+	background-color: #b0c4de;
+	margin-left: 2cm;
+	margin-right: 2cm;
+	padding-bottom: 1cm;
+	padding-top: .3cm;
 }
 
 p.area_m2m {
 	text-align: left;
-   background-color: #dddddd;
+	background-color: #dddddd;
 	margin-left: 2cm;
-   margin-right: 2cm;
+	margin-right: 2cm;
 }
 
 p.area_status{
