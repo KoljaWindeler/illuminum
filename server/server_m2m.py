@@ -1,5 +1,5 @@
 #!/usr/bin/env python
- 
+from OpenSSL import SSL 
 import socket, struct,  threading, cgi, time, os, p
 from clients import m2m_clients
 from base64 import b64encode
@@ -14,13 +14,20 @@ def start():
 
 #******************************************************#
 def start_server ():
-	s = socket.socket()
-	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	context = SSL.Context(SSL.TLSv1_METHOD)
+	context.use_privatekey_file('key')
+	context.use_certificate_file('cert')
+	
+	s_n = socket.socket()
+	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	s = SSL.Connection(context, s_n)
+
 	s.bind(('', SERVER_PORT))
 	s.listen(MAX_CONN) # max clients
 	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients","l")
 	while 1:
 		conn, addr = s.accept()
+		#print(conn.recv(65535))
 		new_client=m2m_clients(conn)
 		clients.append(new_client)
 		p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" m2m_clients now","l")
