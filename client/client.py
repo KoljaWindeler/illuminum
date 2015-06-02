@@ -1,3 +1,4 @@
+import OpenSSL
 import socket,os,time,json,base64, datetime
 import hashlib,select,trigger,uuid
 import sys,light
@@ -68,6 +69,11 @@ def trigger_handle(event,data):
 		if(trigger.get_interval()==0):
 			if(my_detection==0 and my_state==1): # deactive and motion
 				light_dimming_q.append((time.time(),mRed,mGreen,mBlue,4000)) # 4 sec to dimm to warm orange - now
+				# remove all eventueally further dimmm off's
+				for l in light_dimming_q:
+					if(l[1]==0 and l[2]==0 and l[3]==0):
+						light_dimming_q.remove(l)
+						
 			elif(my_detection==0 and my_state==0): # deactive and no motion
 				print("back to lights off")
 				delay_off=5*60 # usually 5 min
@@ -145,7 +151,9 @@ def upload_file(data):
 #******************************************************#
 def connect():
 	print("[A "+time.strftime("%H:%M:%S")+"] -> connecting ...")
-	c_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	context = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)	
+	c_socket = OpenSSL.SSL.Connection(context,s)
 	try:
 		c_socket.connect((SERVER_IP, SERVER_PORT))
 	except:
@@ -386,7 +394,7 @@ while 1:
 					if(json.loads(send_msg).get("sof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn"))
 				try:
-					client_socket.send(send_msg.encode("UTF-8"))
+					client_socket.write(send_msg.encode("UTF-8"))
 				except:
 					client_socket=""
 					print("init reconnect")
