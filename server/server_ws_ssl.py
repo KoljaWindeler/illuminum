@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#from OpenSSL import SSL
+from OpenSSL import SSL
 import socket, struct,  threading, cgi, time, p, sys
 from clients import ws_clients
 from base64 import b64encode
@@ -40,7 +40,8 @@ MAXPAYLOAD = 33554432
 
 #************* EXPOSED METHODS *****************************************# 
 def send_data(client, data):
-	client.ws.sendMessage(data)
+	if client in clients:
+		client.ws.sendMessage(data)
  
 def send_data_all_clients(data):
 	rem_clients = []
@@ -254,7 +255,7 @@ class WebSocket(object):
 
 		if self.opcode == CLOSE:
 			status = 1000
-			reason = u''
+			reason = ''
 			length = len(self.data)
 
 			if length == 0:
@@ -314,7 +315,7 @@ class WebSocket(object):
 				if self.frag_type == TEXT:
 					utf_str = self.frag_decoder.decode(self.data, final = True)
 					self.frag_buffer.append(utf_str)
-					self.data = u''.join(self.frag_buffer)
+					self.data = ''.join(self.frag_buffer)
 				else:
 					self.frag_buffer.extend(self.data)
 					self.data = self.frag_buffer
@@ -405,7 +406,7 @@ class WebSocket(object):
 			for d in data:
 				self._parseMessage(d)
 
-	def close(self, status = 1000, reason = u''):
+	def close(self, status = 1000, reason = ''):
 		"""
 			Send Close frame to the client. The underlying socket is only closed 
 			when the client acknowledges the Close frame. 
@@ -417,7 +418,7 @@ class WebSocket(object):
 			if self.closed is False:
 				close_msg = bytearray()
 				close_msg.extend(struct.pack("!H", status))
-				if isinstance(reason, unicode):
+				if type(reason)==bytes:
 					close_msg.extend(reason.encode('utf-8'))
 				else:
 					close_msg.extend(reason)
@@ -458,46 +459,49 @@ class WebSocket(object):
 			Subsequent data should be sent using sendFragment().
 			A fragment stream is completed when sendFragmentEnd() is called.
 			
-			If data is a unicode object then the frame is sent as Text.
+			If data is a str object then the frame is sent as Text.
 			If the data is a bytearray object then the frame is sent as Binary. 
 		"""
 		opcode = BINARY
-		if isinstance(data, unicode):
+		if type(data)==bytes:
 			opcode = TEXT
 		self._sendMessage(True, opcode, data)
 
 	def sendFragment(self, data):
-		"""
-			see sendFragmentStart()
-			
-			If data is a unicode object then the frame is sent as Text.
-			If the data is a bytearray object then the frame is sent as Binary. 
-		"""
+		#
+		#	see sendFragmentStart()
+		#	
+		#	If data is a str object then the frame is sent as Text.
+		#	If the data is a bytearray object then the frame is sent as Binary. 
+		#
 		self._sendMessage(True, STREAM, data)
 
 	def sendFragmentEnd(self, data):
-		"""
-			see sendFragmentEnd()
-			
-			If data is a unicode object then the frame is sent as Text.
-			If the data is a bytearray object then the frame is sent as Binary. 
-		"""			
+		#
+		#	see sendFragmentEnd()
+		#	
+		#	If data is a str object then the frame is sent as Text.
+		#	If the data is a bytearray object then the frame is sent as Binary. 
+		#			
 		self._sendMessage(False, STREAM, data)
 
 	def sendMessage(self, data):
-		"""
-			Send websocket data frame to the client.
-			
-			If data is a unicode object then the frame is sent as Text.
-			If the data is a bytearray object then the frame is sent as Binary. 
-		"""
+		#
+		#	Send websocket data frame to the client.
+		#	
+		#	If data is a str object then the frame is sent as Text.
+		#	If the data is a bytearray object then the frame is sent as Binary. 
+		#"
 		opcode = BINARY
-		if isinstance(data, unicode):
+		if type(data)==bytes:
+			opcode = TEXT
+		elif type(data)==str:
 			opcode = TEXT
 		self._sendMessage(False, opcode, data)
 	
 
 	def _sendMessage(self, fin, opcode, data):
+		#print("this is _sendMessage and my opcode is "+str(opcode))
 		header = bytearray()
 		b1 = 0
 		b2 = 0
@@ -505,7 +509,7 @@ class WebSocket(object):
 			b1 |= 0x80
 		b1 |= opcode
 		
-		if isinstance(data, unicode):
+		if type(data)==str:
 			data = data.encode('utf-8')
 		
 		length = len(data)
@@ -525,11 +529,10 @@ class WebSocket(object):
 			header.append(b2)
 			header.extend(struct.pack("!Q", length))
 		
-		payload = None
+		payload = header
 		if length > 0:		
-			payload = str(header) + str(data)
-		else:
-			payload = str(header)
+			for d in bytearray(data):
+				payload.append(d)
 		
 		self.sendq.append((opcode, payload))
 
