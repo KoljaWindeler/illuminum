@@ -402,10 +402,10 @@ while 1:
 					remaining=len(send_msg_enc)
 					while(remaining>0):
 						sent=client_socket.write(send_msg[already_sent:])
-						if(sent==0):
-							print("sent 0 bytes, socket broken")
-						else:
-							print("sent "+str(sent))
+						#if(sent==0):
+						#	print("sent 0 bytes, socket broken")
+						#else:
+						#	print("sent "+str(sent))
 						already_sent += sent
 						remaining -= sent
 				except:
