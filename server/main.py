@@ -1,7 +1,6 @@
 import time,json,os,base64,hashlib,string,random
 from clients import alert_event,webcam_viewer,det_state
 import server_m2m
-import server_ws_ssl
 import server_ws
 import send_mail
 import p
@@ -707,11 +706,8 @@ def snd_ws_msg_dq_handle():
 		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
 		msg_q_ws.remove(data)
 		cli.snd_q_len=max(0,cli.snd_q_len-1)
-		server_ws_ssl.send_data(cli,json.dumps(msg).encode("UTF-8"))
 		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
 			recv_ws_con_handle("disconnect",cli)
-		#if(server_ws_ssl.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
-			#recv_ws_con_handle("disconnect",cli)
 	return ret
 #******************************************************#
 #***************************************************************************************#
@@ -732,9 +728,11 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 	if(m2m!=""): # first lets assume that we shall connect a given pair right here
 		# add us to their (machine to viewer) list, to be notified whats going on
 		if(update_m2m):
-			m2m.m2v.append(ws)
+			if not(ws in m2m.m2v):
+				m2m.m2v.append(ws)
 			# and add them to us to give us the change to tell them if they should be sharp or not
-			ws.v2m.append(m2m)
+			if not(m2m in ws.v2m):
+				ws.v2m.append(m2m)
 		# send a nice and shiny message to the viewer to tell him what boxes are online,
 		p.connect_ws_m2m(m2m,ws)
 		msg_ws2={}
@@ -802,6 +800,7 @@ def set_webcam_con(mid,interval,ws):
 	msg={}
 	msg["cmd"]="set_interval"
 	#search for the m2m module that shall upload the picture to the ws
+
 	for m2m in ws.v2m:
 		if(m2m.mid==mid):
 			#print("habe die angeforderte MID in der clienten liste vom ws gefunden")
@@ -1030,10 +1029,6 @@ msg_q_ws=[] 		# outgoing
 server_ws.start()
 server_ws.subscribe_callback(recv_ws_msg_q_handle,"msg")
 server_ws.subscribe_callback(recv_ws_con_q_handle,"con")
-
-server_ws_ssl.start()
-server_ws_ssl.subscribe_callback(recv_ws_msg_q_handle,"msg")
-server_ws_ssl.subscribe_callback(recv_ws_con_q_handle,"con")
 
 # DB Structure used for the login
 db=sql()
