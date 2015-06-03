@@ -2,3 +2,5 @@
 *.pyc
 *project
 log.txt
+cert
+key
