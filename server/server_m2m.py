@@ -24,7 +24,7 @@ def start_server ():
 
 	s.bind(('', SERVER_PORT))
 	s.listen(MAX_CONN) # max clients
-	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients","l")
+	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients on port "+str(SERVER_PORT),"l")
 	while 1:
 		conn, addr = s.accept()
 		#print(conn.recv(65535))
