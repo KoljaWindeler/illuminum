@@ -44,6 +44,7 @@ class ws_clients:
 		self.snd_q_len=0					# messages in queue for this ws
 		self.challange=""					# challange for the login
 		self.location=""
+		self.ws=None
 
 class webcam_viewer:
 	def __init__(self,cli):
