@@ -9,16 +9,21 @@ $(function(){
 
 
 function open_ws() {
-	con = new WebSocket('ws://192.168.1.80:9876/');
+	con = new WebSocket('wss://192.168.1.80:9879/');
 	con.onopen = function(){
+		console.log("onOpen");
 		login("browser","hui");
 	};
 
 	// reacting on incoming messages
 	con.onmessage = function(msg) {
-		// console.log("Message");
+		console.log("Message");
+		console.log(msg);
 		msg_dec=JSON.parse(msg.data);
 		parse_msg(msg_dec);
+	};
+	con.onclose = function(){
+		console.log("onClose");
 	};
 };
 
