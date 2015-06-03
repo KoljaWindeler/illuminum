@@ -123,6 +123,8 @@ def upload_file(data):
 		msg["cmd"]="wf"
 		msg["fn"]=path
 		msg["data"]=base64.b64encode(strng).decode('utf-8')
+		#for i in range(0,1280*20):
+		#	msg["data"]+="."
 		msg["sof"]=0
 		if(i==0):
 			msg["sof"]=1
@@ -393,8 +395,19 @@ while 1:
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("sof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn"))
+
+				send_msg_enc=send_msg.encode("UTF-8")
 				try:
-					client_socket.write(send_msg.encode("UTF-8"))
+					already_sent=0
+					remaining=len(send_msg_enc)
+					while(remaining>0):
+						sent=client_socket.write(send_msg[already_sent:])
+						#if(sent==0):
+						#	print("sent 0 bytes, socket broken")
+						#else:
+						#	print("sent "+str(sent))
+						already_sent += sent
+						remaining -= sent
 				except:
 					client_socket=""
 					print("init reconnect")
