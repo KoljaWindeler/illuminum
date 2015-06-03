@@ -214,6 +214,8 @@ class sql:
 					cursor.execute(req)
 					result = cursor.fetchone()
 				else: 
+					p.rint("Count!=1","d")
+					p.rint(req,"d")
 					return -1
 		except:
 			result = -1
@@ -308,6 +310,18 @@ class sql:
 				cursor.execute(req)
 				self.connection.commit()
 				result = 0
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_open_alerts(self, account,detail_level):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `COUNT(')` FROM  `alerts` WHERE  `account` =  "+account+" and `ack`=0"
+				cursor.execute(req, (str(account)))
+				result = cursor.fetchone()
+				result['TODO']
 		except:
 			result = -1
 		return result
