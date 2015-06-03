@@ -1,6 +1,7 @@
 import time,json,os,base64,hashlib,string,random
 from clients import alert_event,webcam_viewer,det_state
 import server_m2m
+import server_ws_ssl
 import server_ws
 import send_mail
 import p
@@ -72,6 +73,7 @@ def recv_m2m_con_handle(data,m2m):
 					msg["mid"]=m2m.mid
 					msg["area"]=m2m.area
 					msg["account"]=m2m.account
+					msg["detection"]=m2m.detection
 					msg_q_ws.append((msg,ws))
 		try:
 			server_m2m.clients.remove(m2m)
@@ -219,6 +221,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 					# get detecion state based on db
 					db_r2=db.get_state(m2m.area,m2m.account)
+					#FIND ME
 					m2m.detection=int(db_r2["state"])
 					msg["detection"]=m2m.detection
 
@@ -268,6 +271,9 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### confirm that is changed the state of detection or tell us that there is movement, for M2M
 		elif(enc.get("cmd")=="state_change"):
+			m2m.state=enc.get("state",4)
+			m2m.detection=enc.get("detection",-1)
+			
 			# prepare notification system, arm or disarm
 			if(m2m.state==1 and m2m.detection>=1): # state=1 means Alert!
 				#start_new_alert(m2m)
@@ -285,14 +291,17 @@ def recv_m2m_msg_handle(data,m2m):
 				m2m.alert.notification_send_ts = 0 # indicate that this is done
 
 			# prepare messages
-			m2m.state=enc.get("state",4)
-			m2m.detection=enc.get("detection",-1)
 			# tell subscribers
 			msg={}
+			#res=db.get_open_alerts(m2m.account,0)
+			#for key, value in res:
+			#	msg[key]=value
+			
 			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
 			msg["state"]=m2m.state
 			msg["area"]=m2m.area
+			msg["account"]=m2m.account
 			msg["detection"]=m2m.detection
 			msg["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 			informed=0
@@ -625,7 +634,7 @@ def recv_ws_msg_handle(data,ws):
 			msg["r"]=enc.get("r")
 			msg["g"]=enc.get("g")
 			msg["b"]=enc.get("b")
-			for m2m in server_m2m.clients:
+			for m2m in ws.v2m:
 				if(enc.get("mid")==m2m.mid):
 					db.update_color(m2m,int(enc.get("r")),int(enc.get("g")),int(enc.get("b")),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
 					
@@ -698,8 +707,11 @@ def snd_ws_msg_dq_handle():
 		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
 		msg_q_ws.remove(data)
 		cli.snd_q_len=max(0,cli.snd_q_len-1)
+		server_ws_ssl.send_data(cli,json.dumps(msg).encode("UTF-8"))
 		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
 			recv_ws_con_handle("disconnect",cli)
+		#if(server_ws_ssl.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
+			#recv_ws_con_handle("disconnect",cli)
 	return ret
 #******************************************************#
 #***************************************************************************************#
@@ -998,6 +1010,11 @@ def helper_output(input):
 #***************************************************************************************#
 #************************************** Variables **************************************#
 #***************************************************************************************#
+
+# our helper for the console
+p.start()
+p.subscribe_callback(helper_output)
+
 # M2M structures
 recv_m2m_msg_q=[]	# incoming
 recv_m2m_con_q=[]	# incoming
@@ -1014,16 +1031,16 @@ server_ws.start()
 server_ws.subscribe_callback(recv_ws_msg_q_handle,"msg")
 server_ws.subscribe_callback(recv_ws_con_q_handle,"con")
 
+server_ws_ssl.start()
+server_ws_ssl.subscribe_callback(recv_ws_msg_q_handle,"msg")
+server_ws_ssl.subscribe_callback(recv_ws_con_q_handle,"con")
+
 # DB Structure used for the login
 db=sql()
 db.connect()
 
 # our rule set maanger for all clients. Argument is the callback function
 rm = rule_manager()
-
-# our helper for the console
-p.start()
-p.subscribe_callback(helper_output)
 
 
 # else
