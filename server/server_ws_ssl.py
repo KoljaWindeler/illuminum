@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-from OpenSSL import SSL
+#from OpenSSL import SSL
 import socket, struct,  threading, cgi, time, p, sys
 from clients import ws_clients
 from base64 import b64encode
 from hashlib import sha1
 
-import SocketServer
 import hashlib
 import base64
 import socket
@@ -15,24 +14,12 @@ import sys
 import errno
 import codecs
 from collections import deque
-from BaseHTTPServer import BaseHTTPRequestHandler
-from StringIO import StringIO
 from select import select
 
-MAX_SIZE_RECV=1024000
 PORT=9879
 MAX_CLIENTS=5
 
 _VALID_STATUS_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011, 3000, 3999, 4000, 4999]
-
-HANDSHAKE_STR = (
-	"HTTP/1.1 101 Switching Protocols\r\n"
-	"Upgrade: WebSocket\r\n"
-	"Connection: Upgrade\r\n"
-	"Sec-WebSocket-Accept: %(acceptstr)s\r\n\r\n"
-)
-
-GUID_STR = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
 STREAM = 0x0
 TEXT = 0x1
@@ -51,59 +38,10 @@ PAYLOAD = 7
 MAXHEADER = 65536
 MAXPAYLOAD = 33554432
 
-#******************************************************#
-def recv_data (client, length):
-	#print("Wait on data")
-	if(handshake(client)>0):
-		#print('[S_ws] -> done')
-		ignore=0
-		
-	
-	try:
-		data = bytearray(client.conn.recv(MAX_SIZE_RECV))
-	except:
-		data=""
-	#print("[ws] -> Incoming")
-	if(len(data)==0):
-		#print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> len=0 ==> disconnect")
-		for callb in callback_con:
-			callb("disconnect",client)
-		return -1
-	elif(data[0]!=129):
-		#print("[S_ws  "+time.strftime("%H:%M:%S")+"] -> regular disconnect")
-		for callb in callback_con:
-			callb("disconnect",client)
-		return -1
-	elif(len(data) < 6):
-		p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Error reading data","d")
-	else:
-		datalen = (0x7F & data[1])
-		
-		if(datalen > 6): #fin,length,4xmask,?
-			#print("datalen: %d"%datalen)
-			indexFirstMask=2
-			if(datalen==126):
-				indexFirstMask+=2
-			elif(datalen==127):
-				indexFirstMask+=8
-
-			mask_key = data[indexFirstMask:indexFirstMask+4]
-			masked_data = data[indexFirstMask+4:(indexFirstMask+4+datalen)]
-			unmasked_data=""
-			for i in range(0,len(masked_data),1):
-				unmasked_data+=(chr(masked_data[i] ^ mask_key[i%4]))
-		
-			#print("Message:")
-			#print(str_data)
-			#print("EOM")
-			for callb in callback_msg:
-				callb(unmasked_data,client)
-		return 0
-	return -3
-	#end
+#************* EXPOSED METHODS *****************************************# 
+def send_data(client, data):
+	client.ws.sendMessage(data)
  
-
-
 def send_data_all_clients(data):
 	rem_clients = []
 	id_max=len(clients)
@@ -117,15 +55,19 @@ def send_data_all_clients(data):
 		if(i in clients):
 			clients.remove(i)
 	lock.release()
-	
+#************* EXPOSED METHODS *****************************************#
 
-def handle (client, addr):
-	lock = threading.Lock()
+#************* HANDLE CONNECTION *****************************************#
+def handle (client,addr):
+	#lock = threading.Lock()
 	while 1:
-		rList, wList, xList = select(client.conn, client.conn, client.conn, 3)
+		try:
+			rList, wList, xList = select([client.ws.sock], [client.ws.sock], [client.ws.sock], 3)
+		except:
+			break;
 		
-		for ready in wList:
-			client = None
+		######################## SEND ###########################
+		if(len(wList)>0):
 			try:
 				while client.ws.sendq:
 					opcode, payload = client.ws.sendq.popleft()
@@ -135,101 +77,79 @@ def handle (client, addr):
 						break
 					else:
 						if opcode == CLOSE:
-							raise Exception("received client close")
-
+							for callb in callback_con:
+								callb("disconnect",client)
 			except Exception as n:
-				if client.conn:
-					client.conn.close()
+				for callb in callback_con:
+					callb("disconnect",client)
+					
+				if client.ws.sock:
+					client.ws.sock.close()
 				
 				try:
-					if client:
-						client.handleClose()
+					for callb in callback_con:
+						callb("disconnect",client)
 				except:
 					pass
 
 				try:
-					del self.connections[ready]
+					clients.remove(client)
 				except:
 					pass
-
-				try:
-					self.listeners.remove(ready)
-				except:
-					pass
-
-		for ready in rList:
-			client = None
+		######################## SEND ###########################
+		####################### RECEIVE ##########################
+		if(len(rList)>0):
 			try:
 				client.ws._handleData()
+				if(client.ws.data_ready==True):
+					#print(client.ws.last_data) # <-- prints the received data
+					for callb in callback_msg:
+						callb(client.ws.last_data,client)
 			except Exception as n:
-				  
-				  if client:
-					 client.client.close()
-					 
-				  try:
-					 if client:
-						client.handleClose()
-				  except:
-					 pass
-				  
-				  try:
-					 del self.connections[ready]
-				  except:
-					 pass
-				 
-				  try:
-					 self.listeners.remove(ready)
-				  except:
-					 pass
-	  
-		 for failed in xList:
-			if failed == self.serversocket:
-			   self.close()
-			   raise Exception("server socket failed")
-			else:
-			   client = None
-			   try:
-				   client = self.connections[failed]
-				   client.client.close()
-				   
-				   try:
-					  client.handleClose()
-				   except:
-					  pass
-				  
-				   try:
-					  self.listeners.remove(failed)
-				   except:
-					  pass
-				   
-			   except:
-				  pass
-			  
-			   finally:
-				  if client:
-					 del self.connections[failed]
-			
-		#time.sleep(5)
-		# -- client.ws.
-		#print("Sending...")
-		#msg="hi"
-		#print("Done")
-		res = recv_data(client, MAX_SIZE_RECV)
-		if res<0:
-			#print("returned:%d"%res)
-			break
-		#print("recv_data!!")
-		#if not data: break
-		#data = cgi.escape(data)
-		#lock.acquire()
-		#[send_data(c, data) for c in clients]
-		#lock.release()
+				print("except",end="")
+				print(sys.exc_info()[0])
+				if client.ws.sock:
+					client.ws.sock.close()
+				
+				try:
+					for callb in callback_con:
+						callb("disconnect",client)
+				except:
+					pass
+
+				try:
+					clients.remove(client)
+				except:
+					pass
+		####################### RECEIVE ##########################
+		######################## ERROR ##########################
+		if(len(xList)>0):
+			try:
+				if client.ws.sock:
+					client.ws.sock.close()
+				try:
+					for callb in callback_con:
+						callb("disconnect",client)
+				except:
+					break;
+					pass
+
+				try:
+					clients.remove(client)
+				except:
+					break;
+					pass
+			except:
+				pass
+			break;
+		######################## ERROR ##########################
+	# end of while 1
 	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Client "+client.login+" closed: "+str(client.ip),"l")
-	lock.acquire()
-	if(client in clients):
-		clients.remove(client)
-	lock.release()
-	client.conn.close()
+	#lock.acquire()
+	#if(client in clients):
+	#	clients.remove(client)
+	#lock.release()
+#************* HANDLE CONNECTION *****************************************#
 	
 def start_server ():
 	context = SSL.Context(SSL.TLSv1_METHOD)
@@ -246,8 +166,10 @@ def start_server ():
 	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] Waiting on wss_clients on Port "+str(PORT),"l")
 	while 1:
 		conn, addr = s.accept()
+		# generate new client
 		new_client=ws_clients(conn)
-		new_client.ws=WebSocket() # generate new object
+		new_client.ws=WebSocket(conn) 
+		# append it
 		clients.append(new_client)
 		p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" ws_clients now","l")
 		threading.Thread(target = handle, args = (new_client,addr)).start()
@@ -277,19 +199,14 @@ callback_msg = [subscribe_callback]
 clients = []
 
 
-class HTTPRequest(BaseHTTPRequestHandler):
-	def __init__(self, request_text):
-		self.rfile = StringIO(request_text)
-		self.raw_requestline = self.rfile.readline()
-		self.error_code = self.error_message = None
-		self.parse_request()
 
 class WebSocket(object):
 
-	def __init__(self):	
+	def __init__(self,mSocket):	
 		self.handshaked = False
 		self.headerbuffer = ''
 		self.headertoread = 2048
+		self.sock = mSocket
 		
 		self.fin = 0
 		self.data = bytearray()
@@ -301,6 +218,8 @@ class WebSocket(object):
 		self.index = 0
 		self.request = None
 		self.usingssl = False
+		self.data_ready = False
+		self.last_data=""
 		
 		self.frag_start = False
 		self.frag_type = BINARY
@@ -317,7 +236,7 @@ class WebSocket(object):
 
 
 	def _handlePacket(self):
-		
+		self.data_ready = False
 		if self.opcode == CLOSE:
 			pass
 		elif self.opcode == STREAM:
@@ -402,7 +321,7 @@ class WebSocket(object):
 
 				self.handleMessage()
 
-				self.frag_decoder.reset()	 
+				self.frag_decoder.reset()	
 				self.frag_type = BINARY
 				self.frag_start = False
 				self.frag_buffer = None
@@ -423,14 +342,15 @@ class WebSocket(object):
 					except Exception as exp:
 						raise Exception('invalid utf-8 payload')
 
-			self.handleMessage()
+			self.data_ready = True
+			self.last_data=self.data
+			#self.handleMessage()
 
 
 	def _handleData(self):
 		# do the HTTP header and handshake
 		if self.handshaked is False:
-			
-			data = self.client.recv(self.headertoread)
+			data = self.sock.recv(self.headertoread).decode("UTF-8")
 			if not data:
 				raise Exception("remote socket closed")
 
@@ -443,37 +363,56 @@ class WebSocket(object):
 					
 				# indicates end of HTTP header
 				if '\r\n\r\n' in self.headerbuffer:
-					self.request = HTTPRequest(self.headerbuffer)
+					headers = {}
+					lines = data.splitlines()
+					#print("lines:")
+					#print(lines)
+					for l in lines:
+						parts = l.split(": ", 1)
+						if len(parts) == 2:
+							headers[parts[0]] = parts[1]
+					headers['code'] = lines[len(lines) - 1]
 							
-					# handshake rfc 6455
-					if self.request.headers.has_key('Sec-WebSocket-Key'.lower()):
-						key = self.request.headers['Sec-WebSocket-Key'.lower()]
-						hStr = HANDSHAKE_STR % { 'acceptstr' :  base64.b64encode(hashlib.sha1(key + GUID_STR).digest()) }
-						self.sendq.append((BINARY, hStr))
-						self.handshaked = True
-						self.headerbuffer = ''
-						self.handleConnected()
+					shake = "HTTP/1.1 101 Switching Protocols\r\n"
+					for k, v in headers.items():
+						if(k=='Connection' and v=='Upgrade'):
+							shake += "Upgrade: websocket\r\n"
+							shake += "Connection: Upgrade\r\n"
+						elif(k=='Origin'):
+							shake += "Sec-WebSocket-Origin: %s\r\n" % (headers['Origin'])
+						elif(k=='Host'):
+							shake += "Sec-WebSocket-Location: ws://%s\r\n" % (headers['Host'])
+						elif(k=='Sec-WebSocket-Protocol'):
+							shake += "Sec-WebSocket-Protocol: sample\r\n\r\n"
+						elif(k=='Sec-WebSocket-Key'):
+							GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+							response_key = b64encode(sha1(v.encode('utf-8') + GUID.encode('utf-8')).digest())
+							shake +="Sec-WebSocket-Accept:%s\r\n"%response_key.decode()
+					shake+="\r\n"
+				
+					self.sendq.append((TEXT, shake.encode("UTF-8")))
+					self.handshaked = True
+					self.headerbuffer = ''
+					#self.handleConnected()
 
-					else:
-						raise Exception('Sec-WebSocket-Key does not exist')
 
 		# else do normal data		
 		else:
-			data = self.client.recv(8192)
+			data = self.sock.recv(8192)
 			if not data:
 				raise Exception("remote socket closed")
 			
 			for d in data:
-				self._parseMessage(ord(d))
+				self._parseMessage(d)
 
 	def close(self, status = 1000, reason = u''):
 		"""
-			 Send Close frame to the client. The underlying socket is only closed 
-			 when the client acknowledges the Close frame. 
-			 
-			 status is the closing identifier.
-			 reason is the reason for the close. 
-		  """
+			Send Close frame to the client. The underlying socket is only closed 
+			when the client acknowledges the Close frame. 
+			
+			status is the closing identifier.
+			reason is the reason for the close. 
+		"""
 		try:
 			if self.closed is False:
 				close_msg = bytearray()
@@ -497,7 +436,7 @@ class WebSocket(object):
 		while tosend > 0:
 			try:
 				# i should be able to send a bytearray
-				sent = self.client.send(buff[already_sent:])
+				sent = self.sock.send(buff[already_sent:])
 				if sent == 0:
 					raise RuntimeError("socket connection broken")
 
@@ -515,12 +454,12 @@ class WebSocket(object):
 
 	def sendFragmentStart(self, data):
 		"""
-			 Send the start of a data fragment stream to a websocket client.
-			 Subsequent data should be sent using sendFragment().
-			 A fragment stream is completed when sendFragmentEnd() is called.
-			 
-			 If data is a unicode object then the frame is sent as Text.
-			 If the data is a bytearray object then the frame is sent as Binary. 
+			Send the start of a data fragment stream to a websocket client.
+			Subsequent data should be sent using sendFragment().
+			A fragment stream is completed when sendFragmentEnd() is called.
+			
+			If data is a unicode object then the frame is sent as Text.
+			If the data is a bytearray object then the frame is sent as Binary. 
 		"""
 		opcode = BINARY
 		if isinstance(data, unicode):
@@ -529,28 +468,28 @@ class WebSocket(object):
 
 	def sendFragment(self, data):
 		"""
-			 see sendFragmentStart()
-			 
-			 If data is a unicode object then the frame is sent as Text.
-			 If the data is a bytearray object then the frame is sent as Binary. 
+			see sendFragmentStart()
+			
+			If data is a unicode object then the frame is sent as Text.
+			If the data is a bytearray object then the frame is sent as Binary. 
 		"""
 		self._sendMessage(True, STREAM, data)
 
 	def sendFragmentEnd(self, data):
 		"""
-			 see sendFragmentEnd()
-			 
-			 If data is a unicode object then the frame is sent as Text.
-			 If the data is a bytearray object then the frame is sent as Binary. 
+			see sendFragmentEnd()
+			
+			If data is a unicode object then the frame is sent as Text.
+			If the data is a bytearray object then the frame is sent as Binary. 
 		"""			
 		self._sendMessage(False, STREAM, data)
 
 	def sendMessage(self, data):
 		"""
-			 Send websocket data frame to the client.
-			 
-			 If data is a unicode object then the frame is sent as Text.
-			 If the data is a bytearray object then the frame is sent as Binary. 
+			Send websocket data frame to the client.
+			
+			If data is a unicode object then the frame is sent as Text.
+			If the data is a bytearray object then the frame is sent as Binary. 
 		"""
 		opcode = BINARY
 		if isinstance(data, unicode):
