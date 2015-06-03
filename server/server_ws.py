@@ -56,6 +56,9 @@ def recv_data (client, length):
  
 
 def send_data(client, data):
+	if(not(client in clients)):
+		return 0
+
 	msg= bytearray()
 	# header = text
 	msg.extend([0b10000001])
@@ -176,7 +179,7 @@ def start_server ():
 	s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	s.bind(('', PORT))
 	s.listen(MAX_CLIENTS)
-	p.rint("[S_ws  "+time.strftime("%H:%M:%S")+"] Waiting on ws_clients","l")
+	p.rint("[S_ws  "+time.strftime("%H:%M:%S")+"] Waiting on ws_clients on Port "+str(PORT),"l")
 	while 1:
 		conn, addr = s.accept()
 		new_client=ws_clients(conn)
