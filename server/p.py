@@ -188,15 +188,15 @@ def show_status():
 			p_out2+="."
 		p_out2=p_out2[0:50]
 		if(a.state):
-			p_out2+=".....active | "
+			p_out2+=".....active"
 		else:
-			p_out2+=".not active | "
+			p_out2+=".not active"
 		i+=1
 		if(i%2==0):
 			print(p_out+p_out2)
 			p_out2=""
 		else:
-			p_out=p_out2
+			p_out=p_out2+" | "
 	if(p_out!=""):
 		print(p_out)
 		
