@@ -8,20 +8,23 @@ import android.location.Location;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.PowerManager;
+import android.os.SystemClock;
 import android.os.Vibrator;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 
 import org.java_websocket.util.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.net.URI;
 import java.util.ArrayList;
 
+import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
 import de.tavendo.autobahn.WebSocketConnection;
 import de.tavendo.autobahn.WebSocketException;
-import de.tavendo.autobahn.WebSocketHandler;
 
-public class s_ws {
+public class s_ws implements WebSocketConnectionObserver {
     //public static final String JSON = "JSON";
     public static final String TYPE = "TYPE";
     public static final String PAYLOAD = "PAYLOAD";
@@ -50,8 +53,8 @@ public class s_ws {
     public boolean mLoggedIn;
 
 
-
     private ArrayList<String> msg_out = new ArrayList<String>();
+
 
     public s_ws(Context ServiceContext, s_debug ServiceDebug, s_notify ServiceNofity, s_wakeup ServiceWakeup, SharedPreferences ServiceSettings) {
         mContext = ServiceContext;
@@ -68,49 +71,64 @@ public class s_ws {
 
     public void createWebSocket() {
 
-        final String wsuri = "ws://172.12.213.117:10820";
+        final String wsuri = "wss://172.12.213.117:10823";
+
+        for(int a=10;a<10;a++){
+            SystemClock.sleep(1000);
+        }
 
         try {
+
             last_ts_in=0;
             mDebug.write_to_file("Websocket: Setting up WebSocket and connecting");
             mWebSocketClient = new WebSocketConnection();
-            mWebSocketClient.connect(wsuri, new WebSocketHandler() {
-                // websocket is connected and has just opened
-                @Override
-                public void onOpen() {
-                    mDebug.write_to_file("Websocket: Socket Opened");
-                    mConnected = true;
-                    // on open -> login in.
-                    JSONObject object = new JSONObject();
-                    try {
-                        object.put("cmd", "prelogin");
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                    mDebug.write_to_file("Websocket: sending as socket is open: " + object.toString());
-                    msg_out.clear();
-                    send_msg(object.toString());
-                }
-
-                // websocket is connected and we've just received a message
-                @Override
-                public void onTextMessage(String message) {
-                    read_msg(message);
-                }
-
-                @Override
-                public void onClose(int code, String reason) {
-                    mDebug.write_to_file("Websocket: On Closed " + reason);
-                    restart_connection();
-                }
-            });
+            mWebSocketClient.connect(new URI(wsuri), this);
         }
-
-        catch (WebSocketException e){
+        catch (Exception e){
             mDebug.write_to_file("Websocket: On Error " + e.getMessage());
             restart_connection();
         }
     }
+
+
+
+    // WebSocket Handler callbacks
+    @Override
+    public void onOpen() {
+        mConnected = true;
+        mDebug.write_to_file("Websocket: Socket Opened");
+        // on open -> login in.
+        JSONObject object = new JSONObject();
+        try {
+            object.put("cmd", "prelogin");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        mDebug.write_to_file("Websocket: sending as socket is open: " + object.toString());
+        msg_out.clear();
+        send_msg(object.toString());
+    }
+
+    @Override
+    public void onClose(WebSocketCloseNotification code, String reason) {
+        mConnected = false;
+        mDebug.write_to_file("Websocket: On Closed " + reason);
+        restart_connection();
+    }
+
+    @Override
+    public void onTextMessage(String message) {
+        read_msg(message);
+    }
+
+    @Override
+    public void onRawTextMessage(byte[] payload) {
+    }
+
+    @Override
+    public void onBinaryMessage(byte[] payload) {
+    }
+
 
     // restart
     public void restart_connection(){
