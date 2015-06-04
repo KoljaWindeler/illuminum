@@ -9,7 +9,8 @@ $(function(){
 
 
 function open_ws() {
-	con = new WebSocket('wss://192.168.1.80:9879/');
+	//con = new WebSocket('wss://192.168.1.80:9879/');
+	con = new WebSocket('wss://172.12.213.117:10823/');
 	con.onopen = function(){
 		console.log("onOpen");
 		login("browser","hui");
@@ -320,8 +321,8 @@ function toggle_liveview(mid){
 function hide_liveview(mid){
 	var view = $("#"+mid+"_liveview");
 	if(view.is(":visible")){
-		view.fadeOut("fast");
 		set_interval(mid,0);
+		view.delay(1000).fadeOut("fast");
 	}
 }
 
