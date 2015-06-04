@@ -414,9 +414,8 @@ int drawable lightcontrol_mdpi 0x7f020040
 int drawable livestream_mdpi 0x7f020041
 int drawable logobw 0x7f020042
 int drawable logoc 0x7f020043
-int drawable main_bg 0x7f020044
-int drawable red 0x7f020045
-int drawable webcam 0x7f020046
+int drawable red 0x7f020044
+int drawable webcam 0x7f020045
 int id Alias 0x7f090057
 int id BlackWhite 0x7f090070
 int id Color 0x7f09006f
