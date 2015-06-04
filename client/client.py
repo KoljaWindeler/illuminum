@@ -67,13 +67,12 @@ def trigger_handle(event,data):
 		
 		# light dimming stuff
 		if(trigger.get_interval()==0):
+			for l in light_dimming_q:
+				light_dimming_q.remove(l)
+
 			if(my_detection==0 and my_state==1): # deactive and motion
 				light_dimming_q.append((time.time(),mRed,mGreen,mBlue,4000)) # 4 sec to dimm to warm orange - now
-				# remove all eventueally further dimmm off's
-				for l in light_dimming_q:
-					if(l[1]==0 and l[2]==0 and l[3]==0):
-						light_dimming_q.remove(l)
-						
+				# remove all eventueally further dimmm off's					
 			elif(my_detection==0 and my_state==0): # deactive and no motion
 				print("back to lights off")
 				delay_off=5*60 # usually 5 min
