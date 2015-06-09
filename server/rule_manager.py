@@ -119,6 +119,14 @@ class rule_manager:
 		return 0
 	#############################################################
 	def print_all(self):
+		reactivate=0
+		for p_rule in p.print_out:
+			if(p_rule.shortcut=="r"):
+				if(not(p_rule.state)):
+					p_rule.state=1
+					reactivate=1
+				break
+			
 		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
 		p.rint("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered at ts: "+str(now)+"==","r")
 		i=1
@@ -129,6 +137,13 @@ class rule_manager:
 			i+=1
 		p.rint("","r")
 		p.rint("== End of rule manager output ==","r")
+		
+		#### stop output again
+		if(reactivate):
+			for p_rule in p.print_out:
+				if(p_rule.shortcut=="r"):
+					p_rule.state=0
+					break
 	#############################################################
 	def get_account(self,account):
 		for a in self.data:
