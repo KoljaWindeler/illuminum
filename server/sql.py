@@ -314,15 +314,74 @@ class sql:
 			result = -1
 		return result
 	#############################################################
-	def get_open_alerts(self, account,detail_level):
+	def get_open_alert_count(self, account):
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `COUNT(')` FROM  `alerts` WHERE  `account` =  "+account+" and `ack`=0"
-				cursor.execute(req, (str(account)))
+				req = "SELECT  `COUNT(*)` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0"
+				cursor.execute(req)
 				result = cursor.fetchone()
-				result['TODO']
+				result = result['COUNT(*)']
 		except:
 			result = -1
 		return result
-		
+	#############################################################
+	def get_open_alert_ids(self, account, mid):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0 and `mid`='"+mid+"'"
+				cursor.execute(req)
+				result = cursor.fetchall()
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_alert_details(self, account,alert_id):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `f_ts`,`mid`,`area`,`rm_string`,`ack`,`ack_ts`,`ack_by` FROM  `alerts` WHERE  `account` =  '"+str(account)+"' and `id`="+str(alert_id)
+				#print(req)
+				cursor.execute(req)
+				result = cursor.fetchone()
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_img_count_for_alerts(self,alert_id):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT COUNT(*) FROM  `alert_pics` WHERE  `alert_id` ="+str(alert_id)
+				cursor.execute(req)
+				result = cursor.fetchone()
+				result = result['COUNT(*)']
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_img_for_alerts(self, alert_id,century):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				if(int(century)>=0 and int(century)<100):
+					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` ="+str(alert_id)+" LIMIT "+str(int(century)*100)+" , "+str((int(century)+1)*100)
+					cursor.execute(req)
+					result = cursor.fetchall()
+				else:
+					result = -1
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_account_for_path(self, path):
+		try:
+			with self.connection.cursor() as cursor:
+				req = "SELECT `account` FROM `alerts` WHERE `id`=(SELECT `alert_id` FROM `alert_pics` WHERE `path`='"+path+"')"
+				cursor.execute(req)
+				result = cursor.fetchone()
+				result=result['account']
+		except:
+			result = -1
+		return result

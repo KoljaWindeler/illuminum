@@ -85,6 +85,103 @@ function parse_msg(msg_dec){
 			}
 		}
 	}
+
+	else if(msg_dec["cmd"]=="get_open_alert_ids"){
+		var ids=msg_dec["ids"];
+		var mid=msg_dec["mid"];
+		console.log(ids);
+		// here alarm view leeren
+		console.log("leere alarm section for "+mid);
+		var view=$("#"+mid+"_alarms");
+		if(!view.length){
+			alert(mid+"_alarms nicht gefunden");
+		};
+		view.html("");
+
+		// add per element one line
+		for(var i=0;i<ids.length;i++){		
+			var alert=$("<div></div>");
+			alert.attr({
+				"id":"alert_"+mid+"_"+ids[i]
+			});
+
+			var txt=$("<div></div>");
+			txt.attr({
+				"id":"alert_"+mid+"_"+ids[i]+"_txt"
+			});
+			txt.html("Loading ...<br>");
+
+			alert.append(txt);
+			view.append(alert);
+
+			var img=$("<img></img>");
+			img.attr({
+				"src" : "http://www.asus.com/support/images/support-loading.gif",
+				"id":"alert_"+mid+"_"+ids[i]+"_img",
+				"width":32,
+				"height":32,
+
+			});
+			alert.append(img);
+		};
+
+		// request details	
+		for(var i=0;i<ids.length;i++){
+			var cmd_data = { "cmd":"get_alarm_details", "id":ids[i], "mid":mid};
+			console.log(JSON.stringify(cmd_data));
+			con.send(JSON.stringify(cmd_data));
+		};
+	}
+
+	else if(msg_dec["cmd"]=="get_alarm_details"){
+		var img=msg_dec["img"];
+		var mid=msg_dec["mid"];
+		// fill element with details
+		// add new placeholder image
+		var view=$("#alert_"+mid+"_"+msg_dec["id"]+"_txt");
+		if(!view.length){
+			console.log("get_alarm_details view not found");
+		}
+		var a = new Date(parseFloat(msg_dec["f_ts"])*1000);
+		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
+		var hour = a.getHours();
+		
+		view.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);		
+
+		var pic=$("#alert_"+mid+"_"+msg_dec["id"]+"_img");
+
+		if(img.length>0){
+			pic.attr({
+				"id":img[0]["path"]
+			});
+			console.log("setze id: "+img[0]["path"]);
+
+
+			for(var i=0;i<img.length && i<1;i++){
+				var path=img[i]["path"];
+				console.log("requesting image:"+path);
+	
+				var cmd_data = { "cmd":"get_img", "path":path};
+				//console.log(JSON.stringify(cmd_data));
+				con.send(JSON.stringify(cmd_data));
+			};
+		}
+	}
+
+	else if(msg_dec["cmd"]=="recv_req_file"){
+		//console.log(msg_dec);
+		var img=$(document.getElementById(msg_dec["path"])); // required as path contains dot
+		if(img.length){
+			console.log("bild gefunden");
+		}else {
+			console.log("nicht gefunden");
+		};
+		img.attr({
+			"src":"data:image/jpeg;base64,"+msg_dec["img"],
+			"width":228,
+			"height":128
+		});
+	};
 }
 
 
@@ -292,12 +389,6 @@ function check_append_m2m(msg_dec){
 		});
 		alarms.hide();
 		node.append(alarms);
-
-		var img=$("<img></img>");
-		img.attr({
-			"src" : "https://www.google.de/images/srpr/logo11w.png",
-		});
-		alarms.append(img);
 		////////////////// ALARM MANAGER ////////////////////////////
 		//<div style="width: 300px;" id="slider1"></div>
 
@@ -341,7 +432,7 @@ function toggle_lightcontrol(mid){
 	if(view.is(":visible")){
 		hide_lightcontrol(mid);
 	} else {
-		show_lightcontrol(mid)
+		show_lightcontrol(mid);
 	};
 };
 
@@ -366,7 +457,8 @@ function toggle_alarms(mid){
 	if(view.is(":visible")){
 		hide_alarms(mid);
 	} else {
-		show_alarms(mid)
+		show_alarms(mid);
+		get_open_alarms(mid);
 	};
 };
 
@@ -418,6 +510,15 @@ function updateInfo(color) {
 	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 }
+
+function get_open_alarms(mid){
+	if(con == null){
+		return;
+	}
+	var cmd_data = { "cmd":"get_open_alert_ids","mid":mid};
+	console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data));
+};	
 
 
 function set_interval(mid,interval){

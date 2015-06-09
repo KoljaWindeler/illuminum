@@ -323,7 +323,8 @@ def recv_m2m_msg_handle(data,m2m):
 					except:
 						m2m.fp=""
 				m2m.openfile = enc.get("fn")
-				des_location="../webserver/upload/"+str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
+				base_location=str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
+				des_location="../webserver/upload/"+base_location
 				m2m.fp = open(des_location,'wb')
 				# this is the start of a transmission
 				# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
@@ -333,7 +334,7 @@ def recv_m2m_msg_handle(data,m2m):
 				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
 				if(m2m.state==1 and m2m.detection>=1): # ALERT
 					if(m2m.alert.collecting==1 and m2m.alert.notification_send==0): # not yet send, append fn to list and save timestamp
-						db.append_alert_photo(m2m,des_location)
+						db.append_alert_photo(m2m,base_location)
 						m2m.alert.files.append(des_location)
 						m2m.alert.last_upload = time.time()
 					elif(m2m.detection==2): # if detection = permanant fire, then we're going to save the picture, even after fireing the mail
@@ -687,6 +688,53 @@ def recv_ws_msg_handle(data,ws):
 			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] checking as somebody moved for this account","r")
 			rm_check_rules(ws.account,ws.login,1)	# check and use db
 			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(time.time()-t),"r")
+
+		## get IDs of open alerts
+		elif(enc.get("cmd")=="get_open_alert_ids"):
+			mid=enc.get("mid")
+			db_r=db.get_open_alert_ids(ws.account,mid)
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ids"]=[]
+			msg["mid"]=mid
+			for i in db_r:
+				msg["ids"].append(i['id'])
+			msg_q_ws.append((msg,ws))
+					
+		## get Details to a alarm ID
+		elif(enc.get("cmd")=="get_alarm_details"):
+			id=enc.get("id")
+			db_r1=db.get_alert_details(ws.account,id)
+			## get number of pictures for this alert
+			db_r2=db.get_img_count_for_alerts(id)
+			## get picture path for 0..100 
+			db_r3=db.get_img_for_alerts(id,0)
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["id"]=id
+			msg["rm_string"]=db_r1['rm_string']
+			msg["f_ts"]=db_r1['f_ts']
+			msg["img_count"]=db_r2
+			msg["img"]=db_r3
+			msg["mid"]=enc.get("mid")		
+			msg_q_ws.append((msg,ws))
+
+		## get picture 
+		elif(enc.get("cmd")=="get_img"):
+			path=enc.get("path")
+			db_r=db.get_account_for_path(path)
+			if(db_r==ws.account):
+				msg={}
+				msg["cmd"]="recv_req_file"
+				msg["path"]=path
+
+				img = open("../webserver/upload/"+path,'rb')
+				strng=img.read(512000-100)
+				img.close()
+				msg["img"]=base64.b64encode(strng).decode('utf-8')
+
+				msg_q_ws.append((msg,ws))
+
 
 		## unsupported cmd, for WS
 		else:
