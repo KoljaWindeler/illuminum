@@ -103,12 +103,14 @@ def handle (client,addr):
 		if(len(rList)>0):
 			try:
 				client.ws._handleData()
-				if(client.ws.data_ready==True):
-					#print(client.ws.last_data) # <-- prints the received data
-					for callb in callback_msg:
-						callb(client.ws.last_data,client)
-					client.ws.data_ready=False
-					client.ws.last_data=""
+				while(client.ws.data_ready==True):
+					msg=client.ws.getMessage() # getMessage will unset the data_ready flag if no data left
+					if(client.ws.data_ready==True):
+						#print(msg) # <-- prints the received data
+						for callb in callback_msg:
+							callb(msg,client)
+						#client.ws.data_ready=False
+						#client.ws.last_data=""
 			except Exception as n:
 				print("")
 				print("except",end="")
@@ -226,7 +228,8 @@ class WebSocket(object):
 		self.request = None
 		self.usingssl = False
 		self.data_ready = False
-		self.last_data=""
+		#self.last_data=""
+		self.msgB=[]
 		
 		self.frag_start = False
 		self.frag_type = BINARY
@@ -234,6 +237,7 @@ class WebSocket(object):
 		self.frag_decoder = codecs.getincrementaldecoder('utf-8')(errors='strict')
 		self.closed = False
 		self.sendq = deque()
+
 		
 		self.state = HEADERB1
 	
@@ -350,9 +354,20 @@ class WebSocket(object):
 						raise Exception('invalid utf-8 payload')
 
 			self.data_ready = True
-			self.last_data=self.data
-			#self.handleMessage()
+			#self.last_data=self.data
+			self.handleMessage()
 
+	def handleMessage(self):
+		self.msgB.append(self.data)
+
+	def getMessage(self):
+		if(len(self.msgB)>0):
+			msg=self.msgB[0]
+			self.msgB.remove(msg)
+			return msg
+		else:
+			self.data_ready = False
+			return -1
 
 	def _handleData(self):
 		# do the HTTP header and handshake
@@ -406,6 +421,7 @@ class WebSocket(object):
 		# else do normal data		
 		else:
 			data = self.sock.recv(8192)
+			#print(data)
 			if not data:
 				raise Exception("remote socket closed")
 			
