@@ -5,6 +5,10 @@ var c_t=0;
 
 $(function(){
 	open_ws();
+
+	//var txt=$("<div></div>");
+	//txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
+	//$("#clients").append(txt);	
 });
 
 
@@ -25,6 +29,24 @@ function open_ws() {
 	};
 	con.onclose = function(){
 		console.log("onClose");
+
+		// show fancybox
+		var rl_msg = $("<div></div>").text("onClose event captured");
+		rl_msg.attr({
+			"id":"rl_msg",
+			"style":"display:none;width:500px;"
+		});
+		var rl = $("<a></a>");
+		rl.attr("href","#rl_msg");
+		$(document.body).append(rl_msg);
+		rl.fancybox({
+			openEffect: 'none',
+			closeEffect: 'none',
+			helpers: {	overlay : {closeClick: false}	},
+			closeBtn: false,   
+			closeClick: false
+		}).trigger('click');
+
 	};
 };
 
@@ -34,6 +56,7 @@ function parse_msg(msg_dec){
 	// console.log(msg_dec);
 	if(msg_dec["cmd"]=="m2v_login"){
 		console.log("m2v_lgogin detected");
+		console.log(msg_dec);
 		check_append_m2m(msg_dec);
 		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
 		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
@@ -63,10 +86,27 @@ function parse_msg(msg_dec){
 			show_liveview(msg_dec["mid"]);
 		}
 
-		img=$("#"+msg_dec["mid"]+"_liveview_pic");
+		var txt=$("#"+msg_dec["mid"]+"_liveview_txt");
+		txt.text("");
+
+		var img=$("#"+msg_dec["mid"]+"_liveview_pic");
 		if(img.length){
 			if(msg_dec["img"]!=""){
-				img.attr("src","data:image/jpeg;base64,"+msg_dec["img"]);
+				// if we receive the first image, scroll to it
+				if(img.attr("src")=="http://www.asus.com/support/images/support-loading.gif"){
+					$('html,body').animate({
+						scrollTop: img.offset().top-($(window).height()/20)
+					},1000);
+				};
+
+				// set the image height to be 75% of the height (1/0.75=1.3) 
+				img.attr({
+					"src":"data:image/jpeg;base64,"+msg_dec["img"],
+					"width":($(window).height()/1.3/720*1280),
+					"height":($(window).height()/1.3),
+					"padding-top":"20px"
+				});
+				//console.log("width="+$(window).width()+" height="+$(window).height());
 			};
 
 		} else {
@@ -98,37 +138,76 @@ function parse_msg(msg_dec){
 		};
 		view.html("");
 
-		// add per element one line
+		// add per element one line 
 		for(var i=0;i<ids.length;i++){		
+			// if m2m lable ist 123456789 and alarm is 1010 then we should get this:
+			// <div id="alert_123456789_1010">
+			// 	<div id="alert_123456789_1010_txt">Loading -> Movement detected at: 8.6.2015 21:51</div>
+			// 	<img id="alert_123456789_1010_img"> -> id changes to set_alert_123456789_1010_img</img>
+			//	<a id="alert_123456789_1010_ack">button></a>
+			//	<div id="alert_123456789_1010_slider">
+			//		<ul...><li></li></ul>
+			//	</div>
+			// </div>
+			
+			// root 
 			var alert=$("<div></div>");
 			alert.attr({
 				"id":"alert_"+mid+"_"+ids[i]
 			});
 
+			// break
+			var br=$("<br />");
+
+			// text field
 			var txt=$("<div></div>");
 			txt.attr({
 				"id":"alert_"+mid+"_"+ids[i]+"_txt"
 			});
-			txt.html("Loading ...<br>");
+			txt.html("Loading ...");
 
-			alert.append(txt);
-			view.append(alert);
-
+			// preview image
 			var img=$("<img></img>");
 			img.attr({
 				"src" : "http://www.asus.com/support/images/support-loading.gif",
 				"id":"alert_"+mid+"_"+ids[i]+"_img",
 				"width":32,
-				"height":32,
-
+				"height":32
 			});
+
+			// ack button
+			var ack=$("<a></a>");
+			ack.attr({
+				"id":"alert_"+mid+"_"+ids[i]+"_ack",
+				"class":"button"
+			});
+			ack.text("Acknowledge alert");
+			ack.click(function(){
+				var id_int=ids[i];
+				return function(){
+					ack_alert(id_int);
+				};
+			}());
+
+			// slider
+			var slider=$("<div></div>");
+			slider.attr({
+				"id":"alert_"+mid+"_"+ids[i]+"_slider"
+			});
+			slider.hide();
+
+			view.append(alert);
+			alert.append(txt);
 			alert.append(img);
+			alert.append(ack);
+			alert.append(slider);
 		};
 
 		// request details	
 		for(var i=0;i<ids.length;i++){
 			var cmd_data = { "cmd":"get_alarm_details", "id":ids[i], "mid":mid};
 			console.log(JSON.stringify(cmd_data));
+			console.log(con);
 			con.send(JSON.stringify(cmd_data));
 		};
 	}
@@ -142,27 +221,41 @@ function parse_msg(msg_dec){
 		if(!view.length){
 			console.log("get_alarm_details view not found");
 		}
+
 		var a = new Date(parseFloat(msg_dec["f_ts"])*1000);
 		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
 		var hour = a.getHours();
-		
 		view.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);		
 
-		var pic=$("#alert_"+mid+"_"+msg_dec["id"]+"_img");
-
 		if(img.length>0){
+			var pic=$("#alert_"+mid+"_"+msg_dec["id"]+"_img");		
 			pic.attr({
-				"id":img[0]["path"]
+				"id":img[0]["path"],
 			});
-			console.log("setze id: "+img[0]["path"]);
-
+			pic.click(function(){
+				//console.log(img);
+				var img_int=img;
+				var mid_int=mid;
+				var slider_id="#alert_"+mid_int+"_"+msg_dec["id"]+"_slider";
+				var core_int=img[0]["path"].substr(0,img[0]["path"].indexOf("."));
+				return function(){
+					var slider=$(slider_id);
+					if(slider.is(":visible")){
+						slider.hide();
+					} else {
+						slider.text("");
+						slider.show();
+						show_pic_slider(img_int,mid_int,core_int,slider_id);
+					};
+				}
+			}());
+			
 
 			for(var i=0;i<img.length && i<1;i++){
 				var path=img[i]["path"];
 				console.log("requesting image:"+path);
 	
-				var cmd_data = { "cmd":"get_img", "path":path};
-				//console.log(JSON.stringify(cmd_data));
+				var cmd_data = { "cmd":"get_img", "path":path, "width":356, "height":200};
 				con.send(JSON.stringify(cmd_data));
 			};
 		}
@@ -177,11 +270,61 @@ function parse_msg(msg_dec){
 			console.log("nicht gefunden");
 		};
 		img.attr({
-			"src":"data:image/jpeg;base64,"+msg_dec["img"],
-			"width":228,
-			"height":128
+			"src"	: "data:image/jpeg;base64,"+msg_dec["img"],
+			"id"	: "set_"+msg_dec["path"],
+			"width"	: msg_dec["width"],
+			"height": msg_dec["height"]
 		});
 	};
+}
+
+function ack_alert(id){
+	console.log("ack for id:"+id);
+};
+
+function show_pic_slider(img,mid,core,slider_id){
+	var list=$("<ul></ul>");
+	list.attr({
+		"id":"slider_"+core
+	});
+	console.log("call it slider_"+core);
+	
+
+	for(var i=0;i<img.length;i++){
+		console.log("appending:"+img[i]["path"]);
+		var sub_list=$("<li></li>");
+				
+		var pic=$("<img></img>");
+		pic.attr({
+			"src" : "http://www.asus.com/support/images/support-loading.gif",
+			"id":img[i]["path"],
+			"width":960,
+			"height":540,
+
+		});
+		sub_list.append(pic);
+		list.append(sub_list);
+		var cmd_data = { "cmd":"get_img", "path":img[i]["path"], "height":540, "width":960};
+		console.log("ready="+con.readyState);
+		con.send(JSON.stringify(cmd_data));
+		
+		console.log("send request for:path "+img[i]["path"]);
+	}
+	var view = $(slider_id);
+	view.html("");
+	
+	// show link back to overview
+	//var back_link=$("<div></div>");
+	//back_link.text("Back to overview");
+	//back_link.click(function(){ get_open_alarms(mid); });
+	//view.append(back_link);
+
+	// slider for the images
+	view.append(list);
+	$('#slider_'+core).bxSlider({
+		  mode: 'fade',
+		  captions: true
+		});
 }
 
 
@@ -283,43 +426,62 @@ function check_append_m2m(msg_dec){
 		button.className="button";
 		button.text="Livestream";
 		node.append(button);
-
-		button=document.createElement("A");
-		button.setAttribute("id",+msg_dec["mid"]+"_toggle_lightcontrol");
-		button.onclick=function(){
+		
+		// light controll button
+		button=$("<a></a>");
+		button.attr({
+			"id": msg_dec["mid"]+"_toggle_lightcontrol",
+			"class":"button"
+		});
+		button.click(function(){
 			var msg_int=msg_dec;
 			return function(){
 				toggle_lightcontrol(msg_int["mid"]);
-			}
-		}();
-		button.className="button";
-		button.text="lightcontrol";
+			};
+		}());
+		button.text("lightcontrol");
 		node.append(button);
 
-		button=document.createElement("A");
-		button.setAttribute("id",+msg_dec["mid"]+"_toggle_alarms");
-		button.onclick=function(){
+		// alert button
+		button=$("<a></a>");
+		button.attr({
+			"id": msg_dec["mid"]+"_toggle_alarms",
+			"class":"button"
+		});
+		button.click(function(){
 			var msg_int=msg_dec;
 			return function(){
 				toggle_alarms(msg_int["mid"]);
-			}
-		}();
-		button.className="button";
-		button.text="alarms";
+			};
+		}());
+		button.text("recent alarms");
 		node.append(button);
+		// hide it if no alarm is available
+		if(msg_dec["open_alarms"]==0){
+			//button.hide();
+			button.addClass("button_deactivated");
+		};
+
 
 		////////////////// LIVE VIEW ////////////////////////////
-		liveview=$("<div></div>").text("this is the liveview");
+		liveview=$("<div></div>");
 		liveview.attr({
 			"id" : msg_dec["mid"]+"_liveview",
 		});
 		liveview.hide();
 		node.append(liveview);
 
+		var txt=$("<div></div>");
+		txt.attr("id",msg_dec["mid"]+"_liveview_txt");
+		txt.html("Loading liveview<br>");
+		liveview.append(txt);
+
 		var img=$("<img></img>");
 		img.attr({
-			"src" : "https://www.google.de/images/srpr/logo11w.png",
+			"src" : "http://www.asus.com/support/images/support-loading.gif",
 			"id" : msg_dec["mid"]+"_liveview_pic",
+			"width":64,
+			"height":64
 		});
 		liveview.append(img);
 		////////////////// LIVE VIEW ////////////////////////////
@@ -422,7 +584,17 @@ function show_liveview(mid){
 	hide_alarms(mid);
 	var view = $("#"+mid+"_liveview");
 	if(!view.is(":visible")){
+		var img=$("#"+mid+"_liveview_pic");		
+		img.attr({
+			"src":"http://www.asus.com/support/images/support-loading.gif",
+			"width":64,
+			"height":64
+		});
+		var txt=$("#"+msg_dec["mid"]+"_liveview_txt");		
+		txt.html("Loading...<br>");
+
 		view.fadeIn("fast");
+		
 		set_interval(mid,1);
 	};
 }
@@ -473,6 +645,7 @@ function show_alarms(mid){
 	hide_lightcontrol(mid);
 	hide_liveview(mid);
 	var view = $("#"+mid+"_alarms");
+	view.text("");
 	if(!view.is(":visible")){
 		view.fadeIn("fast");
 	};
@@ -641,4 +814,9 @@ function update_state(account,area,mid,state,detection){
 	if(e.length){
 		e.text(det2str(detection));
 	}
+	
+	// if we change to alert and detection, we will get an alert, reactivate the button
+	if(state!=0 && detection !=0){
+		$("#"+mid+"_toggle_alarms").show();
+	};
 }
