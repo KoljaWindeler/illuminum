@@ -314,11 +314,11 @@ class sql:
 			result = -1
 		return result
 	#############################################################
-	def get_open_alert_count(self, account):
+	def get_open_alert_count(self, account,mid):
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `COUNT(*)` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0"
+				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0 and `mid`='"+mid+"'"
 				cursor.execute(req)
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
