@@ -692,41 +692,51 @@ def recv_ws_msg_handle(data,ws):
 		## get IDs of open alerts
 		elif(enc.get("cmd")=="get_open_alert_ids"):
 			mid=enc.get("mid")
-			db_r=db.get_open_alert_ids(ws.account,mid)
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["ids"]=[]
 			msg["mid"]=mid
-			for i in db_r:
-				msg["ids"].append(i['id'])
+
+			db_r=db.get_open_alert_ids(ws.account,mid)
+			if(db_r==-1):
+				msg["ids"].append(-1)
+			else:
+				for i in db_r:
+					msg["ids"].append(i['id'])
 			msg_q_ws.append((msg,ws))
 					
 		## get Details to a alarm ID
 		elif(enc.get("cmd")=="get_alarm_details"):
 			id=enc.get("id")
-			db_r1=db.get_alert_details(ws.account,id)
-			## get number of pictures for this alert
-			db_r2=db.get_img_count_for_alerts(id)
-			## get picture path for 0..100 
-			db_r3=db.get_img_for_alerts(id,0)
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["id"]=id
-			msg["rm_string"]=db_r1['rm_string']
-			msg["f_ts"]=db_r1['f_ts']
-			msg["img_count"]=db_r2
-			msg["img"]=db_r3
-			msg["mid"]=enc.get("mid")		
-			msg_q_ws.append((msg,ws))
+			if(id!=-1):
+				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" details","v")
+				db_r1=db.get_alert_details(ws.account,id)
+				## get number of pictures for this alert
+				db_r2=db.get_img_count_for_alerts(id)
+				## get picture path for 0..100 
+				db_r3=db.get_img_for_alerts(id,0)
+				msg={}
+				msg["cmd"]=enc.get("cmd")
+				msg["id"]=id
+				msg["rm_string"]=db_r1['rm_string']
+				msg["f_ts"]=db_r1['f_ts']
+				msg["img_count"]=db_r2
+				msg["img"]=db_r3
+				msg["mid"]=enc.get("mid")		
+				msg_q_ws.append((msg,ws))
 
 		## get picture 
 		elif(enc.get("cmd")=="get_img"):
 			path=enc.get("path")
+			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for img: "+path+", uploading","v")
 			db_r=db.get_account_for_path(path)
 			if(db_r==ws.account):
 				msg={}
 				msg["cmd"]="recv_req_file"
 				msg["path"]=path
+				msg["height"]=enc.get("height")
+				msg["width"]=enc.get("width")
+
 
 				img = open("../webserver/upload/"+path,'rb')
 				strng=img.read(512000-100)
@@ -799,6 +809,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 		msg_ws2["rm_override_on"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_on
 		msg_ws2["rm_override_off"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_off
+		msg_ws2["open_alarms"]=db.get_open_alert_count(m2m.account,m2m.mid)
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# 1. get all boxed with the same account
