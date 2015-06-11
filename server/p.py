@@ -35,6 +35,7 @@ def start_listen():
 	print_out.append(poe("d","Debug","Shows errors etc",1))
 	print_out.append(poe("c","Camera","Shows uploads, livestream starts etc",1))
 	print_out.append(poe("a","Alert","Shows alerts, emails etc",1))
+	print_out.append(poe("v","Verbose","Shows a lot output, like requests etc",0))
 
 	while(1):
 		input=sys.stdin.readline()
