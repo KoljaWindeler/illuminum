@@ -12,7 +12,11 @@ if(!empty($output[0])){	// python serer is running add everything
 		<script type="text/javascript" src="wsjq.js"></script>
 		<script src="jquery-ui.js"></script>
 		<script src="jquery.ui.touch-punch.min.js"></script>
-		<link rel="stylesheet" href="jquery-ui.css">';
+		<script src="jquery.bxslider.min.js"></script>
+		<script src="fancyBox/jquery.fancybox.pack.js"></script>
+		<link rel="stylesheet" href="jquery-ui.css">
+		<link rel="stylesheet" href="fancyBox/jquery.fancybox.css" type="text/css" media="screen" />
+		<link rel="stylesheet" href="jquery.bxslider.css">';
 	// Click here: <input class="color {onImmediateChange:\'updateInfo(this);\'}" value="66ff00">';
 	// add ws display stuff
 	$body.='<br>';
