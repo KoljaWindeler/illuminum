@@ -1,12 +1,9 @@
 <?php
 ///////////////// server status ///////////////////////////
-$body='<h1 id="l10n_title">Python WebSocket-Server<br>Status: ';
+$body='<img src="images/logobw.png"><h1 id="l10n_title">Welcome to illumino</h1>';
 unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
 if(!empty($output[0])){	// python serer is running add everything
-	$body.='<font color="green">online</font>';
-
-	$body.='</h1>';
 	$extra_header='<script type="text/javascript" src="jscolor/jscolor.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 		<script type="text/javascript" src="wsjq.js"></script>
@@ -26,7 +23,7 @@ if(!empty($output[0])){	// python serer is running add everything
 	//$body.='<div id="webcam_status">Status: -</div>';
 	//$body.='<dir id="webcam_pic"></div>';
 	//$body.='</h1>';
-	$body.='<h1 id="l10n_title">Clients</h1>';
+	//$body.='<h1 id="l10n_title">Clients</h1>';
 	$body.='<div id="clients"></div>';
 
 	// add reboot button
@@ -34,9 +31,6 @@ if(!empty($output[0])){	// python serer is running add everything
 	//$body.='<a class="button" id="detection_start" onclick="send(\'detection\',\'on\')">Detection on</a>';
 	//$body.='<a class="button" id="detection_stop" onclick="send(\'detection\',\'off\')">Detection off</a>';
 	
-} else { //python server is not running just add start button
-	$body.='<font color="red">offline</font> &nbsp; ';
-	#$body.='<a class="button" href="http://'.$_SERVER[HTTP_HOST].$_SERVER[REQUEST_URI].'?start_python">Start server</a>';
 }
 
 ///////////////// server status ///////////////////////////

@@ -6,9 +6,12 @@ var c_t=0;
 $(function(){
 	open_ws();
 
-	//var txt=$("<div></div>");
-	//txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
-	//$("#clients").append(txt);	
+	var txt=$("<div></div>");
+	txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
+	$("#clients").append(txt);	
+	if($(window).width() < 981){
+		//$("h1").addClass("mobile");
+	};
 });
 
 
@@ -99,11 +102,18 @@ function parse_msg(msg_dec){
 					},1000);
 				};
 
-				// set the image height to be 75% of the height (1/0.75=1.3) 
+				// set the image height to be at most 75% of the height or 75% of the width (1/0.75=1.3)
+				// lets see if the screen is in portrai or landscape
+				var scale=$(window).width()/1280;
+				if(scale > $(window).height()/720){
+					scale=$(window).height()/720;
+				};
+				scale*=0.9;
+ 
 				img.attr({
 					"src":"data:image/jpeg;base64,"+msg_dec["img"],
-					"width":($(window).height()/1.3/720*1280),
-					"height":($(window).height()/1.3),
+					"width":(1280*scale),
+					"height":(720*scale),
 					"padding-top":"20px"
 				});
 				//console.log("width="+$(window).width()+" height="+$(window).height());
@@ -339,28 +349,64 @@ function check_append_m2m(msg_dec){
 
 
 			/////////////////// CREATE AREA ////////////////////////////(
-			var node=$("<p></p>");
+			var node=$("<div></div>");
 			node.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"],
+				"class": "area_node"
+			});
+
+			var header=$("<div></div>");
+			header.attr({
+				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_header",
 				"class": "area_header"
 			});
+			node.append(header);
 
-			var text=$("<p></p>").text(msg_dec["area"]);
+			var header_first_line=$("<div></div>");
+			header_first_line.attr({
+				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_header_first_line",
+				"class": "area_header"
+			});
+			header.append(header_first_line);
+			
+			var icon=$("<img></img>");
+			icon.attr({
+				"id": msg_dec["account"]+"_"+msg_dec["area"]+"_icon",
+				"src": "images/home.png",
+				"class": "area_header",
+				"width": 128,
+				"height": 128
+			});
+			header_first_line.append(icon);
+	
+			var header_text=$("<div></div>");
+			header_text.attr({
+				"class":"area_header_text"
+			});
+			header_first_line.append(header_text);
+
+			var text=$("<div></div>").text(msg_dec["area"]);
 			text.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_title",
-				"class": "area_title"
+				"class": "area_header_title",
 			});
-			node.append(text);
+			header_text.append(text);
 
-			text=$("<p></p>").text(det2str(msg_dec["detection"]));
+			text=$("<div></div>").text(det2str(msg_dec["detection"]));
 			text.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_status",
-				"class": "area_status"
+				"class": "area_header_status"
 			});
-			node.append(text);
+			header_text.append(text);
+
+			var header_button=$("<div></div>");
+			header_button.attr({
+				"class":"area_header_button"
+			});
+			header.append(header_button);
 
 			var button=document.createElement("A");
-			button.setAttribute("id",+msg_dec["account"]+"_"+msg_dec["area"]+"_on");
+			button.setAttribute("id",msg_dec["account"]+"_"+msg_dec["area"]+"_on");
 			button.className="button";
 			button.text="Detection on";
 			button.onclick=function(){
@@ -369,11 +415,10 @@ function check_append_m2m(msg_dec){
 					set_detection(msg_int["account"],msg_int["area"],"*");
 				}
 			}();
-
-			node.append(button);
+			header_button.append(button);
 
 			button=document.createElement("A");
-			button.setAttribute("id",+msg_dec["account"]+"_"+msg_dec["area"]+"_off");
+			button.setAttribute("id",msg_dec["account"]+"_"+msg_dec["area"]+"_off");
 			button.onclick=function(){
 				var msg_int=msg_dec;
 				return function(){
@@ -382,7 +427,7 @@ function check_append_m2m(msg_dec){
 			}();
 			button.className="button";
 			button.text="Detection off";
-			node.append(button);
+			header_button.append(button);
 
 			$("#clients").append(node);
 			area=node;
@@ -395,25 +440,69 @@ function check_append_m2m(msg_dec){
 	if(!node.length){
 		/////////////////// CREATE M2M ////////////////////////////(
 		console.log("knoten! nicht gefunden, lege ihn an");
-		node=$("<p></p>").text(msg_dec["alias"]);
+		node=$("<div></div>");
 		node.attr({
 			"id":msg_dec["mid"],
 			"class":"area_m2m"
 		});
+	
+		var m2m_header=$("<div></div>");
+		m2m_header.attr({
+			"id":msg_dec["mid"]+"_header",
+			"class":"m2m_header"
+		});
+		node.append(m2m_header);
 
-		var text=$("<div></div>").text(state2str(msg_dec["state"]));
+		var m2m_header_first_line=$("<div></div>");
+		m2m_header_first_line.attr({
+			"id":msg_dec["mid"]+"_header_first_line",
+			"class":"m2m_header"
+		});
+		m2m_header.append(m2m_header_first_line);
+
+		var icon=$("<img></img>");
+		icon.attr({
+			"id": msg_dec["mid"]+"_icon",
+			"src": "images/cam_mdpi.png",
+			"width": 64,
+			"height": 51,
+			"class":"m2m_header"
+			});
+		m2m_header_first_line.append(icon);
+
+		var m2m_header_text=$("<div></div>");
+		m2m_header_text.attr({
+			"id":msg_dec["mid"]+"_header_text",
+			"class":"m2m_header_text"
+		});
+		m2m_header_first_line.append(m2m_header_text);
+	
+		var text=$("<div></div>").text(msg_dec["alias"]);
+		text.attr({
+			"id" : msg_dec["mid"]+"_name",
+			"class": "m2m_text_name"
+		});
+		m2m_header_text.append(text);
+		
+		text=$("<div></div>").text(state2str(msg_dec["state"]));
 		text.attr({
 			"id" : msg_dec["mid"]+"_state",
 			"class": "m2m_text"
 		});
-		node.append(text);
+		m2m_header_text.append(text);
 
 		text=$("<div></div>").text("--");
 		text.attr({
 			"id" : msg_dec["mid"]+"_lastseen",
 			"class": "m2m_text"
 		});
-		node.append(text);
+		m2m_header_text.append(text);
+
+		var m2m_header_button=$("<div></div>");
+		m2m_header_button.attr({
+			"class":"m2m_header_button"
+		});
+		m2m_header.append(m2m_header_button);
 
 		var button=document.createElement("A");
 		button.setAttribute("id",+msg_dec["mid"]+"_toggle_liveview");
@@ -425,7 +514,7 @@ function check_append_m2m(msg_dec){
 		}();
 		button.className="button";
 		button.text="Livestream";
-		node.append(button);
+		m2m_header_button.append(button);
 		
 		// light controll button
 		button=$("<a></a>");
@@ -440,7 +529,7 @@ function check_append_m2m(msg_dec){
 			};
 		}());
 		button.text("lightcontrol");
-		node.append(button);
+		m2m_header_button.append(button);
 
 		// alert button
 		button=$("<a></a>");
@@ -455,7 +544,8 @@ function check_append_m2m(msg_dec){
 			};
 		}());
 		button.text("recent alarms");
-		node.append(button);
+		m2m_header_button.append(button);
+
 		// hide it if no alarm is available
 		if(msg_dec["open_alarms"]==0){
 			//button.hide();
@@ -796,7 +886,7 @@ function update_hb(mid,ts){
 		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes(); 
 		var hour = a.getHours();
 
-		var delay=(Date.now()-(1000*parseFloat(ts)))/1000;
+		var delay=parseInt((Date.now()-(1000*parseFloat(ts)))/1000);
 		var text = "Last Ping "+hour+":"+min+" - delay "+delay+" sec";
 		$("#"+mid+"_lastseen").text(text);
 		console.log("hb ts updated");
