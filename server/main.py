@@ -737,8 +737,11 @@ def recv_ws_msg_handle(data,ws):
 				msg["height"]=enc.get("height")
 				msg["width"]=enc.get("width")
 
-
-				img = open("../webserver/upload/"+path,'rb')
+				try:
+					img = open("../webserver/upload/"+path,'rb')
+				except:
+					img = open("../webserver/images/filenotfound.jpg",'rb')
+					
 				strng=img.read(512000-100)
 				img.close()
 				msg["img"]=base64.b64encode(strng).decode('utf-8')
