@@ -1,23 +1,39 @@
 var con = null;
 var f_t= 0;
 var c_t=0;
+var host="https://52.24.157.229/illumino/";
 
 
 $(function(){
+	var container=$("<div></div>");
+	container.attr("id","welcome_loading");
+
+	// text field
+	var txt=$("<div></div>");
+	txt.html("Loading your cameras ...");
+
+	// preview image
+	var img=$("<img></img>");
+	img.attr({
+		"src" : host+"images/support-loading.gif",
+		"width":32,
+		"height":32
+	});
+	
+	container.insertAfter("#clients");
+	container.append(txt);	
+	container.append(img);	
+
 	open_ws();
 
 	var txt=$("<div></div>");
 	txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
-	$("#clients").append(txt);	
-	if($(window).width() < 981){
-		//$("h1").addClass("mobile");
-	};
+	//$("#clients").append(txt);	
 });
 
 
 function open_ws() {
 	con = new WebSocket('wss://52.24.157.229:9879/');
-	//con = new WebSocket('wss://172.12.213.117:10823/');
 	con.onopen = function(){
 		console.log("onOpen");
 		login("browser","hui");
@@ -49,26 +65,35 @@ function open_ws() {
 			closeBtn: false,   
 			closeClick: false
 		}).trigger('click');
-
 	};
 };
 
 
 
 function parse_msg(msg_dec){
-	// console.log(msg_dec);
+	// server has established a connection between m2m and WS
 	if(msg_dec["cmd"]=="m2v_login"){
-		console.log("m2v_lgogin detected");
-		console.log(msg_dec);
+		//console.log("m2v_lgogin detected:"+msg_dec);
+		// check if m2m is already visible, if not append it. Then update the state and timestamp
 		check_append_m2m(msg_dec);
 		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
 		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
+		if($("#welcome_loading").length){
+			$("#welcome_loading").remove();
+			$('html,body').animate({
+				scrollTop: $("#clients").offset().top-($(window).height()/20)
+			},1000);
+
+		};
+
 	}
 
+	// update the timestamp
 	else if(msg_dec["cmd"]=="hb_m2m"){
 		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
 	}
 
+	// update the state
 	else if(msg_dec["cmd"]=="state_change"){
 		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
 	}
@@ -76,6 +101,9 @@ function parse_msg(msg_dec){
 	else if(msg_dec["cmd"]=="rf"){
 		console.log("rf message received");
 		var delay=parseInt(Date.now()-(1000*parseFloat(msg_dec["ts"])));
+		if(delay>999){
+			delay=999;
+		};
 		c_t=c_t+1;
 		if(f_t==0){
 			f_t=Date.now();
@@ -96,7 +124,7 @@ function parse_msg(msg_dec){
 		if(img.length){
 			if(msg_dec["img"]!=""){
 				// if we receive the first image, scroll to it
-				if(img.attr("src")=="http://www.asus.com/support/images/support-loading.gif"){
+				if(img.attr("src")==host+"images/support-loading.gif"){
 					$('html,body').animate({
 						scrollTop: img.offset().top-($(window).height()/20)
 					},1000);
@@ -179,7 +207,7 @@ function parse_msg(msg_dec){
 			// preview image
 			var img=$("<img></img>");
 			img.attr({
-				"src" : "http://www.asus.com/support/images/support-loading.gif",
+				"src" : host+"images/support-loading.gif",
 				"id":"alert_"+mid+"_"+ids[i]+"_img",
 				"width":32,
 				"height":32
@@ -238,34 +266,35 @@ function parse_msg(msg_dec){
 		view.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);		
 
 		if(img.length>0){
+			// this is picture nr 1 the title picture
 			var pic=$("#alert_"+mid+"_"+msg_dec["id"]+"_img");		
 			pic.attr({
 				"id":img[0]["path"],
 			});
 			pic.click(function(){
 				//console.log(img);
-				var img_int=img;
-				var mid_int=mid;
-				var slider_id="#alert_"+mid_int+"_"+msg_dec["id"]+"_slider";
-				var core_int=img[0]["path"].substr(0,img[0]["path"].indexOf("."));
+				var img_int=img; 								// list of all pictures for this alarm
+				var mid_int=mid;	 							// mid for this alarm
+				var slider_id="#alert_"+mid_int+"_"+msg_dec["id"]+"_slider";			// id for the div in which the slider should
+				var core_int=img[0]["path"].substr(0,img[0]["path"].indexOf("."));		// slider itself must have an unique id without "."
 				return function(){
 					var slider=$(slider_id);
-					if(slider.is(":visible")){
+					/*if(slider.is(":visible")){
 						slider.hide();
-					} else {
+					} else {*/
 						slider.text("");
 						slider.show();
 						show_pic_slider(img_int,mid_int,core_int,slider_id);
-					};
+					//};
 				}
 			}());
 			
-
+			// request picture from server
 			for(var i=0;i<img.length && i<1;i++){
 				var path=img[i]["path"];
 				console.log("requesting image:"+path);
-	
-				var cmd_data = { "cmd":"get_img", "path":path, "width":356, "height":200};
+				var width=view.width()*0.5; // 50% of the width of the alert box
+				var cmd_data = { "cmd":"get_img", "path":path, "width":width, "height":width*720/1280};
 				con.send(JSON.stringify(cmd_data));
 			};
 		}
@@ -293,48 +322,71 @@ function ack_alert(id){
 };
 
 function show_pic_slider(img,mid,core,slider_id){
+	// slider_id == id of the div in which we should place our content
+	// core is the name for this slider
+
+	var view = $(slider_id);
+	view.html("");
+
+	// get best Resolution, for pictures
+	var w=$(window).width();
+	var h=$(window).height();
+	var scale=w/1280; // assume portait
+	if(w/1280 > h/720){
+		// e.g. 16:9 landscape 
+		scale=h/720;
+	}
+
+	// create core list element
 	var list=$("<ul></ul>");
 	list.attr({
-		"id":"slider_"+core
+		"id":"slider_"+core,
+		"width": scale*0.7*1280
+
 	});
 	console.log("call it slider_"+core);
 	
-
+	// create children and request them
 	for(var i=0;i<img.length;i++){
 		console.log("appending:"+img[i]["path"]);
 		var sub_list=$("<li></li>");
 				
 		var pic=$("<img></img>");
 		pic.attr({
-			"src" : "http://www.asus.com/support/images/support-loading.gif",
+			"src" : host+"images/support-loading.gif",
 			"id":img[i]["path"],
-			"width":960,
-			"height":540,
+			"width":scale*0.7*1280,
+			"height":scale*0.7*720,
 
 		});
 		sub_list.append(pic);
 		list.append(sub_list);
-		var cmd_data = { "cmd":"get_img", "path":img[i]["path"], "height":540, "width":960};
-		console.log("ready="+con.readyState);
+		var cmd_data = { "cmd":"get_img", "path":img[i]["path"], "height":720*scale*0.7, "width":1280*scale*0.7};
 		con.send(JSON.stringify(cmd_data));
 		
 		console.log("send request for:path "+img[i]["path"]);
 	}
-	var view = $(slider_id);
-	view.html("");
-	
-	// show link back to overview
-	//var back_link=$("<div></div>");
-	//back_link.text("Back to overview");
-	//back_link.click(function(){ get_open_alarms(mid); });
-	//view.append(back_link);
 
-	// slider for the images
+	
+	// place the <ul><li...></ul> in the page
 	view.append(list);
+
+	// fancybox for the slider
+	var rl = $("<a></a>");
+	rl.attr("href",'#slider_'+core);
+	rl.fancybox({
+		'width':1280*scale*1.0,
+		'height':720*scale*0.85,		
+		'autoDimensions':false,
+		'autoSize':false
+	});
+	rl.trigger('click');
+
+	// and convert the ul-list to a picture slider
 	$('#slider_'+core).bxSlider({
-		  mode: 'fade',
-		  captions: true
-		});
+		mode: 'fade',
+		captions: true
+	});	
 }
 
 
@@ -372,10 +424,11 @@ function check_append_m2m(msg_dec){
 			var icon=$("<img></img>");
 			icon.attr({
 				"id": msg_dec["account"]+"_"+msg_dec["area"]+"_icon",
-				"src": "images/home.png",
+				"src": host+"images/home.png",
 				"class": "area_header",
 				"width": 128,
-				"height": 128
+				"height": 128,
+				"class":"homesym"
 			});
 			header_first_line.append(icon);
 	
@@ -463,7 +516,7 @@ function check_append_m2m(msg_dec){
 		var icon=$("<img></img>");
 		icon.attr({
 			"id": msg_dec["mid"]+"_icon",
-			"src": "images/cam_mdpi.png",
+			"src": host+"images/cam_mdpi.png",
 			"width": 64,
 			"height": 51,
 			"class":"m2m_header"
@@ -502,7 +555,7 @@ function check_append_m2m(msg_dec){
 		m2m_header_button.attr({
 			"class":"m2m_header_button"
 		});
-		m2m_header.append(m2m_header_button);
+		node.append(m2m_header_button);
 
 		var button=document.createElement("A");
 		button.setAttribute("id",+msg_dec["mid"]+"_toggle_liveview");
@@ -513,7 +566,7 @@ function check_append_m2m(msg_dec){
 			}
 		}();
 		button.className="button";
-		button.text="Livestream";
+		button.text="live!";
 		m2m_header_button.append(button);
 		
 		// light controll button
@@ -528,7 +581,7 @@ function check_append_m2m(msg_dec){
 				toggle_lightcontrol(msg_int["mid"]);
 			};
 		}());
-		button.text("lightcontrol");
+		button.text("color");
 		m2m_header_button.append(button);
 
 		// alert button
@@ -543,7 +596,7 @@ function check_append_m2m(msg_dec){
 				toggle_alarms(msg_int["mid"]);
 			};
 		}());
-		button.text("recent alarms");
+		button.text("alarms");
 		m2m_header_button.append(button);
 
 		// hide it if no alarm is available
@@ -568,7 +621,7 @@ function check_append_m2m(msg_dec){
 
 		var img=$("<img></img>");
 		img.attr({
-			"src" : "http://www.asus.com/support/images/support-loading.gif",
+			"src" : host+"images/support-loading.gif",
 			"id" : msg_dec["mid"]+"_liveview_pic",
 			"width":64,
 			"height":64
@@ -586,13 +639,14 @@ function check_append_m2m(msg_dec){
 
 		var scroller=$("<div></div>");
 		scroller.append(createRainbowDiv(100));
-		scroller.css("width","500px").css("height","20px");
+		scroller.addClass("light_controll_color");
 		lightcontrol.append(scroller);
 
 		scroller=$("<div></div>");
-		scroller.attr("id","colorslider_"+msg_dec["mid"]);
-		scroller.css("clear","left");
-		scroller.css("width","500px");
+		scroller.attr({
+			"id":"colorslider_"+msg_dec["mid"],
+			"class":"light_controll_scroller"
+		});
 		scroller.slider({min:0, max:255, value:msg_dec["color_pos"], 
 			slide:function(){
 				var msg_int=msg_dec;
@@ -610,13 +664,14 @@ function check_append_m2m(msg_dec){
 
 		scroller=$("<div></div>");
 		scroller.append(createRainbowDiv(0));
-		scroller.css("width","500px").css("height","20px");
+		scroller.addClass("light_controll_color");
 		lightcontrol.append(scroller);
 
 		scroller=$("<div></div>");
-		scroller.attr("id","brightnessslider_"+msg_dec["mid"]);
-		scroller.css("clear","left");
-		scroller.css("width","500px");
+		scroller.attr({
+			"id":"brightnessslider_"+msg_dec["mid"],
+			"class":"light_controll_scroller"
+		});
 		scroller.slider({min:0, max:255, value:msg_dec["brightness_pos"], 
 			slide:function(){
 				var msg_int=msg_dec;
@@ -676,7 +731,7 @@ function show_liveview(mid){
 	if(!view.is(":visible")){
 		var img=$("#"+mid+"_liveview_pic");		
 		img.attr({
-			"src":"http://www.asus.com/support/images/support-loading.gif",
+			"src":host+"images/support-loading.gif",
 			"width":64,
 			"height":64
 		});
@@ -887,7 +942,11 @@ function update_hb(mid,ts){
 		var hour = a.getHours();
 
 		var delay=parseInt((Date.now()-(1000*parseFloat(ts)))/1000);
-		var text = "Last Ping "+hour+":"+min+" - delay "+delay+" sec";
+		if(delay>999){
+			delay=999;
+		};
+
+		var text = "Ping "+hour+":"+min+" - delay "+delay+" sec";
 		$("#"+mid+"_lastseen").text(text);
 		console.log("hb ts updated");
 	}
