@@ -16,8 +16,8 @@ $(function(){
 
 
 function open_ws() {
-	//con = new WebSocket('wss://192.168.1.80:9879/');
-	con = new WebSocket('wss://172.12.213.117:10823/');
+	con = new WebSocket('wss://52.24.157.229:9879/');
+	//con = new WebSocket('wss://172.12.213.117:10823/');
 	con.onopen = function(){
 		console.log("onOpen");
 		login("browser","hui");
