@@ -1,4 +1,4 @@
-import pymysql.cursors, time, p
+import pymysql.cursors, time, p, sys
 
 class sql:
 	def __init__(self):
@@ -7,7 +7,7 @@ class sql:
 	#############################################################
 	def connect(self):
 		# Connect to the database
-		self.connection = pymysql.connect(host='localhost',user='root',passwd='123',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
+		self.connection = pymysql.connect(host='localhost',user='root',passwd='EEkiM05$.',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
 		#print("connect done")
 	#############################################################
 	def connection_check(self):
@@ -274,13 +274,14 @@ class sql:
 		self.connection.close()
 	#############################################################
 	def get_m2m4account(self,account):
+		req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias`, `longitude`, `latitude`, `brightness_pos`, `color_pos` FROM  `m2m` WHERE  `account` =  '"+str(account)+"'"
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias`, `longitude`, `latitude`, `brightness_pos`, `color_pos` FROM  `m2m` WHERE  `account` =  %s"
-				cursor.execute(req, (str(account)))
+				cursor.execute(req)
 				result = cursor.fetchall()
 		except:
+			p.rint("req:"+req+","+sys.exc_info()[0],"d")
 			result = -1
 		return result
 	#############################################################
