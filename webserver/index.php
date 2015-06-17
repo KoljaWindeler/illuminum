@@ -1,6 +1,6 @@
 <?php
 ///////////////// server status ///////////////////////////
-$body='<img src="images/logobw.png"><h1 id="l10n_title">Welcome to illumino</h1>';
+$body='<img src="images/logobw.png"><h1 id="l10n_title">Welcome to glubsch</h1>';
 unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
 if(!empty($output[0])){	// python serer is running add everything
@@ -11,26 +11,12 @@ if(!empty($output[0])){	// python serer is running add everything
 		<script src="jquery.ui.touch-punch.min.js"></script>
 		<script src="jquery.bxslider.min.js"></script>
 		<script src="fancyBox/jquery.fancybox.pack.js"></script>
-		<link rel="stylesheet" href="jquery-ui.css">
+		<link rel="stylesheet" href="jquery-ui.css"/>
 		<link rel="stylesheet" href="fancyBox/jquery.fancybox.css" type="text/css" media="screen" />
-		<link rel="stylesheet" href="jquery.bxslider.css">';
-	// Click here: <input class="color {onImmediateChange:\'updateInfo(this);\'}" value="66ff00">';
+		<link rel="stylesheet" href="jquery.bxslider.css"/>';
 	// add ws display stuff
 	$body.='<br>';
-	
-	// add webcam stuff
-	//$body.='<h1 id="l10n_title">WebCam-Server';
-	//$body.='<div id="webcam_status">Status: -</div>';
-	//$body.='<dir id="webcam_pic"></div>';
-	//$body.='</h1>';
-	//$body.='<h1 id="l10n_title">Clients</h1>';
 	$body.='<div id="clients"></div>';
-
-	// add reboot button
-	//$body.='<h1 id="l10n_title">Controll</h1>';
-	//$body.='<a class="button" id="detection_start" onclick="send(\'detection\',\'on\')">Detection on</a>';
-	//$body.='<a class="button" id="detection_stop" onclick="send(\'detection\',\'off\')">Detection off</a>';
-	
 }
 
 ///////////////// server status ///////////////////////////
@@ -40,6 +26,7 @@ $header='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"><head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <meta http-equiv="x-dns-prefetch-control" content="off">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="robots" content="noindex">
         <link rel="stylesheet" href="status_blue.css" type="text/css" media="screen" charset="utf-8">
         <title></title>

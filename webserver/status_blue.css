@@ -219,6 +219,67 @@ div.light_controll_color{
 	clear: both;
 }
 
+/************* MENU ******************/
+div.menu{
+	position:fixed;
+	background: #333333;
+	left: 0px;
+	top: 0px;
+	padding: 0 64px;
+	height: 100%;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+	z-index: 10;
+	transform: translate(-150%, 0px);
+	transition: all 0.75s ease-in-out;
+}
+
+div.menu_active {
+	-webkit-transform: translate(0%, 0px);
+	transform: translate(0%, 0px);
+	transition: all 0.75s ease-in-out;
+}
+
+div.hamb {
+	border: 1px solid #374C77;
+	border-radius: 3px 3px 3px 3px;
+	cursor: pointer;
+	display: block;
+	height: 24px;
+	padding: 3px 4px 3px;
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	width: 25px;
+	background: #ededed;/*#4569b2;*/
+	background: -moz-linear-gradient(top, #4569b2 0%, #4062a5 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #4569b2), color-stop(100%, #4062a5));
+	background: -webkit-linear-gradient(top, #4569b2 0%, #4062a5 100%);
+	background: -o-linear-gradient(top, #4569b2 0%, #4062a5 100%);
+	background: -ms-linear-gradient(top, #4569b2 0%, #4062a5 100%);
+	background: linear-gradient(to bottom, #ededed 0%, #e2e2e2 100%);
+	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4569b2', endColorstr='#4062a5', GradientType=0);
+	z-index:11;
+}
+
+/*The white stripes in the hamburger button*/
+div.hamb_l {
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 2px 2px 2px 2px;
+    height: 2px;
+    margin-top: 3px;
+    width: 90%;
+}
+/************* MENU ******************/
+
+/************* loading ******************/
+div.loading {
+	text-align: center;
+	margin: 0 auto;  /* setzt den block mittig */
+	clear: both;
+}
+/************* loading ******************/
+
 
 
 /************************* different resolutions ************************************/

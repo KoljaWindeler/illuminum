@@ -5,30 +5,16 @@ var host="https://52.24.157.229/illumino/";
 
 
 $(function(){
-	var container=$("<div></div>");
-	container.attr("id","welcome_loading");
-
-	// text field
-	var txt=$("<div></div>");
-	txt.html("Loading your cameras ...");
-
-	// preview image
-	var img=$("<img></img>");
-	img.attr({
-		"src" : host+"images/support-loading.gif",
-		"width":32,
-		"height":32
-	});
-	
+	var container=get_loading("welcome_loading","Loading your cameras ...");
 	container.insertAfter("#clients");
-	container.append(txt);	
-	container.append(img);	
 
 	open_ws();
 
 	var txt=$("<div></div>");
 	txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
 	//$("#clients").append(txt);	
+	
+	add_menu();
 });
 
 
@@ -165,6 +151,10 @@ function parse_msg(msg_dec){
 	}
 
 	else if(msg_dec["cmd"]=="get_open_alert_ids"){
+		if($("#loading_window").length){
+			$("#loading_window").remove();
+		};
+
 		var ids=msg_dec["ids"];
 		var mid=msg_dec["mid"];
 		console.log(ids);
@@ -174,7 +164,7 @@ function parse_msg(msg_dec){
 		if(!view.length){
 			alert(mid+"_alarms nicht gefunden");
 		};
-		view.html("");
+		//view.html("");
 
 		// add per element one line 
 		for(var i=0;i<ids.length;i++){		
@@ -835,6 +825,7 @@ function show_alarms(mid){
 	hide_liveview(mid);
 	var view = $("#"+mid+"_alarms");
 	view.text("");
+	view.append(get_loading());
 	if(!view.is(":visible")){
 		view.fadeIn("fast");
 	};
@@ -1034,3 +1025,88 @@ function update_state(account,area,mid,state,detection){
 		$("#"+mid+"_toggle_alarms").show();
 	};
 }
+
+function add_menu(){
+	/******* add menu ******/
+	// menu itsself
+	var menu=$("<div></div>");
+	menu.attr("id","menu");
+	menu.addClass("menu");
+	var list=$("<ul></ul>");
+	var listentry=$("<li></li>");
+	listentry.text("test");
+	list.append(listentry);
+	menu.append(list);
+	menu.insertAfter("#clients");
+	
+
+	var header=$("<header></header>");
+	header.click(function(){
+		return function(){
+			console.log("suche nach menu");
+			var m=$("#menu");
+			if(m.length){
+				console.log("menu gefunden");
+				if(m.hasClass("menu_active")){
+					m.removeClass("menu_active");
+					$("#hamb").css("position", "absolute");
+					$("#hamb").css("transform", "translate(0px, 0px)");
+					$("#hamb").css("transition","all 0.75s ease-in-out");
+				} else {
+					m.addClass("menu_active");
+					$("#hamb").css("position", "fixed");
+					$("#hamb").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
+					$("#hamb").css("transition","all 0.75s ease-in-out");
+				};
+			};
+		};
+	}());
+	var hamb=$("<div></div>");
+	hamb.attr("id","hamb");
+	hamb.addClass("hamb");
+	var a=$("<div></div>");
+	var b=$("<div></div>");
+	var c=$("<div></div>");
+	a.addClass("hamb_l");
+	b.addClass("hamb_l");
+	c.addClass("hamb_l");
+	hamb.append(a);
+	hamb.append(b);
+	hamb.append(c);
+	header.append(hamb);
+	header.insertAfter("#clients");
+	/******* add menu ******/
+};
+
+
+function get_loading(id,text){
+	if(typeof(id) == "undefined"){
+		id="loading_window";
+	}
+	if(typeof(text) == "undefined"){
+		text="loading...";
+	}
+
+	console.log("running it with:"+id+", "+text);
+
+	var wrap=$("<div></div>");
+	wrap.attr("id",id);
+	wrap.addClass("loading");
+
+	// text field
+	var txt=$("<div></div>");
+	txt.text(text);
+
+	// preview image
+	var img=$("<img></img>");
+	img.attr({
+		"src" : host+"images/support-loading.gif",
+		"width":32,
+		"height":32
+	});
+
+	wrap.append(txt);
+	wrap.append(img);
+	return wrap;
+}
+
