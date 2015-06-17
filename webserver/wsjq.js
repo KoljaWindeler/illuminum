@@ -445,7 +445,7 @@ function check_append_m2m(msg_dec){
 			});
 			header_text.append(text);
 
-			text=$("<div></div>").text(det2str(msg_dec["detection"]));
+			text=$("<div></div>").text(state2str(-2,msg_dec["detection"]));
 			text.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_status",
 				"class": "area_header_status"
@@ -509,7 +509,7 @@ function check_append_m2m(msg_dec){
 		var m2m_header_first_line=$("<div></div>");
 		m2m_header_first_line.attr({
 			"id":msg_dec["mid"]+"_header_first_line",
-			"class":"m2m_header"
+			"class":"m2m_header_first_line"
 		});
 		m2m_header.append(m2m_header_first_line);
 
@@ -537,18 +537,27 @@ function check_append_m2m(msg_dec){
 		});
 		m2m_header_text.append(text);
 		
-		text=$("<div></div>").text(state2str(msg_dec["state"]));
+		var glow=$("<div></div>");
+		glow.addClass("glow_dot");
+		glow.addClass("float_left");
+		state2glow(glow,msg_dec["state"],msg_dec["detection"]);
+		m2m_header_text.append(glow);
+
+		text=$("<div></div>").text(state2str(msg_dec["state"],msg_dec["detection"]));
 		text.attr({
 			"id" : msg_dec["mid"]+"_state",
 			"class": "m2m_text"
 		});
+		text.addClass("float_left");
 		m2m_header_text.append(text);
+
 
 		text=$("<div></div>").text("--");
 		text.attr({
 			"id" : msg_dec["mid"]+"_lastseen",
 			"class": "m2m_text"
 		});
+		text.addClass("clear_both");
 		m2m_header_text.append(text);
 
 		var m2m_header_button=$("<div></div>");
@@ -557,19 +566,24 @@ function check_append_m2m(msg_dec){
 		});
 		node.append(m2m_header_button);
 
-		var button=document.createElement("A");
-		button.setAttribute("id",+msg_dec["mid"]+"_toggle_liveview");
-		button.onclick=function(){
+		//////////// live view button /////////////
+		button=$("<a></a>");
+		button.attr({
+			"id": msg_dec["mid"]+"_toggle_liveview",
+			"class":"button"
+		});
+		button.click(function(){
 			var msg_int=msg_dec;
 			return function(){
 				toggle_liveview(msg_int["mid"]);
-			}
-		}();
-		button.className="button";
-		button.text="live!";
+			};
+		}());
+		button.text("live!");
+		set_button_state(button,msg_dec["state"]);
 		m2m_header_button.append(button);
+		//////////// live view button /////////////
 		
-		// light controll button
+		//////////// light controll button /////////////
 		button=$("<a></a>");
 		button.attr({
 			"id": msg_dec["mid"]+"_toggle_lightcontrol",
@@ -582,9 +596,11 @@ function check_append_m2m(msg_dec){
 			};
 		}());
 		button.text("color");
+		set_button_state(button,msg_dec["state"]);
 		m2m_header_button.append(button);
+		//////////// light controll button /////////////
 
-		// alert button
+		//////////// alert button /////////////
 		button=$("<a></a>");
 		button.attr({
 			"id": msg_dec["mid"]+"_toggle_alarms",
@@ -601,9 +617,9 @@ function check_append_m2m(msg_dec){
 
 		// hide it if no alarm is available
 		if(msg_dec["open_alarms"]==0){
-			//button.hide();
 			button.addClass("button_deactivated");
 		};
+		//////////// alert button /////////////
 
 
 		////////////////// LIVE VIEW ////////////////////////////
@@ -704,10 +720,30 @@ function check_append_m2m(msg_dec){
 		console.log("hb feld in client angebaut");
 		/////////////////// CREATE M2M ////////////////////////////(
 	}
-	$("#"+msg_dec["mid"]+"_state").innerHTML=state2str((msg_dec["state"]))+" || "+det2str(msg_dec["detection"]);
+	$("#"+msg_dec["mid"]+"_state").innerHTML=state2str(msg_dec["state"],msg_dec["detection"]);
 }
 
+function set_button_state(b,state){
+	if(state==-1 && b.length){
+		b.addClass("button_deactivated");
+	};
+};
+
+function is_button_active(id){
+	var button=$(id);
+	if(button.length){
+		if(button.hasClass("button_deactivated")){
+			return true;
+		}
+	}
+	return false;
+};
+
 function toggle_liveview(mid){
+	if(is_button_active("#"+mid+"_toggle_liveview")){
+		return;
+	};
+
 	var view = $("#"+mid+"_liveview");
 	if(view.is(":visible")){
 		hide_liveview(mid);
@@ -745,6 +781,10 @@ function show_liveview(mid){
 }
 
 function toggle_lightcontrol(mid){
+	if(is_button_active("#"+mid+"_toggle_lightcontrol")){
+		return;
+	};
+
 	var view = $("#"+mid+"_lightcontrol");
 	if(view.is(":visible")){
 		hide_lightcontrol(mid);
@@ -770,6 +810,10 @@ function show_lightcontrol(mid){
 }
 
 function toggle_alarms(mid){
+	if(is_button_active("#"+mid+"_toggle_alarms")){
+		return;
+	};
+
 	var view = $("#"+mid+"_alarms");
 	if(view.is(":visible")){
 		hide_alarms(mid);
@@ -796,30 +840,49 @@ function show_alarms(mid){
 	};
 }
 
+function state2glow(b,state,det){
+	b.removeClass("glow_red");
+	b.removeClass("glow_purple");
+	b.removeClass("glow_green");
 
-
-function state2str(state){
-	if(state==0){
-		return "idle";
-	} else if(state==1){
-		return "movement!";
-	} else if(state==-1){
-		return "disconnected";
+	if(state==-1){ //disconnected
+		b.addClass("glow_red");
+	} else if(state==1 && det>0){
+		b.addClass("glow_purple");
 	} else {
-		return state.toString();
+		b.addClass("glow_green");
 	};
 };
 
-function det2str(det){
-	if(det==0){
-		return "Not protected";
-	} else if(det==1){
-		return "Protected";
-	} else if(det==2){
-		return "Very protected";
+function state2str(state,det){
+	var ret="";
+	if(state==0){
+		ret = "idle";
+	} else if(state==1){
+		ret = "movement!";
+	} else if(state==-1){
+		ret = "disconnected";
+	} else if(state==-2){ 
+		// just show state
 	} else {
-		return det.toString();
-	}
+		ret = state.toString();
+	};
+
+	if(state!=-1){
+		if(state!=-2){
+			ret += " | ";
+		};
+		if(det==0){
+			ret += "Not protected";
+		} else if(det==1){
+			ret += "Protected";
+		} else if(det==2){
+			ret += "Very protected";
+		} else {
+			ret += det.toString();
+		}
+	};
+	return ret;
 }
 
 
@@ -940,13 +1003,15 @@ function update_hb(mid,ts){
 		var a = new Date(parseFloat(ts)*1000);
 		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes(); 
 		var hour = a.getHours();
+		var text = "Ping "+hour+":"+min;
 
 		var delay=parseInt((Date.now()-(1000*parseFloat(ts)))/1000);
-		if(delay>999){
-			delay=999;
+		if(delay>86400){		
+			text="Last online "+a.getFullYear()+"/"+(a.getMonth()+1)+"/"+a.getDate();
+		} else if(delay<999) {
+			text += " - delay "+delay+" sec";
 		};
 
-		var text = "Ping "+hour+":"+min+" - delay "+delay+" sec";
 		$("#"+mid+"_lastseen").text(text);
 		console.log("hb ts updated");
 	}
@@ -956,12 +1021,12 @@ function update_state(account,area,mid,state,detection){
 	console.log("running update state on "+mid+"/"+state);
 	e=$("#"+mid+"_state");
 	if(e.length){
-		e.text(state2str(state)+" || "+det2str(detection));
+		e.text(state2str(state,detection));
 	}
 	
 	e=$("#"+account+"_"+area+"_status");
 	if(e.length){
-		e.text(det2str(detection));
+		e.text(state2str(-2,detection));
 	}
 	
 	// if we change to alert and detection, we will get an alert, reactivate the button
