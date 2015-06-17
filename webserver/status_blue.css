@@ -19,7 +19,7 @@ h1{
 	margin:0
 }
 
-a.button,a.button_deactivated{
+a.button{
 	color:rgba(0,0,0,0.72)!important;
 	font-size:17px;
 	font-weight:bold;
@@ -28,7 +28,7 @@ a.button,a.button_deactivated{
 	text-align:center;
 	text-decoration:none;
 	text-shadow:0 1px 1px rgba(255,255,255,0.37);
-	background:#bfbbff; /*rgba(190,190,190,1);	*/
+	background:#259b24; /*6fbbff; /*rgba(190,190,190,1);	*/
 	border:1px solid #2a3f56;
 	-moz-border-radius:6px;
 	-webkit-border-radius:6px;
@@ -52,7 +52,8 @@ a.button,a.button_deactivated{
 }
 
 a.button_deactivated{
-	 background:rgba(80,80,80,.5);
+	color:rgba(150,150,150,0.72)!important;
+	background:rgba(180,180,180,.5);
 }
 
 
@@ -82,12 +83,16 @@ div.area_node {
 }
 
 div.area_header, div.m2m_header {
-	padding: 20px 0;
 	padding: 20px;
 	overflow: hidden;
 	display: inline-block;
 	margin: 0 auto;  /* setzt den block mittig */
 	clear: both;
+}
+
+div.m2m_header_first_line {
+	padding-left: 10px;
+	padding-top: 0px;
 }
 
 div.area_header{
@@ -103,6 +108,10 @@ img.area_header, div.area_header_text, img.m2m_header, div.m2m_header_text {
 	margin-right: 15px;
 }
 
+img.m2m_header {
+	margin-top: 12px;
+}
+
 div.area_header_status{
 	text-align: left;	
 	font-size: 10px;
@@ -113,9 +122,46 @@ div.area_header_title{
 	text-align: left;	
 }
 
-div.light_controll_scroller{
-       height: 20px;
-       width: 95%;
+/***************** glowing dot ***************/
+div.glow_dot{
+	border-radius: 50%;
+	display: inline-block;
+	height: 5px;
+	width: 5px;
+
+	margin-top: 5px;
+	margin-right: 8px;
+	margin-left: 3px;
+}
+
+div.glow_red {
+	-webkit-box-shadow: 0px 0px 6px 3px rgba(255,0,0,1);
+	-moz-box-shadow: 0px 0px 6px 3px rgba(255,0,0,1);
+	box-shadow: 0px 0px 6px 3px rgba(255,0,0,1);
+	background-color: #ff0000;
+}
+
+div.glow_green {
+	-webkit-box-shadow: 0px 0px 6px 3px rgba(0,255,0,1);
+	-moz-box-shadow: 0px 0px 6px 3px rgba(0,255,0,1);
+	box-shadow: 0px 0px 6px 3px rgba(0,255,0,1);
+	background-color: #00ff00;
+}
+
+div.glow_purple {
+	-webkit-box-shadow: 0px 0px 6px 3px rgba(255,0,255,1);
+	-moz-box-shadow: 0px 0px 6px 3px rgba(255,0,255,1);
+	box-shadow: 0px 0px 6px 3px rgba(255,0,255,1);
+	background-color: #ff00ff;
+}
+/***************** glowing dot ***************/
+
+div.float_left {
+	float: left;
+}
+
+div.clear_both {
+	clear: both;
 }
 
 /**************************** HEADER ***********************/
@@ -134,7 +180,7 @@ div.area_m2m {
 	margin-top: 1%;
 	padding-top: 1%;
 	padding-left: 1%;
-	padding-bottom: 1%;
+	padding-bottom: 2%;
 }
 
 
@@ -160,17 +206,20 @@ div.m2m_header_button{
 }
 
 div.light_controll_scroller{
-	width: 95%;
+	width: 85%;
 	margin: 0 auto;  /* setzt den block mittig */
 	clear: both;
+	height: 20px;
 }
 
 div.light_controll_color{
-	width: 95%;
+	width: 85%;
 	margin: 0 auto;  /* setzt den block mittig */
 	height: 30px;
 	clear: both;
 }
+
+
 
 /************************* different resolutions ************************************/
 
