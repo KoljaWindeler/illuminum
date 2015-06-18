@@ -111,30 +111,18 @@ function parse_msg(msg_dec){
 			if(msg_dec["img"]!=""){
 				// if we receive the first image, scroll to it
 				if(img.attr("src")==host+"images/support-loading.gif"){
-					$('html,body').animate({
+				$('html,body').animate({
 						scrollTop: img.offset().top-($(window).height()/20)
 					},1000);
 				};
 
 				// set the image height to be at most 75% of the height or 75% of the width (1/0.75=1.3)
 				// lets see if the screen is in portrai or landscape
-				var scale=$(window).width()/1280;
-				if(scale > $(window).height()/720){
-					scale=$(window).height()/720;
-				};
-				scale*=0.9;
- 
-				img.attr({
-					"src":"data:image/jpeg;base64,"+msg_dec["img"],
-					"width":(1280*scale),
-					"height":(720*scale),
-					"padding-top":"20px"
-				});
-				//console.log("width="+$(window).width()+" height="+$(window).height());
+				resize_alert_pic(msg_dec["mid"]);
 			};
 
 		} else {
-			alert("konnte mid_img nicht finden!!");
+			//alert("konnte mid_img nicht finden!!");
 		};
 	}
 
@@ -435,7 +423,7 @@ function check_append_m2m(msg_dec){
 			});
 			header_text.append(text);
 
-			text=$("<div></div>").text(state2str(-2,msg_dec["detection"]));
+			text=$("<div></div>");
 			text.attr({
 				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_status",
 				"class": "area_header_status"
@@ -528,12 +516,12 @@ function check_append_m2m(msg_dec){
 		m2m_header_text.append(text);
 		
 		var glow=$("<div></div>");
-		glow.addClass("glow_dot");
+		glow.attr("id",msg_dec["mid"]+"_glow");
+		glow.addClass("glow_dot"); // setting real state in update routine
 		glow.addClass("float_left");
-		state2glow(glow,msg_dec["state"],msg_dec["detection"]);
 		m2m_header_text.append(glow);
 
-		text=$("<div></div>").text(state2str(msg_dec["state"],msg_dec["detection"]));
+		text=$("<div></div>");
 		text.attr({
 			"id" : msg_dec["mid"]+"_state",
 			"class": "m2m_text"
@@ -617,6 +605,7 @@ function check_append_m2m(msg_dec){
 		liveview.attr({
 			"id" : msg_dec["mid"]+"_liveview",
 		});
+		liveview.addClass("center");
 		liveview.hide();
 		node.append(liveview);
 
@@ -625,6 +614,14 @@ function check_append_m2m(msg_dec){
 		txt.html("Loading liveview<br>");
 		liveview.append(txt);
 
+		// fancybox link around the liveview
+		var rl = $("<a></a>");
+		rl.attr("href","#"+msg_dec["mid"]+"_liveview_pic");
+		rl.fancybox({
+			beforeShow: function() { mid=msg_dec["mid"]; resize_alert_pic(mid); }
+		});
+		liveview.append(rl);
+
 		var img=$("<img></img>");
 		img.attr({
 			"src" : host+"images/support-loading.gif",
@@ -632,7 +629,7 @@ function check_append_m2m(msg_dec){
 			"width":64,
 			"height":64
 		});
-		liveview.append(img);
+		rl.append(img);
 		////////////////// LIVE VIEW ////////////////////////////
 
 		////////////////// COLOR SLIDER ////////////////////////////
@@ -710,7 +707,7 @@ function check_append_m2m(msg_dec){
 		console.log("hb feld in client angebaut");
 		/////////////////// CREATE M2M ////////////////////////////(
 	}
-	$("#"+msg_dec["mid"]+"_state").innerHTML=state2str(msg_dec["state"],msg_dec["detection"]);
+	update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
 }
 
 function set_button_state(b,state){
@@ -1019,10 +1016,15 @@ function update_state(account,area,mid,state,detection){
 	if(e.length){
 		e.text(state2str(-2,detection));
 	}
+
+	if($("#"+mid+"_glow").length){
+		state2glow($("#"+mid+"_glow"),state,detection);
+	}
+	
 	
 	// if we change to alert and detection, we will get an alert, reactivate the button
-	if(state!=0 && detection !=0){
-		$("#"+mid+"_toggle_alarms").show();
+	if(state>0 && detection >0){
+		show_liveview(mid);
 	};
 }
 
@@ -1080,6 +1082,7 @@ function add_menu(){
 
 
 function get_loading(id,text){
+	console.log("adding get loading");
 	if(typeof(id) == "undefined"){
 		id="loading_window";
 	}
@@ -1110,3 +1113,60 @@ function get_loading(id,text){
 	return wrap;
 }
 
+function resize_alert_pic(mid){
+	var img=$("#"+mid+"_liveview_pic");
+	var fb_inner=img.parent();
+	var fb_outer=img.parent().parent().parent().parent();
+	var w=$(window).width();
+	var h=$(window).height();
+
+	if(!img.parent().hasClass("fancybox-inner")){
+		// if picture is open in the website, use dimensions of the m2m box
+		var lv=$("#"+msg_dec["mid"]);
+		var scale=lv.width()/1280;
+		scale*=0.8;
+ 
+		img.attr({
+			"src":"data:image/jpeg;base64,"+msg_dec["img"],
+			"width":(1280*scale),
+			"height":(720*scale),
+			"style":" padding-top: 20px;"
+		});
+
+	} else {
+		// if picture has been opened in the fancybox, adaopt size of fancybox	
+		var scale=w/1280; // assume portait
+		if(w/1280 > h/720){
+			// e.g. 16:9 landscape 
+			scale=h/720;
+		}
+
+		scale*=0.8;
+		var img_w=1280*scale;
+		var img_h=720*scale;
+	
+
+		img.attr({
+			'width':img_w,
+			'height':img_h,
+			"style":" padding-top: 0px;"
+		});
+
+		fb_inner.attr({
+			'style':'height='+(img_h+11)+'px'
+		});
+
+		var fb_w=img_w+40;
+		var fb_h=img_h+31;
+	
+		fb_outer.attr({
+			'style':
+				'height='+fb_h+'px;'+
+				'width: '+fb_w+'px;'+
+				'position: fixed;'+
+				'left: '+((w-fb_w)/2)+'px;'+
+				'top: '+((h-fb_h)/2)+'px;'+
+				'opacity: 1; overflow: visible;'
+		});
+	};
+}
