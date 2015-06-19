@@ -3,18 +3,17 @@ var f_t= 0;
 var c_t=0;
 var host="https://52.24.157.229/illumino/";
 
-
+// run as son as everything is loaded
 $(function(){
 	var container=get_loading("welcome_loading","Loading your cameras ...");
 	container.insertAfter("#clients");
 
+	add_menu();
 	open_ws();
 
-	var txt=$("<div></div>");
-	txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
+	//var txt=$("<div></div>");
+	//txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
 	//$("#clients").append(txt);	
-	
-	add_menu();
 });
 
 
@@ -27,7 +26,6 @@ function open_ws() {
 
 	// reacting on incoming messages
 	con.onmessage = function(msg) {
-		console.log("Message");
 		console.log(msg);
 		msg_dec=JSON.parse(msg.data);
 		parse_msg(msg_dec);
@@ -60,10 +58,13 @@ function parse_msg(msg_dec){
 	// server has established a connection between m2m and WS
 	if(msg_dec["cmd"]=="m2v_login"){
 		//console.log("m2v_lgogin detected:"+msg_dec);
+
 		// check if m2m is already visible, if not append it. Then update the state and timestamp
 		check_append_m2m(msg_dec);
 		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
 		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
+
+		// remove loading if still existing
 		if($("#welcome_loading").length){
 			$("#welcome_loading").remove();
 			$('html,body').animate({
@@ -84,8 +85,9 @@ function parse_msg(msg_dec){
 		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
 	}
 
+	// show a picture, eighter because we requested it, or because an alert happended
 	else if(msg_dec["cmd"]=="rf"){
-		console.log("rf message received");
+		// debug calc delay
 		var delay=parseInt(Date.now()-(1000*parseFloat(msg_dec["ts"])));
 		if(delay>999){
 			delay=999;
@@ -97,18 +99,20 @@ function parse_msg(msg_dec){
 		var fps=Math.floor((c_t/((Date.now()-f_t)/1000)*100))/100;
 		$("#"+msg_dec["mid"]+"_hb").innerHTML="Foto age "+delay+" ms, fps: "+fps;
 
-
+		// make sure the view is visible if we have an alert
 		var client=$("#"+msg_dec["mid"]);
-		if(client.length){
+		if(client.length && msg_dec["detection"]>0 && msg_dec["state"]>0){
 			show_liveview(msg_dec["mid"]);
 		}
 
+		// die loading dialog
 		var txt=$("#"+msg_dec["mid"]+"_liveview_txt");
-		txt.text("");
+		txt.hide();
 
+		// display picture
 		var img=$("#"+msg_dec["mid"]+"_liveview_pic");
 		if(img.length){
-			console.log("mid_img: #"+msg_dec["mid"]+"_liveview_pic gefunden!!");
+			//console.log("mid_img: #"+msg_dec["mid"]+"_liveview_pic gefunden!!");
 
 			if(msg_dec["img"]!=""){
 				// if we receive the first image, scroll to it
@@ -118,8 +122,7 @@ function parse_msg(msg_dec){
 					},1000);
 				};
 
-				// set the image height to be at most 75% of the height or 75% of the width (1/0.75=1.3)
-				// lets see if the screen is in portrai or landscape
+				// display image
 				resize_alert_pic(msg_dec["mid"],msg_dec["img"]);
 			};
 
@@ -128,6 +131,7 @@ function parse_msg(msg_dec){
 		};
 	}
 
+	// an m2m unit disconnects
 	else if(msg_dec["cmd"]=="disconnect"){
 		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
 		var client=$("#"+msg_dec["mid"]);
@@ -140,6 +144,7 @@ function parse_msg(msg_dec){
 		}
 	}
 
+	// we'll request the alerts by sending "get_open_alert_ids" and the server will responde with this dataset below
 	else if(msg_dec["cmd"]=="get_open_alert_ids"){
 		if($("#loading_window").length){
 			$("#loading_window").remove();
@@ -147,104 +152,107 @@ function parse_msg(msg_dec){
 
 		var ids=msg_dec["ids"];
 		var mid=msg_dec["mid"];
-		console.log(ids);
+		//console.log(ids);
+
 		// here alarm view leeren
-		console.log("leere alarm section for "+mid);
 		var view=$("#"+mid+"_alarms");
 		if(!view.length){
 			alert(mid+"_alarms nicht gefunden");
-		};
-		//view.html("");
-
-		// add per element one line 
-		for(var i=0;i<ids.length;i++){		
-			// if m2m lable ist 123456789 and alarm is 1010 then we should get this:
-			// <div id="alert_123456789_1010">
-			// 	<div id="alert_123456789_1010_txt">Loading -> Movement detected at: 8.6.2015 21:51</div>
-			// 	<img id="alert_123456789_1010_img"> -> id changes to set_alert_123456789_1010_img</img>
-			//	<a id="alert_123456789_1010_ack">button></a>
-			//	<div id="alert_123456789_1010_slider">
-			//		<ul...><li></li></ul>
-			//	</div>
-			// </div>
+		} else {
+			// add per element one line 
+			for(var i=0;i<ids.length;i++){		
+				// if m2m lable ist 123456789 and alarm is 1010 then we should get this:
+				// <div id="alert_123456789_1010">
+				// 	<div id="alert_123456789_1010_txt">Loading -> Movement detected at: 8.6.2015 21:51</div>
+				// 	<img id="alert_123456789_1010_img"> -> id changes to set_alert_123456789_1010_img</img>
+				//	<a id="alert_123456789_1010_ack">button></a>
+				//	<div id="alert_123456789_1010_slider">
+				//		<ul...><li></li></ul>
+				//	</div>
+				// </div>
 			
-			// root 
-			var alert=$("<div></div>");
-			alert.attr({
-				"id":"alert_"+mid+"_"+ids[i]
-			});
+				// root 
+				var alert=$("<div></div>");
+				alert.attr({
+					"id":"alert_"+mid+"_"+ids[i]
+				});
 
-			// break
-			var br=$("<br />");
+				// break
+				var br=$("<br />");
 
-			// text field
-			var txt=$("<div></div>");
-			txt.attr({
-				"id":"alert_"+mid+"_"+ids[i]+"_txt"
-			});
-			txt.html("Loading ...");
+				// text field
+				var txt=$("<div></div>");
+				txt.attr({
+					"id":"alert_"+mid+"_"+ids[i]+"_txt"
+				});
+				txt.html("Loading ...");
 
-			// preview image
-			var img=$("<img></img>");
-			img.attr({
-				"src" : host+"images/support-loading.gif",
-				"id":"alert_"+mid+"_"+ids[i]+"_img",
-				"width":32,
-				"height":32
-			});
+				// preview image
+				var img=$("<img></img>");
+				img.attr({
+					"src" : host+"images/support-loading.gif",
+					"id":"alert_"+mid+"_"+ids[i]+"_img",
+					"width":32,
+					"height":32
+				});
 
-			// ack button
-			var ack=$("<a></a>");
-			ack.attr({
-				"id":"alert_"+mid+"_"+ids[i]+"_ack",
-				"class":"button"
-			});
-			ack.text("Acknowledge alert");
-			ack.click(function(){
-				var id_int=ids[i];
-				return function(){
-					ack_alert(id_int);
-				};
-			}());
+				// ack button
+				var ack=$("<a></a>");
+				ack.attr({
+					"id":"alert_"+mid+"_"+ids[i]+"_ack",
+					"class":"button"
+				});
+				ack.text("Acknowledge alert");
+				ack.click(function(){
+					var id_int=ids[i];
+					return function(){
+						ack_alert(id_int);
+					};
+				}());
 
-			// slider
-			var slider=$("<div></div>");
-			slider.attr({
-				"id":"alert_"+mid+"_"+ids[i]+"_slider"
-			});
-			slider.hide();
+				// slider
+				var slider=$("<div></div>");
+				slider.attr({
+					"id":"alert_"+mid+"_"+ids[i]+"_slider"
+				});
+				slider.hide();
 
-			view.append(alert);
-			alert.append(txt);
-			alert.append(img);
-			alert.append(ack);
-			alert.append(slider);
-		};
-
-		// request details	
-		for(var i=0;i<ids.length;i++){
-			var cmd_data = { "cmd":"get_alarm_details", "id":ids[i], "mid":mid};
-			console.log(JSON.stringify(cmd_data));
-			console.log(con);
-			con.send(JSON.stringify(cmd_data));
-		};
+				view.append(alert);
+				alert.append(txt);
+				alert.append(img);
+				alert.append(ack);
+				alert.append(slider);
+			}; // end of for
+		
+			// request details	
+			for(var i=0;i<ids.length;i++){
+				var cmd_data = { "cmd":"get_alarm_details", "id":ids[i], "mid":mid};
+				console.log(JSON.stringify(cmd_data));
+				console.log(con);
+				con.send(JSON.stringify(cmd_data));
+			};
+		}; // end of, if there is the view
 	}
 
+	// every id that has been received by the dataset above will trigger a "get_alam_details" msg to the server, this handles the response
 	else if(msg_dec["cmd"]=="get_alarm_details"){
 		var img=msg_dec["img"];
 		var mid=msg_dec["mid"];
 		// fill element with details
-		// add new placeholder image
-		var view=$("#alert_"+mid+"_"+msg_dec["id"]+"_txt");
-		if(!view.length){
+
+		// show text info
+		var txt=$("#alert_"+mid+"_"+msg_dec["id"]+"_txt");
+		if(!txt.length){
 			console.log("get_alarm_details view not found");
-		}
+		} else {
 
-		var a = new Date(parseFloat(msg_dec["f_ts"])*1000);
-		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
-		var hour = a.getHours();
-		view.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);		
+			var a = new Date(parseFloat(msg_dec["f_ts"])*1000);
+			var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
+			var hour = a.getHours();
+			txt.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
+		}		
 
+		// add new placeholder image
 		if(img.length>0){
 			// this is picture nr 1 the title picture
 			var pic=$("#alert_"+mid+"_"+msg_dec["id"]+"_img");		
@@ -259,24 +267,17 @@ function parse_msg(msg_dec){
 				var core_int=img[0]["path"].substr(0,img[0]["path"].indexOf("."));		// slider itself must have an unique id without "."
 				return function(){
 					var slider=$(slider_id);
-					/*if(slider.is(":visible")){
-						slider.hide();
-					} else {*/
-						slider.text("");
-						slider.show();
-						show_pic_slider(img_int,mid_int,core_int,slider_id);
-					//};
+					slider.text("");
+					slider.show();
+					show_pic_slider(img_int,mid_int,core_int,slider_id);
 				}
 			}());
 			
 			// request picture from server
-			for(var i=0;i<img.length && i<1;i++){
-				var path=img[i]["path"];
-				console.log("requesting image:"+path);
-				var width=view.width()*0.5; // 50% of the width of the alert box
-				var cmd_data = { "cmd":"get_img", "path":path, "width":width, "height":width*720/1280};
-				con.send(JSON.stringify(cmd_data));
-			};
+			var path=img[0]["path"];
+			var width=pic.parent().width()*0.5; // 50% of the width of the alert box
+			var cmd_data = { "cmd":"get_img", "path":path, "width":width, "height":width*720/1280};
+			con.send(JSON.stringify(cmd_data));
 		}
 	}
 
@@ -299,6 +300,52 @@ function parse_msg(msg_dec){
 
 function ack_alert(id){
 	console.log("ack for id:"+id);
+};
+
+function add_alert_details(msg_dec){
+		var img=msg_dec["img"];
+		var mid=msg_dec["mid"];
+		// fill element with details
+
+		// show text info
+		var txt=$("#alert_"+mid+"_"+msg_dec["id"]+"_txt");
+		if(!txt.length){
+			console.log("get_alarm_details view not found");
+		} else {
+
+			var a = new Date(parseFloat(msg_dec["f_ts"])*1000);
+			var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
+			var hour = a.getHours();
+			txt.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
+		}		
+
+		// add new placeholder image
+		if(img.length>0){
+			// this is picture nr 1 the title picture
+			var pic=$("#alert_"+mid+"_"+msg_dec["id"]+"_img");		
+			pic.attr({
+				"id":img[0]["path"],
+			});
+			pic.click(function(){
+				//console.log(img);
+				var img_int=img; 								// list of all pictures for this alarm
+				var mid_int=mid;	 							// mid for this alarm
+				var slider_id="#alert_"+mid_int+"_"+msg_dec["id"]+"_slider";			// id for the div in which the slider should
+				var core_int=img[0]["path"].substr(0,img[0]["path"].indexOf("."));		// slider itself must have an unique id without "."
+				return function(){
+					var slider=$(slider_id);
+					slider.text("");
+					slider.show();
+					show_pic_slider(img_int,mid_int,core_int,slider_id);
+				}
+			}());
+			
+			// request picture from server
+			var path=img[0]["path"];
+			var width=pic.parent().width()*0.5; // 50% of the width of the alert box
+			var cmd_data = { "cmd":"get_img", "path":path, "width":width, "height":width*720/1280};
+			con.send(JSON.stringify(cmd_data));
+		}
 };
 
 function show_pic_slider(img,mid,core,slider_id){
@@ -371,10 +418,10 @@ function show_pic_slider(img,mid,core,slider_id){
 
 
 function check_append_m2m(msg_dec){
-	console.log(msg_dec);
+	//console.log(msg_dec);
 	// get root clients node
 	if($("#clients").length){
-		console.log("suche nach gruppe "+msg_dec["account"]+"_"+msg_dec["area"]);
+		//console.log("suche nach gruppe "+msg_dec["account"]+"_"+msg_dec["area"]);
 		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
 		// check if area is already existing
 		if(area.length==0){
@@ -472,7 +519,7 @@ function check_append_m2m(msg_dec){
 	// check if this m2m already exists
 	if(!node.length){
 		/////////////////// CREATE M2M ////////////////////////////(
-		console.log("knoten! nicht gefunden, lege ihn an");
+		//console.log("knoten! nicht gefunden, lege ihn an");
 		node=$("<div></div>");
 		node.attr({
 			"id":msg_dec["mid"],
@@ -613,6 +660,7 @@ function check_append_m2m(msg_dec){
 
 		var txt=$("<div></div>");
 		txt.attr("id",msg_dec["mid"]+"_liveview_txt");
+		txt.attr("style","padding-top:20px;");
 		txt.html("Loading liveview<br>");
 		liveview.append(txt);
 
@@ -622,8 +670,6 @@ function check_append_m2m(msg_dec){
 		rl.fancybox({
 			beforeShow: function() { 
 				mid=msg_dec["mid"]; 
-				// FIND ME
-				//$("#"+mid+"_liveview_pic").attr("id","#"+mid+"_liveview_pic_h");
 				resize_alert_pic(mid,""); 
 			}
 		});
@@ -711,7 +757,7 @@ function check_append_m2m(msg_dec){
 
 
 		area.append(node);
-		console.log("hb feld in client angebaut");
+		//console.log("hb feld in client angebaut");
 		/////////////////// CREATE M2M ////////////////////////////(
 	}
 	update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
@@ -751,7 +797,7 @@ function hide_liveview(mid){
 	$("#"+mid+"_toggle_liveview").removeClass("button_active");
 	if(view.is(":visible")){
 		set_interval(mid,0);
-		view.delay(1000).fadeOut("fast");
+		view.fadeOut("fast");
 	}
 }
 
@@ -769,7 +815,7 @@ function show_liveview(mid){
 			"height":64
 		});
 		var txt=$("#"+msg_dec["mid"]+"_liveview_txt");		
-		txt.html("Loading...<br>");
+		txt.show();
 
 		view.fadeIn("fast");
 		
@@ -911,25 +957,6 @@ function set_interval(mid,interval){
 	var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":interval};
 	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
-
-	var client=$("#"+mid);
-	if(interval==0){
-		var img=$("#"+mid+"_img");
-		if(client!=undefined){
-			if(img!=undefined){
-				setTimeout(function(){
-					//do what you need here
-					client.removeChild(img);
-				}, 1000);
-			}
-		}
-	} else {
-		if($("#"+mid+"_img")==undefined){
-			var sub_node=document.createElement("img");
-			sub_node.setAttribute("id",mid+"_img");
-			client.append(sub_node);
-		}
-	}
 }
 
 function login(user,pw) {
@@ -999,9 +1026,7 @@ function refreshSwatch(mid) {
 }
 
 function update_hb(mid,ts){
-	console.log("looking for hb field");
 	if($("#"+mid+"_lastseen").length){
-		console.log("ffound ");
 		var a = new Date(parseFloat(ts)*1000);
 		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes(); 
 		var hour = a.getHours();
@@ -1015,13 +1040,13 @@ function update_hb(mid,ts){
 		};
 
 		$("#"+mid+"_lastseen").text(text);
-		console.log("hb ts updated");
+		//console.log("hb ts updated");
 	}
 }
 
 function update_state(account,area,mid,state,detection){
-	console.log("running update state on "+mid+"/"+state);
-	e=$("#"+mid+"_state");
+	//console.log("running update state on "+mid+"/"+state);
+	var e=$("#"+mid+"_state");
 	if(e.length){
 		e.text(state2str(state,detection));
 	}
@@ -1096,7 +1121,7 @@ function add_menu(){
 
 
 function get_loading(id,text){
-	console.log("adding get loading");
+	//console.log("adding get loading");
 	if(typeof(id) == "undefined"){
 		id="loading_window";
 	}
@@ -1104,7 +1129,7 @@ function get_loading(id,text){
 		text="loading...";
 	}
 
-	console.log("running it with:"+id+", "+text);
+	//console.log("running it with:"+id+", "+text);
 
 	var wrap=$("<div></div>");
 	wrap.attr("id",id);
