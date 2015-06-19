@@ -56,6 +56,10 @@ a.button_deactivated{
 	background:rgba(180,180,180,.5);
 }
 
+a.button_active{
+	background: #9B2424;
+}
+
 
 a.button:active{-moz-box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;-webkit-box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;opacity:1}
 
@@ -162,6 +166,13 @@ div.float_left {
 
 div.clear_both {
 	clear: both;
+}
+
+div.center, img.center {
+	margin: 0 auto;  /* setzt den block mittig */
+	text-align: center!important;
+	margin-left: auto;
+	margin-right: auto;	
 }
 
 /**************************** HEADER ***********************/

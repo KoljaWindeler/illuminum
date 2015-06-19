@@ -108,6 +108,8 @@ function parse_msg(msg_dec){
 
 		var img=$("#"+msg_dec["mid"]+"_liveview_pic");
 		if(img.length){
+			console.log("mid_img: #"+msg_dec["mid"]+"_liveview_pic gefunden!!");
+
 			if(msg_dec["img"]!=""){
 				// if we receive the first image, scroll to it
 				if(img.attr("src")==host+"images/support-loading.gif"){
@@ -118,11 +120,11 @@ function parse_msg(msg_dec){
 
 				// set the image height to be at most 75% of the height or 75% of the width (1/0.75=1.3)
 				// lets see if the screen is in portrai or landscape
-				resize_alert_pic(msg_dec["mid"]);
+				resize_alert_pic(msg_dec["mid"],msg_dec["img"]);
 			};
 
 		} else {
-			//alert("konnte mid_img nicht finden!!");
+			console.log("konnte mid_img: #"+msg_dec["mid"]+"_liveview_pic nicht finden!!");
 		};
 	}
 
@@ -618,7 +620,12 @@ function check_append_m2m(msg_dec){
 		var rl = $("<a></a>");
 		rl.attr("href","#"+msg_dec["mid"]+"_liveview_pic");
 		rl.fancybox({
-			beforeShow: function() { mid=msg_dec["mid"]; resize_alert_pic(mid); }
+			beforeShow: function() { 
+				mid=msg_dec["mid"]; 
+				// FIND ME
+				//$("#"+mid+"_liveview_pic").attr("id","#"+mid+"_liveview_pic_h");
+				resize_alert_pic(mid,""); 
+			}
 		});
 		liveview.append(rl);
 
@@ -741,6 +748,7 @@ function toggle_liveview(mid){
 
 function hide_liveview(mid){
 	var view = $("#"+mid+"_liveview");
+	$("#"+mid+"_toggle_liveview").removeClass("button_active");
 	if(view.is(":visible")){
 		set_interval(mid,0);
 		view.delay(1000).fadeOut("fast");
@@ -750,6 +758,8 @@ function hide_liveview(mid){
 function show_liveview(mid){
 	hide_lightcontrol(mid);
 	hide_alarms(mid);
+	// set button active
+	$("#"+mid+"_toggle_liveview").addClass("button_active");
 	var view = $("#"+mid+"_liveview");
 	if(!view.is(":visible")){
 		var img=$("#"+mid+"_liveview_pic");		
@@ -782,6 +792,7 @@ function toggle_lightcontrol(mid){
 
 function hide_lightcontrol(mid){
 	var view = $("#"+mid+"_lightcontrol");
+	$("#"+mid+"_toggle_lightcontrol").removeClass("button_active");
 	if(view.is(":visible")){
 		view.fadeOut("fast");
 	}
@@ -790,6 +801,7 @@ function hide_lightcontrol(mid){
 function show_lightcontrol(mid){
 	hide_liveview(mid);
 	hide_alarms(mid);
+	$("#"+mid+"_toggle_lightcontrol").addClass("button_active");
 	var view = $("#"+mid+"_lightcontrol");
 	if(!view.is(":visible")){
 		view.fadeIn("fast");
@@ -812,6 +824,7 @@ function toggle_alarms(mid){
 
 function hide_alarms(mid){
 	var view = $("#"+mid+"_alarms");
+	$("#"+mid+"_toggle_alarms").removeClass("button_active");
 	if(view.is(":visible")){
 		view.fadeOut("fast");
 	}
@@ -820,6 +833,7 @@ function hide_alarms(mid){
 function show_alarms(mid){
 	hide_lightcontrol(mid);
 	hide_liveview(mid);
+	$("#"+mid+"_toggle_alarms").addClass("button_active");
 	var view = $("#"+mid+"_alarms");
 	view.text("");
 	view.append(get_loading());
@@ -1113,7 +1127,7 @@ function get_loading(id,text){
 	return wrap;
 }
 
-function resize_alert_pic(mid){
+function resize_alert_pic(mid,data){
 	var img=$("#"+mid+"_liveview_pic");
 	var fb_inner=img.parent();
 	var fb_outer=img.parent().parent().parent().parent();
@@ -1169,4 +1183,12 @@ function resize_alert_pic(mid){
 				'opacity: 1; overflow: visible;'
 		});
 	};
+
+	// set new image
+	if(data!=""){
+		img.attr({
+			"src":"data:image/jpeg;base64,"+data,
+		});
+	};
+
 }
