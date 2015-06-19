@@ -849,6 +849,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 					msg_ws2["color_pos"]=m2m["color_pos"]
 					msg_ws2["brightness_pos"]=m2m["brightness_pos"]
 					msg_ws2["rm"]="offline"
+					msg_ws2["open_alarms"]=db.get_open_alert_count(ws.account,m2m["mid"])
 			# 3. send data to the websocket
 					msg_q_ws.append((msg_ws2,ws))
 #******************************************************#
@@ -1166,3 +1167,7 @@ while 1:
 #********************************** End of Main loop ***********************************#
 #***************************************************************************************#
 	
+
+
+					
+
