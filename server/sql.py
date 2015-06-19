@@ -281,7 +281,8 @@ class sql:
 				cursor.execute(req)
 				result = cursor.fetchall()
 		except:
-			p.rint("req:"+req+","+sys.exc_info()[0],"d")
+			p.rint("req:"+req,"d")
+			p.rint(sys.exc_info()[0],"d")
 			result = -1
 		return result
 	#############################################################
