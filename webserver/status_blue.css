@@ -160,8 +160,12 @@ div.glow_purple {
 }
 /***************** glowing dot ***************/
 
-div.float_left {
+div.float_left, img.float_left {
 	float: left;
+}
+
+div.inline_block {
+	display: inline-block;
 }
 
 div.clear_both {
@@ -228,6 +232,17 @@ div.light_controll_color{
 	margin: 0 auto;  /* setzt den block mittig */
 	height: 30px;
 	clear: both;
+}
+
+div.alert_side{
+	padding-top:20px;
+	padding-left: 10px;
+	float: left;
+	vertical-align:bottom;
+}
+
+img.alert_preview{
+	padding-top:10px;
 }
 
 /************* MENU ******************/
