@@ -129,6 +129,15 @@ function parse_msg(msg_dec){
 		} else {
 			console.log("konnte mid_img: #"+msg_dec["mid"]+"_liveview_pic nicht finden!!");
 		};
+
+		// handle countdown
+		console.log("countdown: "+msg_dec["webcam_countdown"]);
+		if(msg_dec["webcam_countdown"]<10){
+			var cmd_data = { "cmd":"reset_webcam_countdown"};
+			console.log(JSON.stringify(cmd_data));
+			console.log(con);
+			con.send(JSON.stringify(cmd_data)); 		
+		}
 	}
 
 	// an m2m unit disconnects
@@ -228,7 +237,7 @@ function add_alert(aid,mid){
 	var width=$("#"+mid+"_alarms").width()*0.5; // 50% of the width of the alert box
 	img_container.attr({
 		"style":"width: "+width+"px; "+
-		"height:"+(width/1280*720)+"px;"
+		"height:"+(width/1280*720+20)+"px;"
 	});
 	img_container.addClass("float_left");
 	alert.append(img_container);
@@ -665,13 +674,11 @@ function check_append_m2m(msg_dec){
 				toggle_alarms(msg_int["mid"]);
 			};
 		}());
-		button.text("alarms");
+		button.text("0 alarms");
 		m2m_header_button.append(button);
 
 		// hide it if no alarm is available
-		if(msg_dec["open_alarms"]==0){
-			button.addClass("button_deactivated");
-		};
+		set_alert_button_state(button,msg_dec["open_alarms"]);
 		//////////// alert button /////////////
 
 
@@ -914,6 +921,19 @@ function show_alarms(mid){
 	};
 }
 
+function set_alert_button_state(button,open_alarms){
+	if(open_alarms==0){
+		button.addClass("button_deactivated");
+	} else if(open_alarms==1) {
+		button.removeClass("button_deactivated");
+		button.text(open_alarms+" alarm");
+	} else {
+		button.removeClass("button_deactivated");
+		button.text(open_alarms+" alarms");
+	}
+}		
+
+
 function state2glow(b,state,det){
 	b.removeClass("glow_red");
 	b.removeClass("glow_purple");
@@ -999,7 +1019,7 @@ function set_detection(user,area,on_off){
 	if(con == null) {
 		return;
 	}
-	var cmd_data = { "cmd":"set_override", "rule":on_off, "area":area, "duration":"50"};
+	var cmd_data = { "cmd":"set_override", "rule":on_off, "area":area, "duration":"0"};
 	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 }
@@ -1091,6 +1111,24 @@ function update_state(account,area,mid,state,detection){
 	if(state>0 && detection >0){
 		show_liveview(mid);
 	};
+
+	// make buttons available/unavailable
+	var lv=$("#"+mid+"_toggle_liveview");
+	var cv=$("#"+mid+"_toggle_lightcontrol");
+	var av=$("#"+mid+"_toggle_alarms");
+	if(state<0){
+		lv.addClass("button_deactivated");
+		lv.removeClass("button_active");
+		cv.addClass("button_deactivated");
+		cv.removeClass("button_active");
+		av.removeClass("button_active");
+		hide_liveview(mid);
+		hide_lightcontrol(mid);
+		hide_alarms(mid);
+	} else {
+		lv.removeClass("button_deactivated");
+		cv.removeClass("button_deactivated");
+	}
 }
 
 function add_menu(){
