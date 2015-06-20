@@ -393,10 +393,14 @@ def recv_m2m_msg_handle(data,m2m):
 						ts_photo=enc.get("td",0) # td tells us when this photo was taken
 						ts_photo=ts_photo[1][0]
 						t_passed=ts_photo-v.ts+0.1
-						if(t_passed>=v.interval and v.ws.snd_q_len<10): # send only if queue is not too full
+						if(t_passed>=v.interval and v.ws.snd_q_len<10 and v.ws.webcam_countdown>=1): # send only if queue is not too full
 							v.ts=ts_photo
 							v.ws.snd_q_len+=1
+							v.ws.webcam_countdown-=1
+							msg["webcam_countdown"]=v.ws.webcam_countdown
 							msg_q_ws.append((msg,v.ws))
+						elif(v.ws.webcam_countdown<1):
+							set_webcam_con(m2m.mid,0,v.ws) # disconnect the webcam from us						
 						else:
 							p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
 
@@ -725,6 +729,11 @@ def recv_ws_msg_handle(data,ws):
 				msg["mid"]=enc.get("mid")		
 				msg_q_ws.append((msg,ws))
 
+		## reset webcam_countdown
+		elif(enc.get("cmd")=="reset_webcam_countdown"):
+			ws.webcam_countdown=99
+			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received countdown reset from "+ws.login,"v") 
+
 		## get picture 
 		elif(enc.get("cmd")=="get_img"):
 			path=enc.get("path")
@@ -869,6 +878,9 @@ def set_webcam_con(mid,interval,ws):
 			#print("habe die angeforderte MID in der clienten liste vom ws gefunden")
 			# thats our m2m cam
 			if(interval>0):
+				# reset counter
+				ws.webcam_countdown=99;
+
 				# scan if we are already in the webcam list, and remove us if so
 				for wcv in m2m.webcam:
 					if(wcv.ws==ws):

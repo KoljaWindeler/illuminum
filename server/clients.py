@@ -45,6 +45,7 @@ class ws_clients:
 		self.challange=""					# challange for the login
 		self.location=""
 		self.ws=None
+		self.webcam_countdown=99				# remaining webcam frames
 
 class webcam_viewer:
 	def __init__(self,cli):
