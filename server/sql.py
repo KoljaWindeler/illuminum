@@ -387,3 +387,17 @@ class sql:
 		except:
 			result = -1
 		return result
+	#############################################################
+	def ack_alert(self,mid,aid,login):
+		try:
+			with self.connection.cursor() as cursor:
+				req = "UPDATE  `alert`.`alerts` SET  `ack` =  '1',`ack_ts` =  '"+str(int(time.time()))+"',`ack_by` =  '"+login+"' WHERE  `id` ="+str(aid)+" and `mid`='"+str(mid)+"'";
+				cursor.execute(req)
+			self.connection.commit()
+			result=0
+		except:
+			result = -1
+			p.rint(sys.exc_info()[0],"d")
+		return result
+
+	

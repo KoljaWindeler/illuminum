@@ -131,7 +131,6 @@ function parse_msg(msg_dec){
 		};
 
 		// handle countdown
-		console.log("countdown: "+msg_dec["webcam_countdown"]);
 		if(msg_dec["webcam_countdown"]<10){
 			var cmd_data = { "cmd":"reset_webcam_countdown"};
 			console.log(JSON.stringify(cmd_data));
@@ -205,8 +204,19 @@ function parse_msg(msg_dec){
 	};
 }
 
-function ack_alert(id){
+function ack_alert(id,mid){
 	console.log("ack for id:"+id);
+	// remove field
+	$("#alert_"+mid+"_"+id).fadeOut(600, function() { $(this).remove(); });
+
+	// decrement nr
+	var button=$("#"+mid+"_toggle_alarms");
+	var open_alarms=parseInt(button.text().substring(0,button.text().indexOf(" ")))-1;
+	set_alert_button_state(button,open_alarms);
+
+	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
+	console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 		
 };
 
 function add_alert(aid,mid){
@@ -298,8 +308,9 @@ function add_alert(aid,mid){
 	ack.text("Acknowledge alert");
 	ack.click(function(){
 		var id_int=aid;
+		var mid_int=mid;
 		return function(){
-			ack_alert(id_int);
+			ack_alert(id_int,mid_int);
 		};
 	}());
 	ack.hide();
@@ -640,7 +651,7 @@ function check_append_m2m(msg_dec){
 				toggle_liveview(msg_int["mid"]);
 			};
 		}());
-		button.text("live!");
+		button.text("glubsch!");
 		set_button_state(button,msg_dec["state"]);
 		m2m_header_button.append(button);
 		//////////// live view button /////////////
@@ -674,7 +685,7 @@ function check_append_m2m(msg_dec){
 				toggle_alarms(msg_int["mid"]);
 			};
 		}());
-		button.text("0 alarms");
+		button.text("no alarms");
 		m2m_header_button.append(button);
 
 		// hide it if no alarm is available
@@ -923,7 +934,9 @@ function show_alarms(mid){
 
 function set_alert_button_state(button,open_alarms){
 	if(open_alarms==0){
+		button.text("no alarms");
 		button.addClass("button_deactivated");
+		button.removeClass("button_active");
 	} else if(open_alarms==1) {
 		button.removeClass("button_deactivated");
 		button.text(open_alarms+" alarm");

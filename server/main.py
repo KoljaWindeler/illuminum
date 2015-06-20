@@ -757,6 +757,8 @@ def recv_ws_msg_handle(data,ws):
 
 				msg_q_ws.append((msg,ws))
 
+		elif(enc.get("cmd")=="ack_alert"):
+			db.ack_alert(enc.get("mid"),enc.get("aid"),ws.login)
 
 		## unsupported cmd, for WS
 		else:
