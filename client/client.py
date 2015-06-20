@@ -7,7 +7,7 @@ from login import *
 from math import *
 
 MAX_MSG_SIZE = 512000
-SERVER_IP = "192.168.1.80"
+SERVER_IP = "52.24.157.229"
 SERVER_PORT = 9875
 mid=str(uuid.getnode())
 SERVER_TIMEOUT = 5
