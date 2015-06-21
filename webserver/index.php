@@ -1,6 +1,6 @@
 <?php
 ///////////////// server status ///////////////////////////
-$body='<img src="images/logobw.png"><h1 id="l10n_title">Welcome to glubsch</h1>';
+$body='<img class="logo"><h1 id="l10n_title">Welcome to glubsch</h1>';
 unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
 if(!empty($output[0])){	// python serer is running add everything

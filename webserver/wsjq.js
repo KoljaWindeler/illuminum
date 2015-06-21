@@ -497,12 +497,9 @@ function check_append_m2m(msg_dec){
 			var icon=$("<img></img>");
 			icon.attr({
 				"id": msg_dec["account"]+"_"+msg_dec["area"]+"_icon",
-				"src": host+"images/home.png",
-				"class": "area_header",
-				"width": 128,
-				"height": 128,
-				"class":"homesym"
+				"class": "area_header"
 			});
+			icon.addClass("home_sym");
 			header_first_line.append(icon);
 	
 			var header_text=$("<div></div>");
@@ -589,11 +586,11 @@ function check_append_m2m(msg_dec){
 		var icon=$("<img></img>");
 		icon.attr({
 			"id": msg_dec["mid"]+"_icon",
-			"src": host+"images/cam_mdpi.png",
 			"width": 64,
 			"height": 51,
 			"class":"m2m_header"
 			});
+		icon.addClass("cam_sym");
 		m2m_header_first_line.append(icon);
 
 		var m2m_header_text=$("<div></div>");
@@ -640,28 +637,38 @@ function check_append_m2m(msg_dec){
 		node.append(m2m_header_button);
 
 		//////////// live view button /////////////
+		var wb=$("<div></div>");
+		wb.addClass("inline_block");
 		button=$("<a></a>");
 		button.attr({
 			"id": msg_dec["mid"]+"_toggle_liveview",
-			"class":"button"
 		});
+		button.text("glubsch!");
+		button.addClass("live_sym");
 		button.click(function(){
 			var msg_int=msg_dec;
 			return function(){
 				toggle_liveview(msg_int["mid"]);
 			};
 		}());
-		button.text("glubsch!");
 		set_button_state(button,msg_dec["state"]);
-		m2m_header_button.append(button);
+		wb.append(button);
+		var wl=$("<div></div>");
+		wl.addClass("toggle_liveview_text");
+		wl.addClass("toggle_text");
+		wb.append(wl);
+		m2m_header_button.append(wb);
+		//m2m_header_button.append(button);
 		//////////// live view button /////////////
 		
 		//////////// light controll button /////////////
+		wb=$("<div></div>");
+		wb.addClass("inline_block");
 		button=$("<a></a>");
 		button.attr({
 			"id": msg_dec["mid"]+"_toggle_lightcontrol",
-			"class":"button"
 		});
+		button.addClass("color_sym");
 		button.click(function(){
 			var msg_int=msg_dec;
 			return function(){
@@ -670,15 +677,23 @@ function check_append_m2m(msg_dec){
 		}());
 		button.text("color");
 		set_button_state(button,msg_dec["state"]);
-		m2m_header_button.append(button);
+		wb.append(button);
+		wl=$("<div></div>");
+		wl.addClass("toggle_lightcontrol_text");
+		wl.addClass("toggle_text");
+		wb.append(wl);
+		m2m_header_button.append(wb);
+		//m2m_header_button.append(button);
 		//////////// light controll button /////////////
 
 		//////////// alert button /////////////
+		wb=$("<div></div>");
+		wb.addClass("inline_block");
 		button=$("<a></a>");
 		button.attr({
 			"id": msg_dec["mid"]+"_toggle_alarms",
-			"class":"button"
 		});
+		button.addClass("alarm_sym");
 		button.click(function(){
 			var msg_int=msg_dec;
 			return function(){
@@ -686,11 +701,18 @@ function check_append_m2m(msg_dec){
 			};
 		}());
 		button.text("no alarms");
-		m2m_header_button.append(button);
+		wb.append(button);
+		wl=$("<div></div>");
+		wl.addClass("toggle_alarms_text");
+		wl.addClass("toggle_text");
+		wb.append(wl);
+		m2m_header_button.append(wb);
+		//m2m_header_button.append(button);
 
 		// hide it if no alarm is available
 		set_alert_button_state(button,msg_dec["open_alarms"]);
 		//////////// alert button /////////////
+
 
 
 		////////////////// LIVE VIEW ////////////////////////////
@@ -809,7 +831,7 @@ function check_append_m2m(msg_dec){
 
 function set_button_state(b,state){
 	if(state==-1 && b.length){
-		b.addClass("button_deactivated");
+		b.addClass("button_deactivated"); // avoids clickability
 	};
 };
 
@@ -838,7 +860,7 @@ function toggle_liveview(mid){
 
 function hide_liveview(mid){
 	var view = $("#"+mid+"_liveview");
-	$("#"+mid+"_toggle_liveview").removeClass("button_active");
+	$("#"+mid+"_toggle_liveview").removeClass("live_sym_active");
 	if(view.is(":visible")){
 		set_interval(mid,0);
 		view.fadeOut("fast");
@@ -849,7 +871,7 @@ function show_liveview(mid){
 	hide_lightcontrol(mid);
 	hide_alarms(mid);
 	// set button active
-	$("#"+mid+"_toggle_liveview").addClass("button_active");
+	$("#"+mid+"_toggle_liveview").addClass("live_sym_active");
 	var view = $("#"+mid+"_liveview");
 	if(!view.is(":visible")){
 		var img=$("#"+mid+"_liveview_pic");		
@@ -882,7 +904,7 @@ function toggle_lightcontrol(mid){
 
 function hide_lightcontrol(mid){
 	var view = $("#"+mid+"_lightcontrol");
-	$("#"+mid+"_toggle_lightcontrol").removeClass("button_active");
+	$("#"+mid+"_toggle_lightcontrol").removeClass("color_sym_active");
 	if(view.is(":visible")){
 		view.fadeOut("fast");
 	}
@@ -891,7 +913,7 @@ function hide_lightcontrol(mid){
 function show_lightcontrol(mid){
 	hide_liveview(mid);
 	hide_alarms(mid);
-	$("#"+mid+"_toggle_lightcontrol").addClass("button_active");
+	$("#"+mid+"_toggle_lightcontrol").addClass("color_sym_active");
 	var view = $("#"+mid+"_lightcontrol");
 	if(!view.is(":visible")){
 		view.fadeIn("fast");
@@ -914,7 +936,7 @@ function toggle_alarms(mid){
 
 function hide_alarms(mid){
 	var view = $("#"+mid+"_alarms");
-	$("#"+mid+"_toggle_alarms").removeClass("button_active");
+	$("#"+mid+"_toggle_alarms").removeClass("alarm_sym_active");
 	if(view.is(":visible")){
 		view.fadeOut("fast");
 	}
@@ -923,7 +945,7 @@ function hide_alarms(mid){
 function show_alarms(mid){
 	hide_lightcontrol(mid);
 	hide_liveview(mid);
-	$("#"+mid+"_toggle_alarms").addClass("button_active");
+	$("#"+mid+"_toggle_alarms").addClass("alarm_sym_active");
 	var view = $("#"+mid+"_alarms");
 	view.text("");
 	view.append(get_loading());
@@ -933,16 +955,20 @@ function show_alarms(mid){
 }
 
 function set_alert_button_state(button,open_alarms){
+	console.log("setting buton to "+open_alarms);
 	if(open_alarms==0){
 		button.text("no alarms");
-		button.addClass("button_deactivated");
-		button.removeClass("button_active");
+		button.addClass("button_deactivated"); // avoids clickability
+		button.addClass("alarm_sym_deactivated");
+		button.removeClass("alarm_sym_active");
 	} else if(open_alarms==1) {
-		button.removeClass("button_deactivated");
 		button.text(open_alarms+" alarm");
+		button.addClass("alarm_sym");
+		button.removeClass("alarm_sym_deactivated");
 	} else {
-		button.removeClass("button_deactivated");
 		button.text(open_alarms+" alarms");
+		button.addClass("alarm_sym");
+		button.removeClass("alarm_sym_deactivated");
 	}
 }		
 
@@ -1130,17 +1156,25 @@ function update_state(account,area,mid,state,detection){
 	var cv=$("#"+mid+"_toggle_lightcontrol");
 	var av=$("#"+mid+"_toggle_alarms");
 	if(state<0){
-		lv.addClass("button_deactivated");
-		lv.removeClass("button_active");
-		cv.addClass("button_deactivated");
-		cv.removeClass("button_active");
-		av.removeClass("button_active");
+		lv.addClass("button_deactivated"); // avoids clickability
+		lv.addClass("live_sym_deactivated");
+		lv.removeClass("live_sym");
+	
+		cv.addClass("button_deactivated"); // avoids clickability
+		cv.addClass("color_sym_deactivated");
+		cv.removeClass("color_sym");
+
 		hide_liveview(mid);
 		hide_lightcontrol(mid);
-		hide_alarms(mid);
+		//hide_alarms(mid);
 	} else {
 		lv.removeClass("button_deactivated");
+		lv.removeClass("live_sym_deactivated");
+		lv.addClass("live_sym");		
+
 		cv.removeClass("button_deactivated");
+		cv.removeClass("color_sym_deactivated");
+		cv.addClass("color_sym");
 	}
 }
 
