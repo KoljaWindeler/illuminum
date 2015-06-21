@@ -212,7 +212,8 @@ function ack_alert(id,mid){
 	// decrement nr
 	var button=$("#"+mid+"_toggle_alarms");
 	var open_alarms=parseInt(button.text().substring(0,button.text().indexOf(" ")))-1;
-	set_alert_button_state(button,open_alarms);
+	var txt=$("#"+mid+"_toggle_alarms_text");
+	set_alert_button_state(button,txt,open_alarms);
 
 	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
 	console.log(JSON.stringify(cmd_data));
@@ -260,7 +261,6 @@ function add_alert(aid,mid){
 		"width":32,
 		"height":32
 	});
-	//img.addClass("float_left");
 	img.addClass("alert_preview");
 	img.addClass("center");
 	img_container.append(img);
@@ -654,6 +654,7 @@ function check_append_m2m(msg_dec){
 		set_button_state(button,msg_dec["state"]);
 		wb.append(button);
 		var wl=$("<div></div>");
+		wl.attr("id",msg_dec["mid"]+"_toggle_liveview_text");
 		wl.addClass("toggle_liveview_text");
 		wl.addClass("toggle_text");
 		wb.append(wl);
@@ -679,6 +680,7 @@ function check_append_m2m(msg_dec){
 		set_button_state(button,msg_dec["state"]);
 		wb.append(button);
 		wl=$("<div></div>");
+		wl.attr("id",msg_dec["mid"]+"_toggle_lightcontrol_text");
 		wl.addClass("toggle_lightcontrol_text");
 		wl.addClass("toggle_text");
 		wb.append(wl);
@@ -703,14 +705,15 @@ function check_append_m2m(msg_dec){
 		button.text("no alarms");
 		wb.append(button);
 		wl=$("<div></div>");
-		wl.addClass("toggle_alarms_text");
-		wl.addClass("toggle_text");
+		wl.attr("id",msg_dec["mid"]+"_toggle_alarms_text");
+		wl.addClass("toggle_text");		// size etc
+		wl.addClass("toggle_alarms_text");	// color and text
 		wb.append(wl);
 		m2m_header_button.append(wb);
 		//m2m_header_button.append(button);
 
 		// hide it if no alarm is available
-		set_alert_button_state(button,msg_dec["open_alarms"]);
+		set_alert_button_state(button,wl,msg_dec["open_alarms"]);
 		//////////// alert button /////////////
 
 
@@ -954,8 +957,7 @@ function show_alarms(mid){
 	};
 }
 
-function set_alert_button_state(button,open_alarms){
-	console.log("setting buton to "+open_alarms);
+function set_alert_button_state(button,txt,open_alarms){
 	if(open_alarms==0){
 		button.text("no alarms");
 		button.addClass("button_deactivated"); // avoids clickability
@@ -969,6 +971,15 @@ function set_alert_button_state(button,open_alarms){
 		button.text(open_alarms+" alarms");
 		button.addClass("alarm_sym");
 		button.removeClass("alarm_sym_deactivated");
+	}
+
+
+	if(open_alarms==0){
+		txt.addClass("sym_text_deactivated");
+		txt.removeClass("toggle_alarms_text_active");
+	} else {
+		txt.addClass("toggle_alarms_text_active");
+		txt.removeClass("sym_text_deactivated");
 	}
 }		
 
@@ -1155,14 +1166,22 @@ function update_state(account,area,mid,state,detection){
 	var lv=$("#"+mid+"_toggle_liveview");
 	var cv=$("#"+mid+"_toggle_lightcontrol");
 	var av=$("#"+mid+"_toggle_alarms");
+	var lt=$("#"+mid+"_toggle_liveview_text");
+	var ct=$("#"+mid+"_toggle_lightcontrol_text");
+	var at=$("#"+mid+"_toggle_alarms_text");
+
 	if(state<0){
 		lv.addClass("button_deactivated"); // avoids clickability
 		lv.addClass("live_sym_deactivated");
 		lv.removeClass("live_sym");
+		lt.addClass("sym_text_deactivated");
+		lt.removeClass("toggle_liveview_text_active");
 	
 		cv.addClass("button_deactivated"); // avoids clickability
 		cv.addClass("color_sym_deactivated");
 		cv.removeClass("color_sym");
+		ct.addClass("sym_text_deactivated");
+		ct.removeClass("toggle_lightcontrol_text_active");
 
 		hide_liveview(mid);
 		hide_lightcontrol(mid);
@@ -1171,10 +1190,14 @@ function update_state(account,area,mid,state,detection){
 		lv.removeClass("button_deactivated");
 		lv.removeClass("live_sym_deactivated");
 		lv.addClass("live_sym");		
+		lt.removeClass("sym_text_deactivated");
+		lt.addClass("toggle_liveview_text_active");
 
 		cv.removeClass("button_deactivated");
 		cv.removeClass("color_sym_deactivated");
 		cv.addClass("color_sym");
+		ct.removeClass("sym_text_deactivated");
+		ct.addClass("toggle_lightcontrol_text_active");
 	}
 }
 

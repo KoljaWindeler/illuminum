@@ -265,20 +265,16 @@ div.toggle_text {
 	font-size:12px;
 }
 
-div.toggle_liveview_text::after {
-	content:'glubsch!';
-	color:#4DFA59;
-}
+div.toggle_liveview_text::after 	{	content:'glubsch!';	}
+div.toggle_liveview_text_active		{	color:#4DFA59;		}
 
-div.toggle_lightcontrol_text::after {
-	content:'color';
-	color:#4BD2FE;
-}
+div.toggle_lightcontrol_text::after 	{	content:'color';	}
+div.toggle_lightcontrol_text_active	{	color:#4BD2FE;		}
 
-div.toggle_alarms_text::after {
-	content:'alarms';
-	color:#FF4DB9;
-}
+div.toggle_alarms_text::after 		{	content:'alarms';	}
+div.toggle_alarms_text_active 		{	color:#FF4DB9;		}
+
+div.sym_text_deactivated 		{	color:#aaaaaa;		}
 /**************************** icons ***********************/
 
 
