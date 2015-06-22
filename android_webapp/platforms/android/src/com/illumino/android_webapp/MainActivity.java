@@ -19,16 +19,23 @@
 
 package com.illumino.android_webapp;
 
+import android.content.Intent;
 import android.os.Bundle;
 import org.apache.cordova.*;
 
 public class MainActivity extends CordovaActivity
 {
+    public static final String PREFS_NAME = "illuminoSettings";
+
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         // Set by <content src="index.html" /> in config.xml
         loadUrl(launchUrl);
+
+        // start / resume service
+        Intent intent = new Intent(this, bg_service.class);
+        startService(intent);
     }
 }
