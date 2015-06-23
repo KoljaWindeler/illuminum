@@ -315,7 +315,7 @@ while 1:
 						mRed=enc.get("r",0)
 						mGreen=enc.get("g",0)
 						mBlue=enc.get("b",0)
-						light_dimming_q.append((time.time(),mRed,mGreen,mBlue,100)) # 4 sec to dimm to warm orange - now
+						light_dimming_q.append((time.time(),mRed,mGreen,mBlue,500)) # 4 sec to dimm to warm orange - now
 						
 					elif(enc.get("cmd")=="set_interval"):
 						print("setting interval to "+str(enc.get("interval",0)))
