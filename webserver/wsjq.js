@@ -199,7 +199,6 @@ function show_liveview_img(msg_dec){
 	if(msg_dec["webcam_countdown"]<10){
 		var cmd_data = { "cmd":"reset_webcam_countdown"};
 		//console.log(JSON.stringify(cmd_data));
-		//console.log(con);
 		con.send(JSON.stringify(cmd_data)); 		
 	}
 };
@@ -218,8 +217,11 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 	var closed_disp=$("#"+mid+"_alarms_closed_display");
 	var open_disp=$("#"+mid+"_alarms_open_display");
 
-	var ids_open_old=$("#"+mid+"_alarms_open_list").text();
-	var ids_closed_old=$("#"+mid+"_alarms_closed_list").text();
+	var ids_open_old=$("#"+mid+"_alarms_open_list").text().split(",");
+	var ids_closed_old=$("#"+mid+"_alarms_closed_list").text().split(",");
+
+	var closed_navi=$("#"+mid+"_alarms_closed_navigation");
+	var open_navi=$("#"+mid+"_alarms_open_navigation");
 
 	// store limits and current list
 	$("#"+mid+"_alarms_closed_list").text(ids_closed);
@@ -234,26 +236,75 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 	var disp=	 [open_disp,			closed_disp];
 	var ids=	 [ids_open,			ids_closed];
 	var old_ids=	 [ids_open_old,			ids_closed_old];
+	var navigation=  [open_navi,			closed_navi];
 
 	for(i=0; i<2; i++){
+		var same_content=true;
+		if(old_ids.length==ids.length){
+			if(ids.length==0){
+				same_content=false;
+			} else {
+				for(j=0; j<old_ids[i].length; j++){
+					if(old_ids[i][j]!=ids[i][j]){
+						same_content=false;
+					};
+				};
+			};
+		};
+
 		$("#loading_window").remove();
-		if(ids[i]==old_ids[i] && ids[i].length){
+		if(same_content){
+			console.log("no change, no action");
 			continue;
 		} else {
-			disp[i].text("");
+			// check if it is nearly the same, just one new entry up front
+			console.log("ids_old="+old_ids[i]);
+			console.log("ids_new="+ids[i]);
+			console.log(ids[i][0]);
+			console.log(old_ids[i][0]);
+			console.log("length="+ids[i].length);
+			var one_new_in_front=true;
+			for(j=0; j<old_ids[i].length-1; j++){
+				if(old_ids[i][j]!=ids[i][j+1]){
+					one_new_in_front=false;
+				}
+			}
+			if(!(one_new_in_front && old_ids[i].length>1)){ // due to split the length is 1 even for a empty chain
+				// start all over
+				disp[i].text("");
+				console.log("restart");
+			} else {
+				console.log("no restart");
+			}
 		}
 
 		var start=parseInt($(field_start[i]).text())+1;
-		var end=start+parseInt($(field_end[i]).text());
+		var end=start+parseInt($(field_end[i]).text())-1;
 
 		// generate valid links
 		if(end>max[i]){ end=max[i]; };
 		if(start>end) { start=end; };
-		var link="Showing alert "+start+" - "+end+" ( Total: "+max[i]+")";
-		disp[i].append(link);
+		var link=$("<div></div>").text(start+" - "+end+" ( Total: "+max[i]+")").attr("id","alert_"+mid+"_"+i+"_fromto");
+		link.addClass("inline_block");
 
+		var prev=$("<img></img>").attr("id","alert_"+mid+"_"+i+"_prev");
+		if(start>1){
+			prev.click(function(){
+				var mid_int=mid;
+				var start_int=start;
+				var field_start_int=field_start[i];
+				return function(){
+					$(field_start_int).text(Math.max(start_int-10-1,0));
+					get_alarms(mid_int);
+				};					
+			}());
+			prev.addClass("alert_navigation_prev");
+		} else {
+			prev.addClass("alert_navigation_prev_deactivated");
+		}
+
+		var next=$("<img></img>").attr("id","alert_"+mid+"_"+i+"_next");
 		if(end<max[i]){
-			var next=$("<div></div>").text("next");
 			next.click(function(){
 				var mid_int=mid;
 				var start_int=start;
@@ -263,45 +314,77 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 					get_alarms(mid_int);
 				};					
 			}());
-			disp[i].append(next);
+			next.addClass("alert_navigation_next");
+		} else {
+			next.addClass("alert_navigation_next_deactivated");
 		}
 		// end of link generation
+		navigation[i].text("");
+		navigation[i].append(prev);
+		navigation[i].append(link);
+		navigation[i].append(next);
 	
 
 		// show button or message alarm 
 		if(ids[i].length && i==0){
-			// add ack all button
-			var ack=$("<a></a>");
-			ack.attr({
-				"id":"alert_"+mid+"_ack_all",
-				"class":"button"
-			});
-			ack.text("Acknowledge all alert");
-			ack.click(function(){
-				var mid_int=mid;
-				return function(){
-					ack_all_alert(mid_int);
-				};
-			}());
-			disp[i].append(ack);
+			$("#alert_"+mid+"_"+i+"_no_alert_msg").remove();
+			if($("#alert_"+mid+"_"+i+"_ack_all").length==0){
+				// add ack all button
+				var ack=$("<a></a>");
+				ack.attr({
+					"id":"alert_"+mid+"_"+i+"_ack_all",
+					"class":"button"
+				});
+				ack.text("Acknowledge all alert");
+				ack.click(function(){
+					var mid_int=mid;
+					return function(){
+						ack_all_alert(mid_int);
+					};
+				}());
+				disp[i].append(ack);
+			}
 		} else if(ids[i].length==0){
-			// show a "huray, no alert"
-			var txt=$("<div></div>");
-			txt.text("horay, no alarms");
-			disp[i].append(txt);
+			$("#alert_"+mid+"_"+i+"_ack_all").remove();
+			if($("#alert_"+mid+"_"+i+"_no_alert_msg").length==0){
+				// show a "huray, no alert"
+				var txt=$("<div></div>").attr("id","alert_"+mid+"_"+i+"_no_alert_msg");
+				txt.text("horay, no alarms");
+				txt.addClass("center");
+				txt.addClass("clear_both");
+				disp[i].append(txt);
+			};
 		}
 
-		// add per element one line 
-		for(var j=0;j<ids[i].length;j++){		
-			add_alert(ids[i][j],mid,disp[i]);
-		};
+		if(!(one_new_in_front && old_ids[i].length>1)){ // due to split the length is 1 even for a empty old array
+			//request all
+			// add per element one line 
+			for(var j=0;j<ids[i].length;j++){		
+				add_alert(ids[i][j],mid,disp[i]);
+			};
 			
-		// request details	
-		for(var j=0;j<ids[i].length;j++){
-			var cmd_data = { "cmd":"get_alarm_details", "id":ids[i][j], "mid":mid};
+			// request details	
+			for(var j=0;j<ids[i].length;j++){
+				var cmd_data = { "cmd":"get_alarm_details", "id":ids[i][j], "mid":mid};
+				console.log(JSON.stringify(cmd_data));
+				con.send(JSON.stringify(cmd_data)); 
+			};
+		} else {
+			// we just have one new entry
+
+			// insert a helper to reroute the anchor for 'add_alert()'
+			var alert_helper=$("<div></div>");
+			alert_helper.attr({
+				"id":"alert_helper_"+mid+"_"+ids[i][0],
+			});
+			alert_helper.insertBefore($("#alert_"+mid+"_"+ids[i][1]));
+			add_alert(ids[i][0],mid,alert_helper);
+			
+			
+			// only request the one in the front
+			var cmd_data = { "cmd":"get_alarm_details", "id":ids[i][0], "mid":mid};
 			console.log(JSON.stringify(cmd_data));
-			console.log(con);
-			con.send(JSON.stringify(cmd_data)); 
+			con.send(JSON.stringify(cmd_data)); 			
 		};
 	};
 };
@@ -374,8 +457,9 @@ function add_alert(aid,mid,view){
 	var status=$("<a></a>");
 	status.attr({
 		"id":"alert_"+mid+"_"+aid+"_status",
-		"class":"button"
+		"style":"cursor:pointer",
 	});
+	status.addClass("m2m_text");
 	status.text("System Status");
 	status.hide();
 	side.append(status);
@@ -402,6 +486,7 @@ function add_alert(aid,mid,view){
 		var mid_int=mid;
 		return function(){
 			ack_alert(id_int,mid_int);
+			get_alarms(mid_int);
 		};
 	}());
 	ack.hide();
@@ -438,7 +523,7 @@ function add_alert_details(msg_dec){
 		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
 		var hour = a.getHours();
 //		txt.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
-		date_txt.text("Triggered at "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
+		date_txt.text(""+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
 		date_txt.addClass("m2m_text");
 	}		
 
@@ -460,7 +545,7 @@ function add_alert_details(msg_dec){
 		var a = new Date(parseFloat(msg_dec["ack_ts"])*1000);
 		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
 		var hour = a.getHours();
-		ack_status.html("Acknowledged by '"+msg_dec["ack_by"]+"' at<br> "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
+		ack_status.html("Checked by '"+msg_dec["ack_by"]+"'<br> at "+hour+":"+min+" "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear());
 	};
 	ack_status.addClass("m2m_text");
 	ack_status.show();
@@ -951,7 +1036,8 @@ function check_append_m2m(msg_dec){
 
 
 		var open=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open");
-		open.append($("<div></div>").text("Not-acknowledged alarms").addClass("m2m_text"));
+		open.append($("<div></div>").text("Not-acknowledged").addClass("m2m_text").addClass("inline_block"));
+		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
 		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_display"));
 		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_list").hide());
 		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_start").text("0").hide());
@@ -962,7 +1048,8 @@ function check_append_m2m(msg_dec){
 		alarms.append($("<hr>"));
 
 		var close=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed");
-		close.append($("<div></div>").text("Acknowledged alarms").addClass("m2m_text"));
+		close.append($("<div></div>").text("Acknowledged").addClass("m2m_text").addClass("inline_block"));
+		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
 		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_display"));
 		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_list").hide());
 		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_start").text("0").hide());
