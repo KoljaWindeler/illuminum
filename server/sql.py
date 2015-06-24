@@ -3,16 +3,13 @@ import pymysql.cursors, time, p, sys
 class sql:
 	def __init__(self):
 		self.connection=''
-		#print("init done")
 	#############################################################
 	def connect(self):
 		# Connect to the database
 		self.connection = pymysql.connect(host='localhost',user='root',passwd='EEkiM05$.',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
-		#print("connect done")
 	#############################################################
 	def connection_check(self):
 		try:
-			#print("try:")
 			with self.connection.cursor() as cursor:
 				req = "SELECT now()"
 				cursor.execure(req)
@@ -22,12 +19,10 @@ class sql:
 			return -1
 	#############################################################
 	def load_rules(self,area,account,sub_rules):
-		#print("get data mid:"+mid)
 		if(self.connection==''):
 			p.rint("sql has to be called with connect() first","d")
 			result = -1
 		else:
-			#print("connection existing")
 			try:
 				#print("try:")
 				with self.connection.cursor() as cursor:
@@ -341,9 +336,6 @@ class sql:
 		return result
 	#############################################################
 	def get_open_alert_ids(self, account, mid, a,b):
-		if(int(b)<=int(a)):
-			a=int(a)
-			b=a+10
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
@@ -355,9 +347,6 @@ class sql:
 		return result
 	#############################################################
 	def get_closed_alert_ids(self, account, mid, a,b):
-		if(int(b)<=int(a)):
-			a=int(a)
-			b=a+10
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
@@ -400,8 +389,8 @@ class sql:
 					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` ="+str(alert_id)+" ORDER BY `id` DESC LIMIT "+str(int(century)*10)+" , "+str((int(century)+1)*20)
 					cursor.execute(req)
 					result = cursor.fetchall()
-					print(req)
-					print(result)
+					#print(req)
+					#print(result)
 				else:
 					result = -1
 		except:
