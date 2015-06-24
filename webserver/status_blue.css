@@ -62,7 +62,7 @@ a.live_sym_active,a.color_sym_active,a.alarm_sym_active
 }
 
 a.button_deactivated, 
-a.live_sym_deactivated,a.color_sym_deactivated,a.alarm_sym_deactivated {
+a.live_sym_deactivated,a.color_sym_deactivated {
 	color:rgba(150,150,150,0.72)!important;
 	background:rgba(180,180,180,.5);
 }
@@ -212,7 +212,7 @@ div.area_m2m {
 }
 
 
-div.m2m_text{
+div.m2m_text,a.m2m_text{
 	font-size:12px;
 	text-align: left;
 }
