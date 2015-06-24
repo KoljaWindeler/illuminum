@@ -17,9 +17,14 @@ $(function(){
 });
 
 
+// triggered by the ondocument_ready
 function open_ws() {
 	con = new WebSocket('wss://52.24.157.229:9879/');
 	con.onopen = function(){
+		if($("#rl_msg").length){
+			$.fancybox.close();							
+		};
+
 		console.log("onOpen");
 		login("browser","hui");
 	};
@@ -32,9 +37,9 @@ function open_ws() {
 	};
 	con.onclose = function(){
 		console.log("onClose");
-
+		
 		// show fancybox
-		var rl_msg = $("<div></div>").text("onClose event captured");
+		var rl_msg = $("<div></div>").text("onClose event captured,reconnect started");
 		rl_msg.attr({
 			"id":"rl_msg",
 			"style":"display:none;width:500px;"
@@ -49,45 +54,109 @@ function open_ws() {
 			closeBtn: false,   
 			closeClick: false
 		}).trigger('click');
+	
+		setTimeout(open_ws(), 3000);
 	};
 };
 
 
-
+// on message will call this function
 function parse_msg(msg_dec){
-	// server has established a connection between m2m and WS
+	var mid=msg_dec["mid"];
+
+	// server has established a connection between m2m and WS, this should be received after a login
 	if(msg_dec["cmd"]=="m2v_login"){
 		//console.log("m2v_lgogin detected:"+msg_dec);
 
 		// check if m2m is already visible, if not append it. Then update the state and timestamp
 		check_append_m2m(msg_dec);
 		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
-		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
+		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
 
-		// remove loading if still existing
+		// remove loading if still existing and scroll down to the box 
 		if($("#welcome_loading").length){
 			$("#welcome_loading").remove();
 			$('html,body').animate({
 				scrollTop: $("#clients").offset().top-($(window).height()/20)
 			},1000);
-
 		};
 
 	}
 
-	// update the timestamp
+	// update the timestamp, we should receive this every once in a while
 	else if(msg_dec["cmd"]=="hb_m2m"){
 		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
 	}
 
-	// update the state
+	// update the state, we only receive that if a box changes its state. E.g. to alarm or to disarm
 	else if(msg_dec["cmd"]=="state_change"){
-		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
+		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
 	}
 
-	// show a picture, eighter because we requested it, or because an alert happended
+	// show a picture, we'll receive this because we requested it. Alarm will not send us pictures directly
+	// this is a little different than the "requested_file" because we can't know the filename up front
 	else if(msg_dec["cmd"]=="rf"){
-		// debug calc delay
+		show_liveview_img(msg_dec);
+	}
+
+	// an m2m unit disconnects
+	else if(msg_dec["cmd"]=="disconnect"){
+		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],-1,msg_dec["detection"],"");
+	}
+
+	// we'll request the alerts by sending "get_alert_ids" and the server will responde with this dataset below
+	else if(msg_dec["cmd"]=="get_alert_ids"){
+		parse_alert_ids(msg_dec["ids_open"],msg_dec["ids_closed"],msg_dec["open_max"],msg_dec["closed_max"],mid);
+	}
+
+	// every id that has been received by the dataset above will trigger a "get_alam_details" msg to the server, this handles the response
+	else if(msg_dec["cmd"]=="get_alarm_details"){
+		add_alert_details(msg_dec);
+	}
+
+	// display files that we've requested
+	else if(msg_dec["cmd"]=="recv_req_file"){
+		//console.log(msg_dec);
+		var img=$(document.getElementById(msg_dec["path"])); // required as path may contains dot
+		if(img.length){
+			img.attr({
+				"src"	: "data:image/jpeg;base64,"+msg_dec["img"],
+				"id"	: "set_"+msg_dec["path"],
+				"width"	: msg_dec["width"],
+				"height": msg_dec["height"]
+			});
+		}else {
+			console.log("nicht gefunden");
+		};
+
+	}
+
+	// updated count of alerts, show correct button style and maybe close the popup
+	else if(msg_dec["cmd"]=="update_open_alerts"){
+		var button=$("#"+mid+"_toggle_alarms");
+		var txt=$("#"+mid+"_toggle_alarms_text");
+		set_alert_button_state(button,txt,msg_dec["open_alarms"]);
+
+		// close msg about open alarms if someone already acknowledged them
+		if($("#"+mid+"_old_alerts").length && msg_dec["open_alarms"]==0){
+			event.stopPropagation();
+			$.fancybox.close();				
+		}
+	};
+}
+
+/////////////////////// END OF PARSE MESSAGE ////////////////////////
+
+/////////////////////////7///////////////// SHOW LIVEVIEW IMAGES //////////////////////////////////////////
+// triggered by: parse_msg
+// arguemnts:	 complete websocket msg, as multiple arguemnts are required
+// what it does: set mid_liveview attr to incoming picture, reset countdown
+// why: 	 to display the incoming pictures
+/////////////////////////7///////////////// SHOW LIVEVIEW IMAGES //////////////////////////////////////////
+
+function show_liveview_img(msg_dec){
+	// debug calc delay
+		/*
 		var delay=parseInt(Date.now()-(1000*parseFloat(msg_dec["ts"])));
 		if(delay>999){
 			delay=999;
@@ -98,129 +167,153 @@ function parse_msg(msg_dec){
 		}
 		var fps=Math.floor((c_t/((Date.now()-f_t)/1000)*100))/100;
 		$("#"+msg_dec["mid"]+"_hb").innerHTML="Foto age "+delay+" ms, fps: "+fps;
+		*/
 
-		// make sure the view is visible if we have an alert
-		var client=$("#"+msg_dec["mid"]);
-		if(client.length && msg_dec["detection"]>0 && msg_dec["state"]>0){
-			show_liveview(msg_dec["mid"]);
-		}
-
-		// die loading dialog
-		var txt=$("#"+msg_dec["mid"]+"_liveview_txt");
+	// hide loading dialog, if there is one
+	var txt=$("#"+msg_dec["mid"]+"_liveview_txt");
+	if(txt.length){
 		txt.hide();
-
-		// display picture
-		var img=$("#"+msg_dec["mid"]+"_liveview_pic");
-		if(img.length){
-			//console.log("mid_img: #"+msg_dec["mid"]+"_liveview_pic gefunden!!");
-
-			if(msg_dec["img"]!=""){
-				// if we receive the first image, scroll to it
-				if(img.attr("src")==host+"images/support-loading.gif"){
-				$('html,body').animate({
-						scrollTop: img.offset().top-($(window).height()/20)
-					},1000);
-				};
-
-				// display image
-				resize_alert_pic(msg_dec["mid"],msg_dec["img"]);
-			};
-
-		} else {
-			console.log("konnte mid_img: #"+msg_dec["mid"]+"_liveview_pic nicht finden!!");
-		};
-
-		// handle countdown
-		if(msg_dec["webcam_countdown"]<10){
-			var cmd_data = { "cmd":"reset_webcam_countdown"};
-			console.log(JSON.stringify(cmd_data));
-			console.log(con);
-			con.send(JSON.stringify(cmd_data)); 		
-		}
-	}
-
-	// an m2m unit disconnects
-	else if(msg_dec["cmd"]=="disconnect"){
-		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
-		var client=$("#"+msg_dec["mid"]);
-		if(area!=undefined){
-			console.log("area gefunden");
-			if(client!=undefined){
-				console.log("client gefunden");
-				update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],-1,msg_dec["detection"]);
-			}
-		}
-	}
-
-	// we'll request the alerts by sending "get_open_alert_ids" and the server will responde with this dataset below
-	else if(msg_dec["cmd"]=="get_open_alert_ids"){
-		if($("#loading_window").length){
-			$("#loading_window").remove();
-		};
-
-		var ids=msg_dec["ids"];
-		var mid=msg_dec["mid"];
-		//console.log(ids);
-
-		// here alarm view leeren
-		var view=$("#"+mid+"_alarms");
-		if(!view.length){
-			alert(mid+"_alarms nicht gefunden");
-		} else {
-			// add per element one line 
-			for(var i=0;i<ids.length;i++){		
-				add_alert(ids[i],mid);
-			};
-		
-			// request details	
-			for(var i=0;i<ids.length;i++){
-				var cmd_data = { "cmd":"get_alarm_details", "id":ids[i], "mid":mid};
-				console.log(JSON.stringify(cmd_data));
-				console.log(con);
-				con.send(JSON.stringify(cmd_data)); 
-			};
-		}; // end of, if there is the view
-	}
-
-	// every id that has been received by the dataset above will trigger a "get_alam_details" msg to the server, this handles the response
-	else if(msg_dec["cmd"]=="get_alarm_details"){
-		add_alert_details(msg_dec);
-	}
-
-	else if(msg_dec["cmd"]=="recv_req_file"){
-		//console.log(msg_dec);
-		var img=$(document.getElementById(msg_dec["path"])); // required as path contains dot
-		if(img.length){
-			console.log("bild gefunden");
-		}else {
-			console.log("nicht gefunden");
-		};
-		img.attr({
-			"src"	: "data:image/jpeg;base64,"+msg_dec["img"],
-			"id"	: "set_"+msg_dec["path"],
-			"width"	: msg_dec["width"],
-			"height": msg_dec["height"]
-		});
 	};
-}
 
-function ack_alert(id,mid){
-	console.log("ack for id:"+id);
-	// remove field
-	$("#alert_"+mid+"_"+id).fadeOut(600, function() { $(this).remove(); });
+	// display picture
+	var img=$("#"+msg_dec["mid"]+"_liveview_pic");
+	if(img.length){
+		//console.log("mid_img: #"+msg_dec["mid"]+"_liveview_pic gefunden!!");
 
-	// decrement nr
-	var button=$("#"+mid+"_toggle_alarms");
-	var open_alarms=parseInt(button.text().substring(0,button.text().indexOf(" ")))-1;
-	var txt=$("#"+mid+"_toggle_alarms_text");
-	set_alert_button_state(button,txt,open_alarms);
+		if(msg_dec["img"]!=""){
+			// if we receive the first image, scroll to it
+			if(img.attr("src")==host+"images/support-loading.gif"){
+			$('html,body').animate({
+					scrollTop: img.offset().top-($(window).height()/20)
+				},1000);
+			};
 
-	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
-	console.log(JSON.stringify(cmd_data));
-	con.send(JSON.stringify(cmd_data)); 		
+			// display image
+			resize_alert_pic(msg_dec["mid"],msg_dec["img"]);
+		};
+	} else {
+		console.log("konnte mid_img: #"+msg_dec["mid"]+"_liveview_pic nicht finden!!");
+	};
+
+	// handle countdown
+	if(msg_dec["webcam_countdown"]<10){
+		var cmd_data = { "cmd":"reset_webcam_countdown"};
+		//console.log(JSON.stringify(cmd_data));
+		//console.log(con);
+		con.send(JSON.stringify(cmd_data)); 		
+	}
 };
 
-function add_alert(aid,mid){
+/////////////////////////7///////////////// PARSE ALERT IDS //////////////////////////////////////////
+// triggered by: open_alerts -> msg to server,response -> parse_msg -> this
+// arguemnts:	 list of alert ids and MID 
+// what it does: remove loading, call add_alert() AND request alert_details for each ID in ids
+// why: 	 to prepare alert view for incoming pictures
+/////////////////////////7///////////////// PARSE ALERT IDS //////////////////////////////////////////
+
+function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
+	console.log("ids_closed:"+ids_closed.length);
+
+	// remove loading it and add a ack all button
+	var closed_disp=$("#"+mid+"_alarms_closed_display");
+	var open_disp=$("#"+mid+"_alarms_open_display");
+
+	var ids_open_old=$("#"+mid+"_alarms_open_list").text();
+	var ids_closed_old=$("#"+mid+"_alarms_closed_list").text();
+
+	// store limits and current list
+	$("#"+mid+"_alarms_closed_list").text(ids_closed);
+	$("#"+mid+"_alarms_closed_max").text(closed_max);
+	$("#"+mid+"_alarms_open_list").text(ids_open);
+	$("#"+mid+"_alarms_open_max").text(open_max);
+
+	// generate links
+	var field_start= ["#"+mid+"_alarms_open_start", "#"+mid+"_alarms_closed_start"];
+	var field_end=	 ["#"+mid+"_alarms_open_count",	"#"+mid+"_alarms_closed_count"];
+	var max=	 [open_max,			closed_max];
+	var disp=	 [open_disp,			closed_disp];
+	var ids=	 [ids_open,			ids_closed];
+	var old_ids=	 [ids_open_old,			ids_closed_old];
+
+	for(i=0; i<2; i++){
+		$("#loading_window").remove();
+		if(ids[i]==old_ids[i] && ids[i].length){
+			continue;
+		} else {
+			disp[i].text("");
+		}
+
+		var start=parseInt($(field_start[i]).text())+1;
+		var end=start+parseInt($(field_end[i]).text());
+
+		// generate valid links
+		if(end>max[i]){ end=max[i]; };
+		if(start>end) { start=end; };
+		var link="Showing alert "+start+" - "+end+" ( Total: "+max[i]+")";
+		disp[i].append(link);
+
+		if(end<max[i]){
+			var next=$("<div></div>").text("next");
+			next.click(function(){
+				var mid_int=mid;
+				var start_int=start;
+				var field_start_int=field_start[i];
+				return function(){
+					$(field_start_int).text(start_int+10-1);
+					get_alarms(mid_int);
+				};					
+			}());
+			disp[i].append(next);
+		}
+		// end of link generation
+	
+
+		// show button or message alarm 
+		if(ids[i].length && i==0){
+			// add ack all button
+			var ack=$("<a></a>");
+			ack.attr({
+				"id":"alert_"+mid+"_ack_all",
+				"class":"button"
+			});
+			ack.text("Acknowledge all alert");
+			ack.click(function(){
+				var mid_int=mid;
+				return function(){
+					ack_all_alert(mid_int);
+				};
+			}());
+			disp[i].append(ack);
+		} else if(ids[i].length==0){
+			// show a "huray, no alert"
+			var txt=$("<div></div>");
+			txt.text("horay, no alarms");
+			disp[i].append(txt);
+		}
+
+		// add per element one line 
+		for(var j=0;j<ids[i].length;j++){		
+			add_alert(ids[i][j],mid,disp[i]);
+		};
+			
+		// request details	
+		for(var j=0;j<ids[i].length;j++){
+			var cmd_data = { "cmd":"get_alarm_details", "id":ids[i][j], "mid":mid};
+			console.log(JSON.stringify(cmd_data));
+			console.log(con);
+			con.send(JSON.stringify(cmd_data)); 
+		};
+	};
+};
+
+/////////////////////////////////////////// ADD ALERT //////////////////////////////////////////
+// triggered by: open_alerts -> msg to server,response -> parse_msg -> parse_alert_ids() -> this
+// arguemnts:	 alert id, root view id and MID 
+// what it does: adds a preliminary and "empty" alert element to the alarm view, loading image, timestamp, ...
+// why: 	 to prepare the alert view for details, requested by parse_alert_ids()
+/////////////////////////////////////////// ADD ALERT //////////////////////////////////////////
+
+function add_alert(aid,mid,view){
 	// if m2m lable ist 123456789 and alarm is 1010 then we should get this:
 	// <div id="alert_123456789_1010">
 	// 	<img id="alert_123456789_1010_img"> -> id changes to set_alert_123456789_1010_img</img>
@@ -232,9 +325,7 @@ function add_alert(aid,mid){
 	//		<ul...><li></li></ul>
 	//	</div>
 	// </div>
-	
-	var view=$("#"+mid+"_alarms");
-		
+			
 	// root 
 	var alert=$("<div></div>");
 	alert.attr({
@@ -325,6 +416,13 @@ function add_alert(aid,mid){
 	alert.append(slider);
 };
 
+/////////////////////////////////////////// ADD ALERT DETAILS //////////////////////////////////////////
+// triggered by: open_alerts -> msg to server,response -> parse_msg() -> parse_alert_ids() -> msg to server -> parse_msg() -> this
+// arguemnts:	 full msg as multple arguments are required
+// what it does: fills the preliminary alert with data, img, activates buttons
+// why: 	 finalize the alertview
+/////////////////////////////////////////// ADD ALERT DETAILS //////////////////////////////////////////
+
 function add_alert_details(msg_dec){
 	var img=msg_dec["img"];
 	var mid=msg_dec["mid"];
@@ -349,20 +447,29 @@ function add_alert_details(msg_dec){
 	status_button.click(function(){
 		var txt=rm;
 		return function(){
-			txt2fb(txt);
+			txt2fb(format_rm_status(txt));
 		};
 	}());
 	status_button.show();
 
 	// show ack status
 	var ack_status=$("#alert_"+mid+"_"+msg_dec["id"]+"_ack_status");
-	ack_status.text("Not acknowledged");
+	if(msg_dec["ack"]==0){
+		ack_status.text("Not acknowledged");
+	} else {
+		var a = new Date(parseFloat(msg_dec["ack_ts"])*1000);
+		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
+		var hour = a.getHours();
+		ack_status.html("Acknowledged by '"+msg_dec["ack_by"]+"' at<br> "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
+	};
 	ack_status.addClass("m2m_text");
 	ack_status.show();
 
 	// show ack button
-	var ack_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_ack");
-	ack_button.show();
+	if(msg_dec["ack"]==0){
+		var ack_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_ack");
+		ack_button.show();
+	};
 	
 
 	// add new placeholder image
@@ -371,9 +478,9 @@ function add_alert_details(msg_dec){
 		var pic=$("#alert_"+mid+"_"+msg_dec["id"]+"_img");		
 		pic.attr({
 			"id":img[0]["path"],
+			"style":"cursor:pointer"
 		});
 		pic.click(function(){
-			//console.log(img);
 			var img_int=img; 								// list of all pictures for this alarm
 			var mid_int=mid;	 							// mid for this alarm
 			var slider_id="#alert_"+mid_int+"_"+msg_dec["id"]+"_slider";			// id for the div in which the slider should
@@ -394,6 +501,53 @@ function add_alert_details(msg_dec){
 	} // end of if img 
 };
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: user button
+// arguemnts:	 id of the alert and MID
+// what it does: sends a message to the server to ack the alert
+// why: 	 to get ridge of the alert in the alert view
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
+function ack_alert(id,mid){
+	console.log("ack for id:"+id);
+	// remove field
+	$("#alert_"+mid+"_"+id).fadeOut(600, function() { $(this).remove(); });
+
+	// decrement nr
+	var button=$("#"+mid+"_toggle_alarms");
+	var open_alarms=parseInt(button.text().substring(0,button.text().indexOf(" ")))-1;
+	var txt=$("#"+mid+"_toggle_alarms_text");
+	set_alert_button_state(button,txt,open_alarms);
+
+	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
+	console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 		
+};
+
+/////////////////////////////////////////// ACK ALL ALERT //////////////////////////////////////////
+// triggered by: user button
+// arguemnts:	 MID
+// what it does: sends a message to the server to ack all the alerts for this box
+// why: 	 to get ridge of all alerts in the alert view at once
+/////////////////////////////////////////// ACK ALL ALERT //////////////////////////////////////////
+
+function ack_all_alert(mid){
+	var cmd_data = { "cmd":"ack_all_alert", "mid":mid};
+	console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 		
+
+	show_alarms(mid); 	// its already open, but this will reset the content
+	get_alarms(mid);	// and this should send us an empty list
+};
+
+
+/////////////////////////////////////////// SHOW PIC SLIDER //////////////////////////////////////////
+// triggered by: user click on first alert picture
+// arguemnts:	 list of images(paths),MID, core=pseudo-id for all images in the slider, slider_id=anchor to put the images in
+// what it does: calculates a best fit for a 70% windows size, genearte loadingimages and wrap a fancybox around, and request images
+// why: 	 to have a fullscreen view of the alert pictures, they might be important
+/////////////////////////////////////////// SHOW PIC SLIDER //////////////////////////////////////////
+
 function show_pic_slider(img,mid,core,slider_id){
 	// slider_id == id of the div in which we should place our content
 	// core is the name for this slider
@@ -410,58 +564,42 @@ function show_pic_slider(img,mid,core,slider_id){
 		scale=h/720;
 	}
 
-	// create core list element
-	var list=$("<ul></ul>");
-	list.attr({
-		"id":"slider_"+core,
-		"width": scale*0.7*1280
-
-	});
-	console.log("call it slider_"+core);
-	
 	// create children and request them
 	for(var i=0;i<img.length;i++){
-		console.log("appending:"+img[i]["path"]);
-		var sub_list=$("<li></li>");
-				
+		//console.log("appending:"+img[i]["path"]);
+		var fb=$("<a></a>");				
+		fb.attr({
+			"rel":core,
+			"title":(img.length-i)+"/"+(img.length),
+		});
+		
 		var pic=$("<img></img>");
 		pic.attr({
 			"src" : host+"images/support-loading.gif",
 			"id":img[i]["path"],
 			"width":scale*0.7*1280,
 			"height":scale*0.7*720,
-
 		});
-		sub_list.append(pic);
-		list.append(sub_list);
+		
+		fb.append(pic);
+		view.append(fb);
 		var cmd_data = { "cmd":"get_img", "path":img[i]["path"], "height":720*scale*0.7, "width":1280*scale*0.7};
 		con.send(JSON.stringify(cmd_data));
 		
-		console.log("send request for:path "+img[i]["path"]);
+		//console.log("send request for:path "+img[i]["path"]);
 	}
 
 	
-	// place the <ul><li...></ul> in the page
-	view.append(list);
-
-	// fancybox for the slider
-	var rl = $("<a></a>");
-	rl.attr("href",'#slider_'+core);
-	rl.fancybox({
-		'width':1280*scale*1.0,
-		'height':720*scale*0.85,		
-		'autoDimensions':false,
-		'autoSize':false
-	});
-	rl.trigger('click');
-
-	// and convert the ul-list to a picture slider
-	$('#slider_'+core).bxSlider({
-		mode: 'fade',
-		captions: true
-	});	
+	// fancybox the jQuery object is sorted, but the fancybox is not .. grmpf
+	$("a[rel="+core+"]").fancybox({"openEffect":"elastic"}).trigger("click");
 }
 
+/////////////////////////////////////////// CHECK_APPEND_M2M //////////////////////////////////////////
+// triggered by: parse_msg()
+// arguemnts:	 complete msg
+// what it does: create an area and a m2m if it does not exists. 
+// why: 	 core code for the interface
+/////////////////////////////////////////// CHECK_APPEND_M2M //////////////////////////////////////////
 
 function check_append_m2m(msg_dec){
 	//console.log(msg_dec);
@@ -471,7 +609,6 @@ function check_append_m2m(msg_dec){
 		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
 		// check if area is already existing
 		if(area.length==0){
-
 
 			/////////////////// CREATE AREA ////////////////////////////(
 			var node=$("<div></div>");
@@ -531,7 +668,7 @@ function check_append_m2m(msg_dec){
 			var button=document.createElement("A");
 			button.setAttribute("id",msg_dec["account"]+"_"+msg_dec["area"]+"_on");
 			button.className="button";
-			button.text="Detection on";
+			button.text="Force Detection on";
 			button.onclick=function(){
 				var msg_int=msg_dec;
 				return function(){
@@ -549,14 +686,14 @@ function check_append_m2m(msg_dec){
 				}
 			}();
 			button.className="button";
-			button.text="Detection off";
+			button.text="Force Detection off";
 			header_button.append(button);
 
 			$("#clients").append(node);
 			area=node;
 			/////////////////// CREATE AREA ////////////////////////////(
-		}
-	}
+		} // area
+	} // clients
 
 	var node=$("#"+msg_dec["mid"]);
 	// check if this m2m already exists
@@ -576,13 +713,6 @@ function check_append_m2m(msg_dec){
 		});
 		node.append(m2m_header);
 
-		var m2m_header_first_line=$("<div></div>");
-		m2m_header_first_line.attr({
-			"id":msg_dec["mid"]+"_header_first_line",
-			"class":"m2m_header_first_line"
-		});
-		m2m_header.append(m2m_header_first_line);
-
 		var icon=$("<img></img>");
 		icon.attr({
 			"id": msg_dec["mid"]+"_icon",
@@ -591,14 +721,14 @@ function check_append_m2m(msg_dec){
 			"class":"m2m_header"
 			});
 		icon.addClass("cam_sym");
-		m2m_header_first_line.append(icon);
+		m2m_header.append(icon);
 
 		var m2m_header_text=$("<div></div>");
 		m2m_header_text.attr({
 			"id":msg_dec["mid"]+"_header_text",
 			"class":"m2m_header_text"
 		});
-		m2m_header_first_line.append(m2m_header_text);
+		m2m_header.append(m2m_header_text);
 	
 		var text=$("<div></div>").text(msg_dec["alias"]);
 		text.attr({
@@ -710,7 +840,6 @@ function check_append_m2m(msg_dec){
 		wl.addClass("toggle_alarms_text");	// color and text
 		wb.append(wl);
 		m2m_header_button.append(wb);
-		//m2m_header_button.append(button);
 
 		// hide it if no alarm is available
 		set_alert_button_state(button,wl,msg_dec["open_alarms"]);
@@ -815,10 +944,32 @@ function check_append_m2m(msg_dec){
 		////////////////// COLOR SLIDER ////////////////////////////
 
 		////////////////// ALARM MANAGER ////////////////////////////
-		alarms=$("<div></div>").text("this is the alarms");
+		alarms=$("<div></div>");
 		alarms.attr({
 			"id" : msg_dec["mid"]+"_alarms",
 		});
+
+
+		var open=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open");
+		open.append($("<div></div>").text("Not-acknowledged alarms").addClass("m2m_text"));
+		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_display"));
+		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_list").hide());
+		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_start").text("0").hide());
+		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_count").text("10").hide());
+		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_max").hide());
+		alarms.append(open);	
+
+		alarms.append($("<hr>"));
+
+		var close=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed");
+		close.append($("<div></div>").text("Acknowledged alarms").addClass("m2m_text"));
+		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_display"));
+		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_list").hide());
+		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_start").text("0").hide());
+		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_count").text("10").hide());
+		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_max").hide());
+		alarms.append(close);	
+
 		alarms.hide();
 		node.append(alarms);
 		////////////////// ALARM MANAGER ////////////////////////////
@@ -828,15 +979,30 @@ function check_append_m2m(msg_dec){
 		area.append(node);
 		//console.log("hb feld in client angebaut");
 		/////////////////// CREATE M2M ////////////////////////////(
-	}
-	update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"]);
+	} // node
+	update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+	show_old_alert_fb(msg_dec["mid"],msg_dec["open_alarms"]);
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function set_button_state(b,state){
 	if(state==-1 && b.length){
 		b.addClass("button_deactivated"); // avoids clickability
 	};
 };
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function is_button_active(id){
 	var button=$(id);
@@ -848,18 +1014,40 @@ function is_button_active(id){
 	return false;
 };
 
+////////////////////////////////////////////// LIVE VIEW /////////////////////////////////////////////
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 function toggle_liveview(mid){
 	if(is_button_active("#"+mid+"_toggle_liveview")){
 		return;
 	};
 
-	var view = $("#"+mid+"_liveview");
-	if(view.is(":visible")){
+	if(is_liveview_open(mid)){
 		hide_liveview(mid);
 	} else {
-		show_liveview(mid)
+		show_liveview(mid);
 	};
 };
+
+function is_liveview_open(mid){
+	var view = $("#"+mid+"_liveview");
+	if(view.is(":visible")){
+		return true;
+	} else {
+		return false;
+	}
+};
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function hide_liveview(mid){
 	var view = $("#"+mid+"_liveview");
@@ -869,6 +1057,13 @@ function hide_liveview(mid){
 		view.fadeOut("fast");
 	}
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function show_liveview(mid){
 	hide_lightcontrol(mid);
@@ -891,7 +1086,15 @@ function show_liveview(mid){
 		set_interval(mid,1);
 	};
 }
+///////////////////////// LIVE VIEW //////////////////////////////////
 
+///////////////////////////////////////////// COLOR VIEW /////////////////////////////////////////
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 function toggle_lightcontrol(mid){
 	if(is_button_active("#"+mid+"_toggle_lightcontrol")){
 		return;
@@ -905,6 +1108,13 @@ function toggle_lightcontrol(mid){
 	};
 };
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
 function hide_lightcontrol(mid){
 	var view = $("#"+mid+"_lightcontrol");
 	$("#"+mid+"_toggle_lightcontrol").removeClass("color_sym_active");
@@ -912,6 +1122,13 @@ function hide_lightcontrol(mid){
 		view.fadeOut("fast");
 	}
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function show_lightcontrol(mid){
 	hide_liveview(mid);
@@ -922,20 +1139,51 @@ function show_lightcontrol(mid){
 		view.fadeIn("fast");
 	};
 }
+///////////////////////// COLOR VIEW //////////////////////////////////
+
+///////////////////////// ALARM VIEW //////////////////////////////////
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function toggle_alarms(mid){
 	if(is_button_active("#"+mid+"_toggle_alarms")){
 		return;
 	};
 
-	var view = $("#"+mid+"_alarms");
-	if(view.is(":visible")){
+	if(is_alarm_open(mid)){
 		hide_alarms(mid);
 	} else {
 		show_alarms(mid);
-		get_open_alarms(mid);
+		get_alarms(mid);
 	};
 };
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
+function is_alarm_open(mid){
+	var view = $("#"+mid+"_alarms");
+	if(view.is(":visible")){
+		return true;
+	} else {
+		return false;
+	};	
+};
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function hide_alarms(mid){
 	var view = $("#"+mid+"_alarms");
@@ -945,22 +1193,47 @@ function hide_alarms(mid){
 	}
 }
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
 function show_alarms(mid){
 	hide_lightcontrol(mid);
 	hide_liveview(mid);
 	$("#"+mid+"_toggle_alarms").addClass("alarm_sym_active");
+
 	var view = $("#"+mid+"_alarms");
-	view.text("");
+	if(!view.is(":visible")){
+		view.fadeIn("fast");
+	};
+
+	view = $("#"+mid+"_alarms_open_display");
+	view.append(get_loading());
+	if(!view.is(":visible")){
+		view.fadeIn("fast");
+	};
+
+	view = $("#"+mid+"_alarms_closed_display");
 	view.append(get_loading());
 	if(!view.is(":visible")){
 		view.fadeIn("fast");
 	};
 }
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
 function set_alert_button_state(button,txt,open_alarms){
 	if(open_alarms==0){
 		button.text("no alarms");
-		button.addClass("button_deactivated"); // avoids clickability
+		//button.addClass("button_deactivated"); // avoids clickability // we want it to be clickable
 		button.addClass("alarm_sym_deactivated");
 		button.removeClass("alarm_sym_active");
 	} else if(open_alarms==1) {
@@ -982,7 +1255,14 @@ function set_alert_button_state(button,txt,open_alarms){
 		txt.removeClass("sym_text_deactivated");
 	}
 }		
+///////////////////////// ALARM VIEW //////////////////////////////////
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function state2glow(b,state,det){
 	b.removeClass("glow_red");
@@ -997,6 +1277,13 @@ function state2glow(b,state,det){
 		b.addClass("glow_green");
 	};
 };
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function state2str(state,det){
 	var ret="";
@@ -1029,6 +1316,12 @@ function state2str(state,det){
 	return ret;
 }
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function updateInfo(color) {
 	var cmd_data = { "cmd":"set_color", "r":parseInt(parseFloat(color.rgb[0])*100), "g":parseInt(parseFloat(color.rgb[1])*100), "b":parseInt(parseFloat(color.rgb[2])*100)};
@@ -1036,15 +1329,35 @@ function updateInfo(color) {
 	con.send(JSON.stringify(cmd_data));
 }
 
-function get_open_alarms(mid){
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
+function get_alarms(mid){
 	if(con == null){
 		return;
 	}
-	var cmd_data = { "cmd":"get_open_alert_ids","mid":mid};
+	var cmd_data = { 
+		"cmd":"get_alert_ids",
+		"mid":mid, 
+		"open_start": parseInt($("#"+mid+"_alarms_open_start").text()),
+		"open_end": parseInt($("#"+mid+"_alarms_open_count").text()),
+		"closed_start": parseInt($("#"+mid+"_alarms_closed_start").text()),
+		"closed_end": parseInt($("#"+mid+"_alarms_closed_count").text())
+	};
 	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 };	
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function set_interval(mid,interval){
 	if(con == null){
@@ -1055,15 +1368,29 @@ function set_interval(mid,interval){
 	con.send(JSON.stringify(cmd_data));
 }
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
 function login(user,pw) {
 	console.log("send login");
 	if(con == null){
 		return;
 	}
-	var cmd_data = { "cmd":"login", "login":user, "client_pw":pw};
+	var cmd_data = { "cmd":"login", "login":user, "client_pw":pw, "alarm_view":0};
 	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function set_detection(user,area,on_off){
 	if(con == null) {
@@ -1073,6 +1400,13 @@ function set_detection(user,area,on_off){
 	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function send(app,cmd) {
 	console.log("send");
@@ -1087,6 +1421,13 @@ function send(app,cmd) {
 	con.send(JSON.stringify(cmd_data));
 }
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
 function createRainbowDiv(s){
 	var gradient = $("<div>").css({display:"flex", height:"100%"});
 	if(s>0){
@@ -1100,6 +1441,13 @@ function createRainbowDiv(s){
 	}
 	return gradient;
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function refreshSwatch(mid) {
 	var c=($("<a>").css({"background-color":'hsl('+$( "#colorslider_"+mid ).slider( "value" )+',100%,50%)'})).css("background-color");
@@ -1121,6 +1469,13 @@ function refreshSwatch(mid) {
 	}
 }
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
 function update_hb(mid,ts){
 	if($("#"+mid+"_lastseen").length){
 		var a = new Date(parseFloat(ts)*1000);
@@ -1139,29 +1494,67 @@ function update_hb(mid,ts){
 		//console.log("hb ts updated");
 	}
 }
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
-function update_state(account,area,mid,state,detection){
+function update_state(account,area,mid,state,detection,rm){
 	//console.log("running update state on "+mid+"/"+state);
+
+	// set the rulemanager text explainaition
+	$("#"+account+"_"+area+"_status").click(function(){
+		var rm_int=rm;
+		return function(){
+			txt2fb(format_rm_status(rm_int));
+		};
+	}());
+	// set the rulemanager text explainaition
+
+	// text state of the m2m
 	var e=$("#"+mid+"_state");
 	if(e.length){
 		e.text(state2str(state,detection));
 	}
-	
+	// text state of the m2m
+
+	// text state of the area
 	e=$("#"+account+"_"+area+"_status");
 	if(e.length){
 		e.text(state2str(-2,detection));
 	}
+	// text state of the area
 
+	// activate/deactivate buttons of the area
+	if(detection>0){
+		$("#"+account+"_"+area+"_on").hide();
+		$("#"+account+"_"+area+"_off").show();
+	} else {
+		$("#"+account+"_"+area+"_on").show();
+		$("#"+account+"_"+area+"_off").hide();
+	};
+	// activate/deactivate buttons of the area
+
+	// glow icon state of the m2m
 	if($("#"+mid+"_glow").length){
 		state2glow($("#"+mid+"_glow"),state,detection);
 	}
+	// glow icon state of the m2m
 	
+	// POP UP
+	if(detection>0 && state>0){
+	 	// if we change to alert-state, show popup with shortcut to the liveview
+		show_alert_fb(mid);
+	} else {
+		// if we change to non-alert-state and there is still the alert popup, show the old_alert popup
+		if($("#"+mid+"_liveview_alert_fb").length){
+			show_old_alert_fb(mid,-1);
+		};
+	}
+	// POP UP
 	
-	// if we change to alert and detection, we will get an alert, reactivate the button
-	if(state>0 && detection >0){
-		show_liveview(mid);
-	};
-
 	// make buttons available/unavailable
 	var lv=$("#"+mid+"_toggle_liveview");
 	var cv=$("#"+mid+"_toggle_lightcontrol");
@@ -1169,7 +1562,6 @@ function update_state(account,area,mid,state,detection){
 	var lt=$("#"+mid+"_toggle_liveview_text");
 	var ct=$("#"+mid+"_toggle_lightcontrol_text");
 	var at=$("#"+mid+"_toggle_alarms_text");
-
 	if(state<0){
 		lv.addClass("button_deactivated"); // avoids clickability
 		lv.addClass("live_sym_deactivated");
@@ -1185,7 +1577,7 @@ function update_state(account,area,mid,state,detection){
 
 		hide_liveview(mid);
 		hide_lightcontrol(mid);
-		//hide_alarms(mid);
+		//hide_alarms(mid); // alerts button will be shown/hidden by set_alarm .. something something
 	} else {
 		lv.removeClass("button_deactivated");
 		lv.removeClass("live_sym_deactivated");
@@ -1199,7 +1591,16 @@ function update_state(account,area,mid,state,detection){
 		ct.removeClass("sym_text_deactivated");
 		ct.addClass("toggle_lightcontrol_text_active");
 	}
+	// make buttons available/unavailable
+
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function add_menu(){
 	/******* add menu ******/
@@ -1253,6 +1654,12 @@ function add_menu(){
 	/******* add menu ******/
 };
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function get_loading(id,text){
 	//console.log("adding get loading");
@@ -1272,6 +1679,7 @@ function get_loading(id,text){
 	// text field
 	var txt=$("<div></div>");
 	txt.text(text);
+	txt.addClass("loading");
 
 	// preview image
 	var img=$("<img></img>");
@@ -1285,6 +1693,13 @@ function get_loading(id,text){
 	wrap.append(img);
 	return wrap;
 }
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function resize_alert_pic(mid,data){
 	var img=$("#"+mid+"_liveview_pic");
@@ -1352,9 +1767,136 @@ function resize_alert_pic(mid,data){
 
 }
 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function txt2fb(text){
 	var fb=$("<a></a>");
-	fb.text(text);
+	fb.attr("id","txt2fb");
+	fb.html(text);
 	fb.fancybox().trigger('click');
 };
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
+function format_rm_status(text){
+	//console.log("start formating");
+	var s=["\r","\n","<r>","</r>","<g>","</g>","> <","</div>Sub-"];
+	var r=["","","<div style='color:red'>","</div>","<br><div style='color:green'>","</div>","><","</div><br>Sub-"];
+	for(i=0; i<s.length; i++){
+		//console.log(text);
+		//console.log("search for "+s[i]);
+		while(text.indexOf(s[i])>=0){
+			//console.log("hab eins");
+			text=text.replace(s[i],r[i]);
+		};
+	};
+	//console.log("returning:");
+	//console.log(text);
+	return text;
+};
+
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
+function show_alert_fb(mid){
+	if(is_liveview_open(mid)){
+		return;
+	};
+	// situation where we want this box:
+	// 1.) user log fresh in an there is a running alarm
+	// 2.) user was logged-in an there is a alarm starting but the liveview is still closed
+
+	// generate text and a link to the alertview and display it as fancybox
+	var disp=$("<div></div>");
+	disp.attr("id",mid+"_liveview_alert_fb");
+	var text=$("<div></div>").text("there is a camera in alert state!");
+	disp.append(text);
+	var button=$("<a></a>");
+	button.text("glubsch!");
+	button.addClass("button");
+	button.click(function(){
+		return function(){
+			event.stopPropagation();
+			$.fancybox.close();				
+	
+			show_liveview(mid);
+			$('html,body').animate({
+				scrollTop: $("#"+mid+"_toggle_liveview").offset().top-($(window).height()/20)
+			},1000);
+		};
+	}());
+	disp.append(button);
+	txt2fb(disp);	
+	
+};
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
+
+function show_old_alert_fb(mid,open_alerts){
+	if(open_alerts==0 || is_alarm_open(mid)){
+		return;
+	};
+
+	// situation where we want this box:
+	// 1.) user logs fresh in and there are open_alerts
+	// 2.) user was logged-in and there was an alert (other fb still open) that was ignored 
+
+	// generate text and a link to the alertview and display it as fancybox
+	var nickname=$("#"+mid+"_name").text();
+	var msg="Your safety is the top priority of glubsch! <br><br>";
+	msg+="The camera '"+nickname+"' has "+open_alerts+" unacknowledge alerts!<br>";
+	msg+="Please confirm those alerts by clicking the acknowledge Button";
+
+
+	var disp=$("<div></div>");
+	disp.attr("id",mid+"_old_alerts");
+	var text=$("<div></div>").html(msg);
+	disp.append(text);
+	var button=$("<a></a>");
+	button.text("open alert-viewer");
+	button.addClass("button");
+	button.click(function(){
+		return function(){
+			///
+			console.log("test");
+			if($("#"+mid+"_old_alerts").length){
+				console.log("old_alerts is open");
+			};
+			///
+
+			event.stopPropagation();
+			$.fancybox.close();				
+	
+			show_alarms(mid);
+			get_alarms(mid,true);
+			$('html,body').animate({
+				scrollTop: $("#"+mid+"_toggle_alarms").offset().top-($(window).height()/20)
+			},1000);
+		};
+	}());
+	disp.append(button);
+	txt2fb(disp);	
+};
+
+
+// TODO
+// 1. append new alert to open alert_view
+// 2. 
