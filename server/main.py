@@ -382,7 +382,7 @@ def recv_m2m_msg_handle(data,m2m):
 				if(m2m.state==1 and m2m.detection>=1): # alert -> inform everyone
 					# the m2v list has all viewer
 					for v in m2m.m2v:
-						if(v.snd_q_len<10): # just send it if their queue is not to full
+						if(v.snd_q_len<10 and v.alarm_view==1): # just send it if their queue is not to full AND the clients wants unrequested img
 							msg_q_ws.append((msg,v))
 							v.snd_q_len+=1
 					#if(m2m.detection==1 and m2m.alert.notification_send_ts>0):		# TODO: if this is activated only the first xx file will be saved for detection=1 clients, detection=2 clients will save forever
@@ -575,6 +575,7 @@ def recv_ws_msg_handle(data,ws):
 				ws.account=db_f["account"]
 				ws.last_comm=time.time()
 				ws.uuid=enc.get("uuid","")
+				ws.alarm_view=enc.get("alarm_view",0)
 				
 				# print and update db, as this fails when the client already disconnected, surrond with try catch
 				p.ws_login(ws)
@@ -640,6 +641,7 @@ def recv_ws_msg_handle(data,ws):
 			msg["b"]=enc.get("b")
 			for m2m in ws.v2m:
 				if(enc.get("mid")==m2m.mid):
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' change color","v")
 					db.update_color(m2m,int(enc.get("r")),int(enc.get("g")),int(enc.get("b")),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
 					
 					m2m.color_pos=int(enc.get("color_pos"))
@@ -652,20 +654,18 @@ def recv_ws_msg_handle(data,ws):
 			area=enc.get("area")
 			rule=enc.get("rule") # can be "*" for on or "/" for off
 			duration=int(enc.get("duration"))
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' sets a override '"+rule+"' for area '"+area+"'","v")
 			
 			r=rm.get_account(ws.account)
 			if(r!=0):
 				rule_area=r.get_area(area)
 				if(rule_area!=0):
-					if((rule=="*" and rule_area.has_override_detection_on) or (rule=="/" and rule_area.has_override_detection_off)):
-						rule_area.rm_override(rule)
-					else:
-						# check if opposit rule existed and remove up front
-						if(rule=="*" and rule_area.has_override_detection_off):
-							rule_area.rm_override("/")
-						elif(rule=="/" and rule_area.has_override_detection_on):
-							rule_area.rm_override("*")
-							
+					# check if opposit rule existed and remove up front
+					if(rule=="*" and rule_area.has_override_detection_off):
+						rule_area.rm_override("/")
+					elif(rule=="/" and rule_area.has_override_detection_on):
+						rule_area.rm_override("*")
+					else:	
 						if(duration>0): # duration can be a time in sec or -1 = forever
 							duration=int(time.time()+duration)
 						rule_area.append_rule(rule,duration,0)	
@@ -694,19 +694,34 @@ def recv_ws_msg_handle(data,ws):
 			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(time.time()-t),"r")
 
 		## get IDs of open alerts
-		elif(enc.get("cmd")=="get_open_alert_ids"):
+		elif(enc.get("cmd")=="get_alert_ids"):
 			mid=enc.get("mid")
+			open_start=enc.get("open_start",0)
+			open_end=enc.get("open_end",10)
+			closed_start=enc.get("closed_start",0)
+			closed_end=enc.get("closed_end",10)
+
 			msg={}
 			msg["cmd"]=enc.get("cmd")
-			msg["ids"]=[]
+			msg["ids_open"]=[]
+			msg["ids_closed"]=[]
 			msg["mid"]=mid
+			msg["open_max"]=db.get_open_alert_count(ws.account, mid)
+			msg["closed_max"]=db.get_closed_alert_count(ws.account, mid)
 
-			db_r=db.get_open_alert_ids(ws.account,mid)
+			db_r=db.get_open_alert_ids(ws.account,mid,open_start,open_end)
 			if(db_r==-1):
-				msg["ids"].append(-1)
+				msg["ids_open"].append(-1)
 			else:
 				for i in db_r:
-					msg["ids"].append(i['id'])
+					msg["ids_open"].append(i['id'])
+
+			db_r=db.get_closed_alert_ids(ws.account,mid,closed_start,closed_end)
+			if(db_r==-1):
+				msg["ids_closed"].append(-1)
+			else:
+				for i in db_r:
+					msg["ids_closed"].append(i['id'])
 			msg_q_ws.append((msg,ws))
 					
 		## get Details to a alarm ID
@@ -727,6 +742,9 @@ def recv_ws_msg_handle(data,ws):
 				msg["img_count"]=db_r2
 				msg["img"]=db_r3
 				msg["mid"]=enc.get("mid")		
+				msg["ack"]=db_r1['ack']
+				msg["ack_ts"]=db_r1['ack_ts']
+				msg["ack_by"]=db_r1['ack_by']
 				msg_q_ws.append((msg,ws))
 
 		## reset webcam_countdown
@@ -754,11 +772,25 @@ def recv_ws_msg_handle(data,ws):
 				strng=img.read(512000-100)
 				img.close()
 				msg["img"]=base64.b64encode(strng).decode('utf-8')
-
 				msg_q_ws.append((msg,ws))
 
-		elif(enc.get("cmd")=="ack_alert"):
-			db.ack_alert(enc.get("mid"),enc.get("aid"),ws.login)
+		# acknowledge alerts
+		elif(enc.get("cmd")=="ack_alert" or enc.get("cmd")=="ack_all_alert"):
+			if(enc.get("cmd")=="ack_alert"):
+				db.ack_alert(enc.get("mid"),enc.get("aid"),ws.login)
+			elif(enc.get("cmd")=="ack_all_alert"):
+				db.ack_all_alert(enc.get("mid"),ws.login)
+			msg={}
+			msg["cmd"]="update_open_alerts"
+			msg["mid"]=enc.get("mid")
+			msg["open_alarms"]=db.get_open_alert_count(ws.account,enc.get("mid"))
+			for cam in server_m2m.clients:
+				if(cam.mid==enc.get("mid")):
+					for v in cam.m2v:
+						msg_q_ws.append((msg,v))
+					break
+
+		
 
 		## unsupported cmd, for WS
 		else:
@@ -971,7 +1003,18 @@ def check_alerts():
 				if(cli.alert.comm_path % 2 == 1):
 					#print("sending mail")
 					#send_mail.send( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost"):
+					# send a mail
 					send_mail.send("alert", "oho", cli.alert.files)
+
+					# send a notification to all clients
+					msg={}
+					msg["cmd"]="update_open_alerts"
+					msg["mid"]=cli.mid
+					msg["open_alarms"]=db.get_open_alert_count(cli.account,cli.mid)
+					for viewer in cli.m2v:
+						msg_q_ws.append((msg,viewer))
+
+
 					cli.alert.notification_send_ts=time.time()
 					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(cli.mid)+"' triggered Email","a")
 					ret=0
