@@ -328,11 +328,40 @@ class sql:
 			result = -1
 		return result
 	#############################################################
-	def get_open_alert_ids(self, account, mid):
+	def get_closed_alert_count(self, account,mid):
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0 and `mid`='"+mid+"'"
+				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`!=0 and `mid`='"+mid+"'"
+				cursor.execute(req)
+				result = cursor.fetchone()
+				result = result['COUNT(*)']
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_open_alert_ids(self, account, mid, a,b):
+		if(int(b)<=int(a)):
+			a=int(a)
+			b=a+10
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0 and `mid`='"+mid+"' ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
+				cursor.execute(req)
+				result = cursor.fetchall()
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_closed_alert_ids(self, account, mid, a,b):
+		if(int(b)<=int(a)):
+			a=int(a)
+			b=a+10
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`!=0 and `mid`='"+mid+"' ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
 				cursor.execute(req)
 				result = cursor.fetchall()
 		except:
@@ -368,9 +397,11 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				if(int(century)>=0 and int(century)<100):
-					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` ="+str(alert_id)+" LIMIT "+str(int(century)*100)+" , "+str((int(century)+1)*100)
+					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` ="+str(alert_id)+" ORDER BY `id` DESC LIMIT "+str(int(century)*10)+" , "+str((int(century)+1)*20)
 					cursor.execute(req)
 					result = cursor.fetchall()
+					print(req)
+					print(result)
 				else:
 					result = -1
 		except:
@@ -392,6 +423,18 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				req = "UPDATE  `alert`.`alerts` SET  `ack` =  '1',`ack_ts` =  '"+str(int(time.time()))+"',`ack_by` =  '"+login+"' WHERE  `id` ="+str(aid)+" and `mid`='"+str(mid)+"'";
+				cursor.execute(req)
+			self.connection.commit()
+			result=0
+		except:
+			result = -1
+			p.rint(sys.exc_info()[0],"d")
+		return result
+	#############################################################
+	def ack_all_alert(self,mid,login):
+		try:
+			with self.connection.cursor() as cursor:
+				req = "UPDATE  `alert`.`alerts` SET  `ack` =  '1',`ack_ts` =  '"+str(int(time.time()))+"',`ack_by` =  '"+login+"' WHERE  `ack`=0  and `mid`='"+str(mid)+"'";
 				cursor.execute(req)
 			self.connection.commit()
 			result=0
