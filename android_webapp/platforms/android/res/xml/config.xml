@@ -13,6 +13,9 @@
     <author email="support@phonegap.com" href="http://phonegap.com">
         PhoneGap Team
     </author>
+	
+	<plugin name="GetLogin" value="get login data from android preferences"/>
+	
     <content src="index.html" />
     <preference name="permissions" value="none" />
     <preference name="orientation" value="default" />

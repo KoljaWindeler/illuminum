@@ -41,7 +41,7 @@ public class bg_service extends Service {
     // debugging
     private String distance_debug = "";
     private s_coordinate last_known_location = new s_coordinate();
-    private int server_told_location = -1;
+    private int server_told_location = -2;
     private Context mContext;
 
 
