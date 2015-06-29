@@ -1,12 +1,20 @@
+// connection
 var con = null;
+var host="https://52.24.157.229/illumino/";
+
+// debug
 var f_t= 0;
 var c_t=0;
+
+// cordova helper
+var c_freeze_state=0;
 var g_user="";
 var g_pw="";
-var host="https://52.24.157.229/illumino/";
+
 
 // run as son as everything is loaded
 $(function(){
+	c_set_callback();
 	get_loading("welcome_loading","Connecting...").insertAfter("#clients");
 	
 	add_menu();
@@ -42,9 +50,8 @@ function open_ws() {
 	};
 	con.onclose = function(){
 		console.log("onClose");
-		
 		// show fancybox
-		var rl_msg = $("<div></div>").text("onClose event captured,reconnect started");
+		var rl_msg = $("<div></div>").text("reconnecting..");
 		rl_msg.attr({
 			"id":"rl_msg",
 			"style":"display:none;width:500px;"
@@ -59,8 +66,11 @@ function open_ws() {
 			closeBtn: false,   
 			closeClick: false
 		}).trigger('click');
-	
-		setTimeout(open_ws(), 3000);
+		
+
+		if(c_freeze_state!=1){
+			setTimeout(function(){ open_ws();} , 10000);
+		}
 	};
 };
 
@@ -98,6 +108,13 @@ function parse_msg(msg_dec){
 			},1000);
 		};
 
+		// restart camera if it was open before reconnect
+		console.log("checking if liveview for "+msg_dec["mid"]+" is open");
+		if(is_liveview_open(msg_dec["mid"])){
+			console.log("it is");
+			hide_liveview(msg_dec["mid"],false);
+			show_liveview(msg_dec["mid"]);
+		};
 	}
 
 	// update the timestamp, we should receive this every once in a while
@@ -1133,7 +1150,7 @@ function toggle_liveview(mid){
 	};
 
 	if(is_liveview_open(mid)){
-		hide_liveview(mid);
+		hide_liveview(mid,true);
 	} else {
 		show_liveview(mid);
 	};
@@ -1155,12 +1172,16 @@ function is_liveview_open(mid){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function hide_liveview(mid){
+function hide_liveview(mid,animation){
 	var view = $("#"+mid+"_liveview");
 	$("#"+mid+"_toggle_liveview").removeClass("live_sym_active");
 	if(view.is(":visible")){
 		set_interval(mid,0);
-		view.fadeOut("fast");
+		if(animation){
+			view.fadeOut("fast");
+		} else {
+			view.hide();
+		}
 	}
 }
 
@@ -1177,6 +1198,7 @@ function show_liveview(mid){
 	// set button active
 	$("#"+mid+"_toggle_liveview").addClass("live_sym_active");
 	var view = $("#"+mid+"_liveview");
+
 	if(!view.is(":visible")){
 		var img=$("#"+mid+"_liveview_pic");		
 		img.attr({
@@ -1237,7 +1259,7 @@ function hide_lightcontrol(mid){
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function show_lightcontrol(mid){
-	hide_liveview(mid);
+	hide_liveview(mid,true);
 	hide_alarms(mid);
 	$("#"+mid+"_toggle_lightcontrol").addClass("color_sym_active");
 	var view = $("#"+mid+"_lightcontrol");
@@ -1308,7 +1330,7 @@ function hide_alarms(mid){
 
 function show_alarms(mid){
 	hide_lightcontrol(mid);
-	hide_liveview(mid);
+	hide_liveview(mid,true);
 	$("#"+mid+"_toggle_alarms").addClass("alarm_sym_active");
 
 	var view = $("#"+mid+"_alarms");
@@ -1638,7 +1660,7 @@ function update_state(account,area,mid,state,detection,rm){
 		ct.addClass("sym_text_deactivated");
 		ct.removeClass("toggle_lightcontrol_text_active");
 
-		hide_liveview(mid);
+		hide_liveview(mid,true);
 		hide_lightcontrol(mid);
 		//hide_alarms(mid); // alerts button will be shown/hidden by set_alarm .. something something
 	} else {
@@ -2088,3 +2110,27 @@ function c_autologin(){
 		);
 	};
 };
+
+
+function c_set_callback(){
+	if(typeof cordova !== 'undefined'){
+		document.addEventListener("pause", c_freeze, false);
+		document.addEventListener("resume", c_unfreeze, false);
+	}
+};
+
+function c_freeze(){
+		$("#l10n_title").text("freeeze");
+		c_freeze_state=1;
+		con.close();
+};
+
+function c_unfreeze(){
+		$("#l10n_title").text("unfreeeze");
+		if(c_freeze_state==1){
+			// c_freeze_state=0; this will be done in the m2v_login method as we have to restore the camera glubsch
+			open_ws();
+		};
+}
+	
+
