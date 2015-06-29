@@ -8,7 +8,7 @@
     <title></title>
 	<script type="text/javascript" src="https://52.24.157.229/illumino/jscolor/jscolor.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
-		<script type="text/javascript" src="https://52.24.157.229/illumino/wsjq.js"></script>
+		<script src="https://52.24.157.229/illumino/wsjq.js"></script>
 		<script src="https://52.24.157.229/illumino/jquery-ui.js"></script>
 		<script src="https://52.24.157.229/illumino/jquery.ui.touch-punch.min.js"></script>
 		<script src="https://52.24.157.229/illumino/jquery.bxslider.min.js"></script>
@@ -17,6 +17,7 @@
         <script type="text/javascript" src="cordova.js"></script>
         <script type="text/javascript" src="GetLogin.js"></script>
         <script type="text/javascript" src="js/index.js"></script>
+        <script type="text/javascript"> app.initialize(); </script>
 
 		<link rel="stylesheet" href="https://52.24.157.229/illumino/jquery-ui.css"/>
 		<link rel="stylesheet" href="https://52.24.157.229/illumino/fancyBox/jquery.fancybox.css" type="text/css" media="screen" />
@@ -33,19 +34,3 @@
 
 
 
-<script type="text/javascript">
- app.initialize();
-
-
- function showToast()
- {
- var textValue = document.getElementById("myText").value;
- alert("TEST");
- GetLogin.showToast(textValue);
- }
-
- function onDeviceReady() {
- // console.log("Device ready");
- }
- document.addEventListener("deviceready", onDeviceReady, false);
- </script>
