@@ -69,7 +69,7 @@ function open_ws() {
 		
 
 		if(c_freeze_state!=1){
-			setTimeout(function(){ open_ws();} , 10000);
+			setTimeout(function(){ open_ws();} , 2000);
 		}
 	};
 };
@@ -251,8 +251,18 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 	var closed_disp=$("#"+mid+"_alarms_closed_display");
 	var open_disp=$("#"+mid+"_alarms_open_display");
 
+	var closed_stopper=$("#"+mid+"_alarms_closed_stopper");
+	var open_stopper=$("#"+mid+"_alarms_open_stopper");
+
 	var ids_open_old=$("#"+mid+"_alarms_open_list").text().split(",");
+	for(j=0;j<ids_open_old.length; j++){
+		ids_open_old[j]=parseInt(ids_open_old[j]);
+	};
+
 	var ids_closed_old=$("#"+mid+"_alarms_closed_list").text().split(",");
+	for(j=0;j<ids_closed_old.length; j++){
+		ids_closed_old[j]=parseInt(ids_closed_old[j]);
+	};
 
 	var closed_navi=$("#"+mid+"_alarms_closed_navigation");
 	var open_navi=$("#"+mid+"_alarms_open_navigation");
@@ -268,11 +278,17 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 	var field_end=	 ["#"+mid+"_alarms_open_count",	"#"+mid+"_alarms_closed_count"];
 	var max=	 [open_max,			closed_max];
 	var disp=	 [open_disp,			closed_disp];
+	var stopper=	 [open_stopper,			closed_stopper];
 	var ids=	 [ids_open,			ids_closed];
 	var old_ids=	 [ids_open_old,			ids_closed_old];
 	var navigation=  [open_navi,			closed_navi];
 
 	for(i=0; i<2; i++){
+		// new ids that we should add
+		var mod_front=[];
+		var mod_back=[];
+
+		// check if we still have the exact same content in old and current id list
 		var same_content=true;
 		if(old_ids.length==ids.length){
 			if(ids.length==0){
@@ -291,25 +307,47 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 			console.log("no change, no action");
 			continue;
 		} else {
-			// check if it is nearly the same, just one new entry up front
+			// check if it is nearly the same, just one new entry up front, or one missing that we might have acknowledged
 			console.log("ids_old="+old_ids[i]);
 			console.log("ids_new="+ids[i]);
-			console.log(ids[i][0]);
-			console.log(old_ids[i][0]);
 			console.log("length="+ids[i].length);
-			var one_new_in_front=true;
-			for(j=0; j<old_ids[i].length-1; j++){
-				if(old_ids[i][j]!=ids[i][j+1]){
-					one_new_in_front=false;
+
+			// check if we have to add some id's
+			var found_old=0;
+console.log("checking if the new IDs where available in the old data");
+console.log("new ids:");
+console.log(ids[i]);
+			for(j=0; j<ids[i].length; j++){
+console.log("seach for "+ids[i][j]+" in "+old_ids[i]+" results in "+$.inArray(ids[i][j],old_ids[i]));
+				if($.inArray(ids[i][j],old_ids[i])==-1){
+console.log("new id "+ids[i][j]+" not found, appending it in the ");
+					if(found_old){
+console.log("back");
+						mod_back.push(ids[i][j]);
+					} else {
+console.log("front");
+						mod_front.push(ids[i][j]);	
+					};
+				} else {
+console.log("found");
+					found_old=1;
 				}
-			}
-			if(!(one_new_in_front && old_ids[i].length>1)){ // due to split the length is 1 even for a empty chain
-				// start all over
-				disp[i].text("");
-				console.log("restart");
-			} else {
-				console.log("no restart");
-			}
+			};
+
+			// check if we have to remove some id's
+console.log("check old ids");
+console.log(old_ids);
+			for(j=0; j<old_ids[i].length; j++){
+				if($.inArray(old_ids[i][j],ids[i])==-1){
+console.log("old id "+old_ids[i][j]+" not found in new data");
+					mod_back.push(-1*old_ids[i][j]); // it doesn't matter which mod_ we use, as long as we erase
+				}
+			};
+
+console.log("resulting lists:");
+console.log(mod_front);
+console.log(mod_back);
+
 		}
 
 		var start=parseInt($(field_start[i]).text())+1;
@@ -390,35 +428,62 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 			};
 		}
 
-		if(!(one_new_in_front && old_ids[i].length>1)){ // due to split the length is 1 even for a empty old array
-			//request all
-			// add per element one line 
-			for(var j=0;j<ids[i].length;j++){		
-				add_alert(ids[i][j],mid,disp[i]);
+		
+		for(j=0; j<mod_front.length; j++){
+			if(mod_front[j]>0){
+				// insert a helper to reroute the anchor for 'add_alert()'
+				var alert_helper=$("<div></div>");
+				alert_helper.attr({
+					"id":"alert_helper_"+mid+"_"+mod_front[j],
+				});
+				alert_helper.insertBefore(stopper[i]);
+				add_alert(mod_front[j],mid,alert_helper);
+	
+				// move the stopper forwards
+				stopper[i].detach();
+				stopper[i].insertBefore(alert_helper);
 			};
-			
-			// request details	
-			for(var j=0;j<ids[i].length;j++){
-				var cmd_data = { "cmd":"get_alarm_details", "id":ids[i][j], "mid":mid};
+		};
+
+		for(j=0; j<mod_back.length; j++){
+			if(mod_back[j]>0){
+				add_alert(mod_back[j],mid,disp[i]);
+			};				
+		};
+
+		for(j=0;j<mod_front.length; j++){
+			if(mod_front[j]<0){
+				var o=$("#alert_helper_"+mid+"_"+(-1*mod_front[j]));
+				if(o.length){
+					o.remove();
+				}
+				var o=$("#alert_"+mid+"_"+(-1*mod_front[j]));
+				if(o.length){
+					o.remove();
+				}
+			} else if(mod_front[j]>0) {
+				// request details	
+				var cmd_data = { "cmd":"get_alarm_details", "id":mod_front[j], "mid":mid};
 				console.log(JSON.stringify(cmd_data));
 				con.send(JSON.stringify(cmd_data)); 
 			};
-		} else {
-			// we just have one new entry
-
-			// insert a helper to reroute the anchor for 'add_alert()'
-			var alert_helper=$("<div></div>");
-			alert_helper.attr({
-				"id":"alert_helper_"+mid+"_"+ids[i][0],
-			});
-			alert_helper.insertBefore($("#alert_"+mid+"_"+ids[i][1]));
-			add_alert(ids[i][0],mid,alert_helper);
-			
-			
-			// only request the one in the front
-			var cmd_data = { "cmd":"get_alarm_details", "id":ids[i][0], "mid":mid};
-			console.log(JSON.stringify(cmd_data));
-			con.send(JSON.stringify(cmd_data)); 			
+		};
+		for(j=0;j<mod_back.length; j++){
+			if(mod_back[j]<0){
+				var o=$("#alert_helper_"+mid+"_"+(-1*mod_back[j]));
+				if(o.length){
+					o.remove();
+				}
+				var o=$("#alert_"+mid+"_"+(-1*mod_back[j]));
+				if(o.length){
+					o.remove();
+				}
+			} else if(mod_back[j]>0){
+				// request details	
+				var cmd_data = { "cmd":"get_alarm_details", "id":mod_back[j], "mid":mid};
+				console.log(JSON.stringify(cmd_data));
+				con.send(JSON.stringify(cmd_data)); 
+			};
 		};
 	};
 };
@@ -1072,7 +1137,9 @@ function check_append_m2m(msg_dec){
 		var open=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open");
 		open.append($("<div></div>").text("Not-acknowledged").addClass("m2m_text").addClass("inline_block"));
 		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
-		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_display"));
+		a=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_display");
+		open.append(a);
+		a.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_stopper"));		
 		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_list").hide());
 		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_start").text("0").hide());
 		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_count").text("10").hide());
@@ -1084,7 +1151,9 @@ function check_append_m2m(msg_dec){
 		var close=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed");
 		close.append($("<div></div>").text("Acknowledged").addClass("m2m_text").addClass("inline_block"));
 		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
-		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_display"));
+		a=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_display");
+		close.append(a);
+		a.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_stopper"));		
 		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_list").hide());
 		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_start").text("0").hide());
 		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_count").text("10").hide());
@@ -1694,9 +1763,21 @@ function add_menu(){
 	menu.attr("id","menu");
 	menu.addClass("menu");
 	var list=$("<ul></ul>");
+	
 	var listentry=$("<li></li>");
-	listentry.text("test");
+	listentry.text("Log out");
+	listentry.click(function(){
+		return function(){
+			g_user="";
+			g_pw="";
+			c_set_login("","");
+			txt2fb(get_loading("","Signing you out..."));
+			con.close();
+		}
+	}());
 	list.append(listentry);
+	
+
 	menu.append(list);
 	menu.insertAfter("#clients");
 	
@@ -2074,7 +2155,9 @@ function send_login(user,pw){
 	};
 };
 
-
+////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////// CORDOVA ///////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////
 function c_set_login(user,pw){
 	if(typeof cordova !== 'undefined'){
 		cordova.exec(
