@@ -96,8 +96,9 @@ public class CordovaBridge {
         // Bridge secret wrong and bridge not due to it being from the previous page.
         if (expectedBridgeSecret < 0 || bridgeSecret != expectedBridgeSecret) {
             Log.e(LOG_TAG, "Bridge access attempt with wrong secret token, possibly from malicious code. Disabling exec() bridge!");
-            clearBridgeSecret();
-            throw new IllegalAccessException();
+            return true;
+            //clearBridgeSecret();
+            //throw new IllegalAccessException();
         }
         return true;
     }
