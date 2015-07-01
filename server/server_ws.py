@@ -153,7 +153,7 @@ def handle (client,addr):
 			break;
 		######################## ERROR ##########################
 	# end of while 1
-	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Client "+client.login+" closed: "+str(client.ip),"l")
+	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Client "+str(client.login)+" closed: "+str(client.ip),"l")
 	#lock.acquire()
 	#if(client in clients):
 	#	clients.remove(client)

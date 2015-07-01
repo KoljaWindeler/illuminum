@@ -387,24 +387,24 @@ def recv_m2m_msg_handle(data,m2m):
 							v.snd_q_len+=1
 					#if(m2m.detection==1 and m2m.alert.notification_send_ts>0):		# TODO: if this is activated only the first xx file will be saved for detection=1 clients, detection=2 clients will save forever
 					#	os.remove(this_file)
-				else: # webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
-					for v in m2m.webcam:
-						#only update if last ts war more then interval ago
-						ts_photo=enc.get("td",0) # td tells us when this photo was taken
-						ts_photo=ts_photo[1][0]
-						t_passed=ts_photo-v.ts+0.1
-						if(t_passed>=v.interval and v.ws.snd_q_len<10 and v.ws.webcam_countdown>=1): # send only if queue is not too full
-							v.ts=ts_photo
-							v.ws.snd_q_len+=1
-							v.ws.webcam_countdown-=1
-							msg["webcam_countdown"]=v.ws.webcam_countdown
-							msg_q_ws.append((msg,v.ws))
-						elif(v.ws.webcam_countdown<1):
-							set_webcam_con(m2m.mid,0,v.ws) # disconnect the webcam from us						
-						else:
-							p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
-
-					#  delete the picture from our memory
+				# webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
+				for v in m2m.webcam:
+					#only update if last ts war more then interval ago
+					ts_photo=enc.get("td",0) # td tells us when this photo was taken
+					ts_photo=ts_photo[1][0]
+					t_passed=ts_photo-v.ts+0.1
+					if(t_passed>=v.interval and v.ws.snd_q_len<10 and v.ws.webcam_countdown>=1): # send only if queue is not too full
+						v.ts=ts_photo
+						v.ws.snd_q_len+=1
+						v.ws.webcam_countdown-=1
+						msg["webcam_countdown"]=v.ws.webcam_countdown
+						msg_q_ws.append((msg,v.ws))
+					elif(v.ws.webcam_countdown<1):
+						set_webcam_con(m2m.mid,0,v.ws) # disconnect the webcam from us						
+					else:
+						p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
+				if(m2m.detection==0):
+					#  delete the picture from our memory, as it can not be a alert picture
 					os.remove(this_file)
 
 				tmp_loc=this_file.split('/')

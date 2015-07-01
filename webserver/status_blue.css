@@ -171,6 +171,14 @@ div.glow_purple {
 	box-shadow: 0px 0px 6px 3px rgba(255,0,255,1);
 	background-color: #ff00ff;
 }
+
+div.glow_yellow {
+        -webkit-box-shadow: 0px 0px 6px 3px rgba(255,255,0,1);
+        -moz-box-shadow: 0px 0px 6px 3px rgba(255,255,0,1);
+        box-shadow: 0px 0px 6px 3px rgba(255,255,0,1);
+        background-color: #ffff00;
+}
+
 /***************** glowing dot ***************/
 
 div.float_left, img.float_left {
@@ -339,6 +347,34 @@ div.loading {
 	clear: both;
 }
 /************* loading ******************/
+
+
+div.alert_navigation{
+        display: inline-block;
+        float:right;
+        margin-right:10px;
+}
+img.alert_navigation_next,img.alert_navigation_prev,
+img.alert_navigation_next_deactivated,img.alert_navigation_prev_deactivated {
+        width:16px;
+        height:11px;
+        margin-left:5px;
+        margin-right:5px;
+        color: #fcca04;
+        cursor: pointer;
+}
+img.alert_navigation_next{
+        content:url("images/next.png");
+}
+img.alert_navigation_prev{
+        content:url("images/prev.png");
+}
+img.alert_navigation_next_deactivated{
+        content:url("images/next_d.png");
+}
+img.alert_navigation_prev_deactivated{
+        content:url("images/prev_d.png");
+}
 
 
 
