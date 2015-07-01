@@ -4,12 +4,14 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.CordovaInterface;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.util.Log;
 import android.provider.Settings;
 import android.widget.Toast;
 
 import com.glubsch.MainActivity;
+import com.glubsch.bg_service;
 
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
@@ -43,30 +45,51 @@ public class GetLogin extends CordovaPlugin {
             }
         });*/
         JSONObject parameter = new JSONObject();
+        PluginResult result = null;
         Context context = cordova.getActivity();
         SharedPreferences mSettings = (SharedPreferences) context.getSharedPreferences(MainActivity.PREFS_NAME, context.MODE_MULTI_PROCESS);
-
+        Log.v("glubsch I/chromium","->execute plugin, action:"+action);
 
         if(action.equals("get")) {
             String login = mSettings.getString("LOGIN", "Kolja");
             String pw = mSettings.getString("PW", "hui");
+            //login="kolja";
+            //pw="hui";
             String quality = "0";
             if(login.equals("") || pw.equals("")) quality="-1";
+            if(login.equals("-1") || pw.equals("-1")) quality="-1";
             parameter.put("q", quality);
             parameter.put("l", login);
             parameter.put("p", pw);
+            Log.v("glubsch I/chromium","sending login data, user:"+login+" and pw:"+pw);
+            result = new PluginResult(PluginResult.Status.OK, parameter);
             // callback.success(parameter);
-            PluginResult result = new PluginResult(PluginResult.Status.OK, parameter);
-            result.setKeepCallback(true);
-            callbackContext.sendPluginResult(result);
         } else if (action.equals("set")){
-            if(!args.getString(0).equals("") && !args.getString(1).equals("")) {
+            Log.v("glubsch I/chromium","saving login data, user:"+args.getString(0)+" and pw:"+args.getString(1));
+            String login = mSettings.getString("LOGIN", "Kolja");
+            String pw = mSettings.getString("PW", "hui");
+            if(!args.getString(0).equals(login) || !args.getString(1).equals(pw)) {
                 SharedPreferences.Editor editor = mSettings.edit();
-                editor.putString("LOGIN", args.getString(0));
-                editor.putString("PW", args.getString(1));
+
+                login=args.getString(0);
+                pw=args.getString(1);
+                if(login.equals("") || pw.equals("")){
+                    login="-1";
+                    pw="-1";
+                }
+
+                editor.putString("LOGIN", login);
+                editor.putString("PW", pw);
                 editor.commit();
+
+                //Intent intent = new Intent(context, bg_service.class);
+                //context.stopService(intent);
+                Log.v("glubsch I/chromium","SAFED");
             }
+            result = new PluginResult(PluginResult.Status.OK, 0);
         }
+        callbackContext.sendPluginResult(result);
+
         return true;
     };
 
