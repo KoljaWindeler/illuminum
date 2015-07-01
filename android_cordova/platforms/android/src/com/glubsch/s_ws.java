@@ -131,7 +131,7 @@ public class s_ws implements WebSocketConnectionObserver {
         mWakeup.stop_pinging(mContext);
 
         mHandler.removeCallbacks(mWakeup.delayed_reconnect);
-        mHandler.postDelayed(mWakeup.delayed_reconnect,5000); // start in 5 sec
+        mHandler.postDelayed(mWakeup.delayed_reconnect, 5000); // start in 5 sec
     }
 
 
@@ -152,13 +152,14 @@ public class s_ws implements WebSocketConnectionObserver {
             // if we receive a prelogin answer, we have to calc our login and send it to the server
             if (cmd.equals("prelogin")) {
                 mDebug.write_to_file("Websocket: Received: " + message);
+                String login=null;
                 try {
                     TelephonyManager tManager = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
                     String uuid = tManager.getDeviceId();
 
                     mDebug.write_to_file("s_ws: read from sharedPrefereces");
-                    String login = settings.getString("LOGIN", "Kolja");
-                    String pw = settings.getString("PW", "hui");
+                    login = settings.getString("LOGIN", MainActivity.nongoodlogin);
+                    String pw = settings.getString("PW", MainActivity.nongoodlogin);
                     mDebug.write_to_file("s_ws: result "+pw);
                     mDebug.write_to_file("Websocket: send login:" + login+ "/"+pw);
                     o_snd.put("cmd", "login");
@@ -168,9 +169,13 @@ public class s_ws implements WebSocketConnectionObserver {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                mDebug.write_to_file("Websocket: received prelogin, sending " + o_snd.toString());
                 //console.log(JSON.stringify(cmd_data));
-                send_msg(o_snd.toString());
+                if(!login.equals(MainActivity.nongoodlogin)) {
+                    send_msg(o_snd.toString());
+                    mDebug.write_to_file("Websocket: received prelogin, sending " + o_snd.toString());
+                } else {
+                    mNofity.showNotification("Not logged in","","");
+                }
             }
 
             //////////////////////////////////////////////////////////////////////////////////////

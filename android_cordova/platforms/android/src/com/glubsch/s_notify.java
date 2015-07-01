@@ -8,6 +8,8 @@ import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.support.v4.app.NotificationCompat;
 
+import org.apache.cordova.plugin.GetLogin;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -63,9 +65,18 @@ public class s_notify {
 
     public void showNotification(String title, String short_text, String long_text) {
         if (last_picture == null) {
-            String login = mSettings.getString("LOGIN", "Kolja");
+            String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
+            String shown_title=login + " @ Glubsch";
+
+            // avoid showing old-pre-logout status
+            if(login.equals(MainActivity.nongoodlogin)){
+                shown_title="glubsch";
+                short_text="Log-in to activate your protection";
+                long_text=short_text;
+            }
+
             mNotificationBuilder
-                    .setContentTitle(login + "@" + title)
+                    .setContentTitle(shown_title)
                     .setWhen(System.currentTimeMillis())
                             //.setContentInfo("shor first line, right")
                     .setContentText(short_text)

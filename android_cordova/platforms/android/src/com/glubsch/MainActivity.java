@@ -26,6 +26,7 @@ import org.apache.cordova.*;
 public class MainActivity extends CordovaActivity
 {
     public static final String PREFS_NAME = "illuminoSettings";
+    public static final String nongoodlogin = "nongoodlogin";
 
     @Override
     public void onCreate(Bundle savedInstanceState)
