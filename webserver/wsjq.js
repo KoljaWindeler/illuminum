@@ -1,6 +1,7 @@
 // connection
 var con = null;
 var host="https://52.24.157.229/illumino/";
+var fast_reconnect=0;
 
 // debug
 var f_t= 0;
@@ -28,6 +29,7 @@ $(function(){
 
 // triggered by the ondocument_ready
 function open_ws() {
+	console.log("connecting to the server");
 	con = new WebSocket('wss://52.24.157.229:9879/');
 	con.onopen = function(){
 		if($("#rl_msg").length){
@@ -35,11 +37,7 @@ function open_ws() {
 		};
 
 		console.log("onOpen");
-		if(g_user=="" || g_pw==""){
-			add_login("");
-		} else {
-			send_login(g_user,g_pw);
-		};
+		check_login_data(1);
 	};
 
 	// reacting on incoming messages
@@ -54,7 +52,6 @@ function open_ws() {
 		var rl_msg = $("<div></div>").text("reconnecting..");
 		rl_msg.attr({
 			"id":"rl_msg",
-			"style":"display:none;width:500px;"
 		});
 		var rl = $("<a></a>");
 		rl.attr("href","#rl_msg");
@@ -69,8 +66,16 @@ function open_ws() {
 		
 
 		if(c_freeze_state!=1){
-			setTimeout(function(){ open_ws();} , 2000);
-		}
+			console.log("running reconnect in 2 sec");
+			var timeout=2000;
+			if(fast_reconnect){
+				fast_reconnect=0;
+				timeout=0;
+			};
+			setTimeout(function(){ open_ws();} , timeout);
+		} else {
+			console.log("will not run reconnect, as cordoba put us to sleep");
+		};
 	};
 };
 
@@ -83,10 +88,11 @@ function parse_msg(msg_dec){
 	if(msg_dec["cmd"]=="login"){
 		if(msg_dec["ok"]!="1"){
 			console.log("received LOGIN-reject");
-			g_user="";
-			g_pw="";
+			g_user="nongoodlogin";
+			g_pw="nongoodlogin";
 			add_login("login failed");
 		};
+console.log("setting c data as "+g_user+"/"+g_pw);
 		c_set_login(g_user,g_pw);
 	}
 
@@ -109,9 +115,7 @@ function parse_msg(msg_dec){
 		};
 
 		// restart camera if it was open before reconnect
-		console.log("checking if liveview for "+msg_dec["mid"]+" is open");
 		if(is_liveview_open(msg_dec["mid"])){
-			console.log("it is");
 			hide_liveview(msg_dec["mid"],false);
 			show_liveview(msg_dec["mid"]);
 		};
@@ -245,8 +249,6 @@ function show_liveview_img(msg_dec){
 /////////////////////////7///////////////// PARSE ALERT IDS //////////////////////////////////////////
 
 function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
-	console.log("ids_closed:"+ids_closed.length);
-
 	// remove loading it and add a ack all button
 	var closed_disp=$("#"+mid+"_alarms_closed_display");
 	var open_disp=$("#"+mid+"_alarms_open_display");
@@ -304,50 +306,33 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 
 		$("#loading_window").remove();
 		if(same_content){
-			console.log("no change, no action");
 			continue;
 		} else {
 			// check if it is nearly the same, just one new entry up front, or one missing that we might have acknowledged
-			console.log("ids_old="+old_ids[i]);
-			console.log("ids_new="+ids[i]);
-			console.log("length="+ids[i].length);
+			//console.log("ids_old="+old_ids[i]);
+			//console.log("ids_new="+ids[i]);
+			//console.log("length="+ids[i].length);
 
 			// check if we have to add some id's
 			var found_old=0;
-console.log("checking if the new IDs where available in the old data");
-console.log("new ids:");
-console.log(ids[i]);
 			for(j=0; j<ids[i].length; j++){
-console.log("seach for "+ids[i][j]+" in "+old_ids[i]+" results in "+$.inArray(ids[i][j],old_ids[i]));
 				if($.inArray(ids[i][j],old_ids[i])==-1){
-console.log("new id "+ids[i][j]+" not found, appending it in the ");
 					if(found_old){
-console.log("back");
 						mod_back.push(ids[i][j]);
 					} else {
-console.log("front");
 						mod_front.push(ids[i][j]);	
 					};
 				} else {
-console.log("found");
 					found_old=1;
 				}
 			};
 
 			// check if we have to remove some id's
-console.log("check old ids");
-console.log(old_ids);
 			for(j=0; j<old_ids[i].length; j++){
 				if($.inArray(old_ids[i][j],ids[i])==-1){
-console.log("old id "+old_ids[i][j]+" not found in new data");
 					mod_back.push(-1*old_ids[i][j]); // it doesn't matter which mod_ we use, as long as we erase
 				}
 			};
-
-console.log("resulting lists:");
-console.log(mod_front);
-console.log(mod_back);
-
 		}
 
 		var start=parseInt($(field_start[i]).text())+1;
@@ -693,7 +678,6 @@ function add_alert_details(msg_dec){
 /////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 
 function ack_alert(id,mid){
-	console.log("ack for id:"+id);
 	// remove field
 	$("#alert_"+mid+"_"+id).fadeOut(600, function() { $(this).remove(); });
 
@@ -704,7 +688,7 @@ function ack_alert(id,mid){
 	set_alert_button_state(button,txt,open_alarms);
 
 	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
-	console.log(JSON.stringify(cmd_data));
+	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data)); 		
 };
 
@@ -717,7 +701,6 @@ function ack_alert(id,mid){
 
 function ack_all_alert(mid){
 	var cmd_data = { "cmd":"ack_all_alert", "mid":mid};
-	console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data)); 		
 
 	show_alarms(mid); 	// its already open, but this will reset the content
@@ -1053,7 +1036,12 @@ function check_append_m2m(msg_dec){
 			beforeShow: function() { 
 				mid=msg_dec["mid"]; 
 				resize_alert_pic(mid,""); 
-			}
+			},
+			afterClose: function() {	
+				mid=msg_dec["mid"]; 
+               	    		$("#"+mid+"_liveview_pic").show();
+				resize_alert_pic(mid,""); 
+        		}
 		});
 		liveview.append(rl);
 
@@ -1539,7 +1527,7 @@ function get_alarms(mid){
 		"closed_start": parseInt($("#"+mid+"_alarms_closed_start").text()),
 		"closed_end": parseInt($("#"+mid+"_alarms_closed_count").text())
 	};
-	console.log(JSON.stringify(cmd_data));
+	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 };	
 
@@ -1555,7 +1543,7 @@ function set_interval(mid,interval){
 		return;
 	}
 	var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":interval};
-	console.log(JSON.stringify(cmd_data));
+	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 }
 
@@ -1571,7 +1559,7 @@ function set_override(user,area,on_off){
 		return;
 	}
 	var cmd_data = { "cmd":"set_override", "rule":on_off, "area":area, "duration":"0"};
-	console.log(JSON.stringify(cmd_data));
+	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
 }
 
@@ -1768,11 +1756,23 @@ function add_menu(){
 	listentry.text("Log out");
 	listentry.click(function(){
 		return function(){
-			g_user="";
-			g_pw="";
-			c_set_login("","");
+			g_user="nongoodlogin";
+			g_pw="nongoodlogin";
+			c_set_login(g_user,g_pw);
 			txt2fb(get_loading("","Signing you out..."));
+			fast_reconnect=1;
 			con.close();
+
+			// hide menu
+			var m=$("#menu");
+			if(m.length){
+				if(m.hasClass("menu_active")){
+					m.removeClass("menu_active");
+					$("#hamb").css("position", "absolute");
+					$("#hamb").css("transform", "translate(0px, 0px)");
+					$("#hamb").css("transition","all 0.75s ease-in-out");
+				}
+			}
 		}
 	}());
 	list.append(listentry);
@@ -1785,10 +1785,8 @@ function add_menu(){
 	var header=$("<header></header>");
 	header.click(function(){
 		return function(){
-			console.log("suche nach menu");
 			var m=$("#menu");
 			if(m.length){
-				console.log("menu gefunden");
 				if(m.hasClass("menu_active")){
 					m.removeClass("menu_active");
 					$("#hamb").css("position", "absolute");
@@ -2041,13 +2039,6 @@ function show_old_alert_fb(mid,open_alerts){
 	button.addClass("button");
 	button.click(function(){
 		return function(){
-			///
-			console.log("test");
-			if($("#"+mid+"_old_alerts").length){
-				console.log("old_alerts is open");
-			};
-			///
-
 			event.stopPropagation();
 			$.fancybox.close();				
 	
@@ -2102,6 +2093,7 @@ function add_login(msg){
 	var login_usr=$("<input></input>");
 	login_usr.attr("id","login");
 	login_usr.attr("type","text");
+	login_usr.attr("autofocus","1");
 	login_usr.addClass("clear_both");
 	container.append(login_usr);
 
@@ -2127,8 +2119,6 @@ function add_login(msg){
 
 	node.insertBefore($("#clients"));
 
-	// auto login
-	c_autologin();
 };
 
 /////////////////////////////////////////// SEND LOGIN //////////////////////////////////////////
@@ -2140,7 +2130,7 @@ function add_login(msg){
 
 function send_login(user,pw){
 	$("#login_node").remove();	
-	if(user=="" || pw==""){	
+	if((user=="" || pw=="") || (user=="nongoodlogin" && pw=="nongoodlogin")){	
 		// empty form send
 		add_login("please enter a user name and a password");
 	} else {
@@ -2155,14 +2145,34 @@ function send_login(user,pw){
 	};
 };
 
+function check_login_data(try_cordova){
+console.log("check_login_data with try:"+try_cordova);
+	if(g_user=="nongoodlogin" || g_pw=="nongoodlogin" || g_user=="" || g_pw==""){
+console.log("global data are non good");
+		if($("#login_node").length==0){
+console.log("login form not visible, will add it");
+			add_login("");
+		};
+		if(try_cordova){
+console.log("will ask cordova");
+			c_autologin();
+		};
+	} else {
+console.log("sending login "+g_user+"/"+g_pw);
+		send_login(g_user,g_pw);
+	};
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////// CORDOVA ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
 function c_set_login(user,pw){
+	console.log("setting data:"+user+"/"+pw);
 	if(typeof cordova !== 'undefined'){
 		cordova.exec(
-			function(r){ 		},
-			function(result){  	},
+			function(r){ 		/*alert("c_set_ok"); 	*/	},
+			function(result){  	/*alert("Error return on GetUser - set data");*/	},
 			"GetLogin",
 			"set",
 			[user,pw]
@@ -2181,12 +2191,13 @@ function c_autologin(){
 				if(r.q!="" && r.l!="" && r.p!=""){
 					if(r.q=="0"){
 						console.log("Cordova autologin "+r.l+"/"+r.p);
-						send_login(r.l,r.p);
-						//alert("Login:"+r.l+"/"+r.p);
+						g_user=r.l;
+						g_pw=r.p;
+						check_login_data(0);
 					};
 				};
 			},
-			function(result){ alert("Error"); },
+			function(result){ /*alert("Get Login GET resultet in an error"); */ },
 			"GetLogin",
 			"get",
 			[]
