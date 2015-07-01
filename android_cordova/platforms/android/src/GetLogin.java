@@ -19,6 +19,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 public class GetLogin extends CordovaPlugin {
     public static final String TAG = "GetLogin";
+
     /**
      * Constructor.
      */
@@ -48,25 +49,25 @@ public class GetLogin extends CordovaPlugin {
         PluginResult result = null;
         Context context = cordova.getActivity();
         SharedPreferences mSettings = (SharedPreferences) context.getSharedPreferences(MainActivity.PREFS_NAME, context.MODE_MULTI_PROCESS);
-        Log.v("glubsch I/chromium","->execute plugin, action:"+action);
+        Log.v("glubsch I/chromium","------------------>execute plugin, action:"+action);
 
         if(action.equals("get")) {
-            String login = mSettings.getString("LOGIN", "Kolja");
-            String pw = mSettings.getString("PW", "hui");
+            String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
+            String pw = mSettings.getString("PW", MainActivity.nongoodlogin);
             //login="kolja";
             //pw="hui";
             String quality = "0";
             if(login.equals("") || pw.equals("")) quality="-1";
-            if(login.equals("-1") || pw.equals("-1")) quality="-1";
+            if(login.equals(MainActivity.nongoodlogin) || pw.equals(MainActivity.nongoodlogin)) quality="-1";
             parameter.put("q", quality);
             parameter.put("l", login);
             parameter.put("p", pw);
-            Log.v("glubsch I/chromium","sending login data, user:"+login+" and pw:"+pw);
+            Log.v("glubsch I/chromium", "sending login data, user:" + login + " and pw:"+pw);
             result = new PluginResult(PluginResult.Status.OK, parameter);
             // callback.success(parameter);
         } else if (action.equals("set")){
             Log.v("glubsch I/chromium","saving login data, user:"+args.getString(0)+" and pw:"+args.getString(1));
-            String login = mSettings.getString("LOGIN", "Kolja");
+            String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
             String pw = mSettings.getString("PW", "hui");
             if(!args.getString(0).equals(login) || !args.getString(1).equals(pw)) {
                 SharedPreferences.Editor editor = mSettings.edit();
@@ -82,9 +83,13 @@ public class GetLogin extends CordovaPlugin {
                 editor.putString("PW", pw);
                 editor.commit();
 
-                //Intent intent = new Intent(context, bg_service.class);
-                //context.stopService(intent);
+                Log.v("glubsch I/chromium","restarting service");
+                Intent intent = new Intent(context, bg_service.class);
+                context.stopService(intent);
+                context.startService(intent);
                 Log.v("glubsch I/chromium","SAFED");
+            } else {
+                Log.v("glubsch I/chromium","done nothing as those are the old data");
             }
             result = new PluginResult(PluginResult.Status.OK, 0);
         }
