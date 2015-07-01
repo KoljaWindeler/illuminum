@@ -112,7 +112,7 @@ public class bg_service extends Service {
             }
 
             // update once we've change our position, just for the DUBUG line!!
-            mNofity.showNotification(getString(R.string.app_name)+" check location", mNofity.Notification_text_builder(false, areas), mNofity.Notification_text_builder(true, areas));
+            //mNofity.showNotification(getString(R.string.app_name)+" check location", mNofity.Notification_text_builder(false, areas), mNofity.Notification_text_builder(true, areas));
         }
     };
 
@@ -163,6 +163,10 @@ public class bg_service extends Service {
             mDebug.write_to_file("settings are null, recrating");
             mSettings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, MODE_MULTI_PROCESS);
             mDebug.write_to_file("settings pw is: "+mSettings.getString("PW","backup"));
+            if(mSettings.getString("PW",MainActivity.nongoodlogin).equals(MainActivity.nongoodlogin)){
+                // we do not have valid data, wait until they will be set
+                return 0;
+            }
         }
         mDebug.write_to_file("settings EOF");
 
@@ -320,6 +324,15 @@ public class bg_service extends Service {
             }
         }
     };
+
+    public void onDestroy (){
+        try {
+            unregisterReceiver(network_change_receiver);
+        }catch (Exception ex){
+            int ignore = 1;
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////////
     /////////////////////////////// android app stuff /////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////
