@@ -1170,40 +1170,70 @@ last_rulecheck_ts=0
 #************************************** Main loop **************************************#
 #***************************************************************************************#
 last_ws_bh_time=0
+CPU_DEBUG=0
+if(CPU_DEBUG):
+	task=[0,0,0,0,0,0,0,0];
+	task_timer=time.time()
+	task_loop=0
 
 while 1:
 	# sleeping
 	if(busy==0):
 		time.sleep(0.03)
 	busy=0
+	
+	if(CPU_DEBUG):
+		if(task_loop>1000):
+			print(str(0.1*round(1000*(1-(((task_loop-sum(task))*0.03)/(time.time()-task_timer)))))+"% load, taskcounter:", end="")
+			print(task)
+			task_loop=0
+			task_timer=time.time()
+			task=[0,0,0,0,0,0,0,0];
+		task_loop+=1
 
 	############### recv ###################
 	if(recv_m2m_con_dq_handle()==1): #returns 1 if there was a connection change by a m2m unit
+		if(CPU_DEBUG):
+			task[0]+=1
 		busy=1
 
 	if(recv_m2m_msg_dq_handle()==1): #returns 1 if there was a message to receive from a m2m unit
+		if(CPU_DEBUG):
+			task[1]+=1
 		busy=1
 
 	if(recv_ws_con_dq_handle()==1): #returns 1 if there was a connection change by a web socket client
+		if(CPU_DEBUG):
+			task[2]+=1
 		busy=1
 
 	if(recv_ws_msg_dq_handle()==1):  #returns 1 if there was a message to receive from a web socket client
+		if(CPU_DEBUG):
+			task[3]+=1
 		busy=1
 
 	############## send ###################
 	if(snd_m2m_msg_dq_handle()==1): #returns 1 if there was a message to send
+		if(CPU_DEBUG):
+			task[4]+=1
 		busy=1
 
 	if(snd_ws_msg_dq_handle()==1): #returns 1 if there was a message to send
+		if(CPU_DEBUG):
+			task[5]+=1
 		busy=1
 
 	############## maintenance ###################
 	# check if we have clients in the alert state ready to send a mail or so
 	if(check_alerts()==0):
+		if(CPU_DEBUG):
+			task[6]+=1
 		busy=1
 
 	# check the rules
 	if(time.time()>last_rulecheck_ts+60): # this is not a good way .. we should know when we have to call it for a timebased change, not guess it
+		if(CPU_DEBUG):
+			task[7]+=1
 		busy=1
 		last_rulecheck_ts=time.time()
 		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] running periodically 60 sec check","r")
