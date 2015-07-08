@@ -65,7 +65,7 @@ def recv_m2m_con_handle(data,m2m):
 		for ws in server_ws.clients:
 			for viewer in ws.v2m:
 				if(viewer==m2m):
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+ws.login+"' from "+m2m.mid,"l")
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+str(ws.login)+"' from "+str(m2m.mid),"l")
 					ws.v2m.remove(viewer)
 					msg={}
 					msg["cmd"]="disconnect"
@@ -119,7 +119,7 @@ def recv_m2m_msg_handle(data,m2m):
 		# if the message would like to be debugged
 		if(enc.get("debug",0)==1):
 			for key, value in enc.items() :
-				p.rint("-d-->Key:'"+key+"' / Value:'"+str(value)+"'","d")
+				p.rint("-d-->Key:'"+str(key)+"' / Value:'"+str(value)+"'","d")
 
 		# set last_comm token
 		m2m.last_comm=time.time()
@@ -251,7 +251,7 @@ def recv_m2m_msg_handle(data,m2m):
 		#### heartbeat, for M2M
 		elif(enc.get("cmd")=="m2m_hb"):
 			# respond
-			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+m2m.alias+"' HB updating "+str(len(m2m.m2v))+" clients","h")
+			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' / '"+str(m2m.alias)+"' HB updating "+str(len(m2m.m2v))+" clients","h")
 			msg={}
 			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
@@ -408,7 +408,7 @@ def recv_m2m_msg_handle(data,m2m):
 					os.remove(this_file)
 
 				tmp_loc=this_file.split('/')
-				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
+				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
 				# send good ack
 			if(enc.get("ack")==-1):
 				msg={}
@@ -422,7 +422,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### unsupported command, for M2M
 		else:
-			p.rint("unsupported command: "+enc.get("cmd"),"d")
+			p.rint("unsupported command: "+str(enc.get("cmd")),"d")
 		#********* msg handling **************#
 	#### comm error , for M2M
 	else:
@@ -491,7 +491,7 @@ def recv_ws_con_handle(data,ws):
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
 				if(viewer==ws):
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+m2m.mid+"' from "+ws.login,"l")
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+str(m2m.mid)+"' from "+str(ws.login),"l")
 					m2m.m2v.remove(viewer)
 
 					# also check if that ws has been one of the watchers of the webfeed
@@ -530,7 +530,7 @@ def recv_ws_msg_handle(data,ws):
 		enc=json.loads(data)
 	except:
 		enc=""
-		p.rint("-d--> json decoding failed on:" + data,"d")
+		p.rint("-d--> json decoding failed on:" + str(data),"d")
 
 		#print("ws:"+str(ws.port)+"/"+str(ws.ip))
 	if(type(enc) is dict):
@@ -606,7 +606,7 @@ def recv_ws_msg_handle(data,ws):
 					ip=ws.conn.getpeername()[0]
 				except:
 					ip="???"
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in from "+ip+" failed for login '"+ws.login+"', password not correct","l")
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l")
 				msg_ws["ok"]=-2 # not logged in
 				msg_q_ws.append((msg_ws,ws))
 
@@ -623,7 +623,7 @@ def recv_ws_msg_handle(data,ws):
 		#### heartbeat, for WS
 		elif(enc.get("cmd")=="ws_hb"):
 			# respond
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' HB","h")
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"'@'"+str(ws.account)+"' HB","h")
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
@@ -641,7 +641,7 @@ def recv_ws_msg_handle(data,ws):
 			msg["b"]=enc.get("b")
 			for m2m in ws.v2m:
 				if(enc.get("mid")==m2m.mid):
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' change color","v")
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' change color","v")
 					db.update_color(m2m,int(enc.get("r")),int(enc.get("g")),int(enc.get("b")),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
 					
 					m2m.color_pos=int(enc.get("color_pos"))
@@ -654,7 +654,7 @@ def recv_ws_msg_handle(data,ws):
 			area=enc.get("area")
 			rule=enc.get("rule") # can be "*" for on or "/" for off
 			duration=int(enc.get("duration"))
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"' sets a override '"+rule+"' for area '"+area+"'","v")
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' sets a override '"+str(rule)+"' for area '"+str(area)+"'","v")
 			
 			r=rm.get_account(ws.account)
 			if(r!=0):
@@ -684,7 +684,7 @@ def recv_ws_msg_handle(data,ws):
 		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
 		elif(enc.get("cmd")=="update_location"):
 			ws.location=enc.get("loc","")
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+ws.login+"'@'"+ws.account+"' moved to '"+enc.get("loc")+"'","h")
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"'@'"+str(ws.account)+"' moved to '"+enc.get("loc")+"'","h")
 			# step 1: update database location for this login
 			db_r=db.update_location(ws.login,enc.get("loc"))
 			# step 2: run all rule checks and update every box on the account
@@ -750,12 +750,12 @@ def recv_ws_msg_handle(data,ws):
 		## reset webcam_countdown
 		elif(enc.get("cmd")=="reset_webcam_countdown"):
 			ws.webcam_countdown=99
-			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received countdown reset from "+ws.login,"v") 
+			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received countdown reset from "+str(ws.login),"v") 
 
 		## get picture 
 		elif(enc.get("cmd")=="get_img"):
 			path=enc.get("path")
-			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for img: "+path+", uploading","v")
+			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for img: "+str(path)+", uploading","v")
 			db_r=db.get_account_for_path(path)
 			if(db_r==ws.account):
 				msg={}
@@ -794,7 +794,7 @@ def recv_ws_msg_handle(data,ws):
 
 		## unsupported cmd, for WS
 		else:
-			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+ws.login,"d")
+			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+str(ws.login),"d")
 #******************************************************#
 
 #******************************************************#
@@ -861,7 +861,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		# 1. get all boxed with the same account
 		all_m2m4account=db.get_m2m4account(ws.account)
 		if(type(all_m2m4account) is int):
-			p.rint("Error getting data for account "+ws.account,"d")
+			p.rint("Error getting data for account "+str(ws.account),"d")
 		else:
 			# 2. loop through them and make sure that they are not part of the list, that the ws already knows
 			for m2m in all_m2m4account:
@@ -938,7 +938,7 @@ def set_webcam_con(mid,interval,ws):
 					# inform the webcam that we are watching
 					msg_q_m2m.append((msg,m2m))
 
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+ws.login+" to webcam stream from "+mid,"c")
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+str(ws.login)+" to webcam stream from "+str(mid),"c")
 					
 			# this clients switched off 
 			else:
@@ -964,7 +964,7 @@ def set_webcam_con(mid,interval,ws):
 							msg["interval"]=sm_interval
 
 						msg_q_m2m.append((msg,m2m))
-						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+ws.login+" from webcam stream of "+m2m.mid+" ("+str(clients_remaining)+" ws left)","c")
+						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+str(ws.login)+" from webcam stream of "+str(m2m.mid)+" ("+str(clients_remaining)+" ws left)","c")
 #******************************************************#
 
 #******************************************************#
@@ -1083,7 +1083,7 @@ def rm_check_rules(account,login,use_db):
 							msg2["detection"]=m2m.detection
 							msg_q_ws.append((msg2,ws))
 							affected_ws_clients+=1
-						p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+m2m.mid+"' in area "+m2m.area+" to '"+str(det_state[int(db_r2["state"])])+"' (-> "+str(affected_ws_clients)+" ws clients)","a")
+						p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+str(m2m.mid)+"' in area "+str(m2m.area)+" to '"+str(det_state[int(db_r2["state"])])+"' (-> "+str(affected_ws_clients)+" ws clients)","a")
 						#break DO NOT! MIGHT HAVE MULTIPLE BOXES
 
 #******************************************************#
@@ -1241,7 +1241,7 @@ while 1:
 		#print(time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5])
 		for acc in rm.data:
 			if(now>acc.next_ts or acc.check_day_jump()): # next_ts hold the time when a rule will change
-				p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] full rule_check for account "+acc.account+" required","r")
+				p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] full rule_check for account "+str(acc.account)+" required","r")
 				rm_check_rules(acc.account,"timetrigger",1) # check with database
 				# reset next ts and check again, as this rule is "over"
 				acc.next_ts=-1
