@@ -1,6 +1,6 @@
 <?php
 ///////////////// server status ///////////////////////////
-$body='<img class="logo"><h1 id="l10n_title">Welcome to glubsch</h1>';
+$body='<div class="logo_l1">welcome to your</div><div class="logo_l2">glubsch</div>';
 unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
 if(!empty($output[0])){	// python serer is running add everything
@@ -11,6 +11,7 @@ if(!empty($output[0])){	// python serer is running add everything
 		<script src="jquery.ui.touch-punch.min.js"></script>
 		<script src="jquery.bxslider.min.js"></script>
 		<script src="fancyBox/jquery.fancybox.pack.js"></script>
+		<script src="svgclass.js"></script>
 		<link rel="stylesheet" href="jquery-ui.css"/>
 		<link rel="stylesheet" href="fancyBox/jquery.fancybox.css" type="text/css" media="screen" />
 		<link rel="stylesheet" href="jquery.bxslider.css"/>';
@@ -28,15 +29,15 @@ $header='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://
         <meta http-equiv="x-dns-prefetch-control" content="off">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="robots" content="noindex">
-        <link rel="stylesheet" href="status_blue.css" type="text/css" media="screen" charset="utf-8">
+        <link rel="stylesheet" href="design.css" type="text/css" media="screen" charset="utf-8">
         <title></title>
 	'.$extra_header.'
     </head>
-    <body>
-        <table height="100%" width="100%">
+    <body> <table height="100%" width="100%">
             <tbody><tr>
                 <td align="center" valign="middle">';
 $footer='</td></tr></tbody></table></body></html>';
+
 ///////////////// header ///////////////////////////
 echo $header;
 echo $body;
