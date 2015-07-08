@@ -9,8 +9,8 @@ var c_t=0;
 
 // cordova helper
 var c_freeze_state=0;
-var g_user="";
-var g_pw="";
+var g_user="browser";
+var g_pw="hui";
 
 
 // run as son as everything is loaded
@@ -34,6 +34,7 @@ function open_ws() {
 	con.onopen = function(){
 		if($("#rl_msg").length){
 			$.fancybox.close();							
+			$("#rl_msg").remove();
 		};
 
 		console.log("onOpen");
@@ -92,7 +93,6 @@ function parse_msg(msg_dec){
 			g_pw="nongoodlogin";
 			add_login("login failed");
 		};
-console.log("setting c data as "+g_user+"/"+g_pw);
 		c_set_login(g_user,g_pw);
 	}
 
@@ -102,8 +102,8 @@ console.log("setting c data as "+g_user+"/"+g_pw);
 
 		// check if m2m is already visible, if not append it. Then update the state and timestamp
 		check_append_m2m(msg_dec);
-		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
-		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+		update_hb(mid,msg_dec["last_seen"]);
+		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
 
 		// remove loading if still existing and scroll down to the box 
 		if($("#welcome_loading").length){
@@ -115,20 +115,20 @@ console.log("setting c data as "+g_user+"/"+g_pw);
 		};
 
 		// restart camera if it was open before reconnect
-		if(is_liveview_open(msg_dec["mid"])){
-			hide_liveview(msg_dec["mid"],false);
-			show_liveview(msg_dec["mid"]);
+		if(is_liveview_open(mid)){
+			hide_liveview(mid,false);
+			show_liveview(mid);
 		};
 	}
 
 	// update the timestamp, we should receive this every once in a while
 	else if(msg_dec["cmd"]=="hb_m2m"){
-		update_hb(msg_dec["mid"],msg_dec["last_seen"]);
+		update_hb(mid,msg_dec["last_seen"]);
 	}
 
 	// update the state, we only receive that if a box changes its state. E.g. to alarm or to disarm
 	else if(msg_dec["cmd"]=="state_change"){
-		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
 	}
 
 	// show a picture, we'll receive this because we requested it. Alarm will not send us pictures directly
@@ -139,7 +139,7 @@ console.log("setting c data as "+g_user+"/"+g_pw);
 
 	// an m2m unit disconnects
 	else if(msg_dec["cmd"]=="disconnect"){
-		update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],-1,msg_dec["detection"],"");
+		update_state(msg_dec["account"],msg_dec["area"],mid,-1,msg_dec["detection"],"");
 	}
 
 	// we'll request the alerts by sending "get_alert_ids" and the server will responde with this dataset below
@@ -862,57 +862,60 @@ function check_append_m2m(msg_dec){
 		} // area
 	} // clients
 
-	var node=$("#"+msg_dec["mid"]);
+	var mid=msg_dec["mid"];
+	var node=$("#"+mid);
 	// check if this m2m already exists
 	if(!node.length){
 		/////////////////// CREATE M2M ////////////////////////////(
 		//console.log("knoten! nicht gefunden, lege ihn an");
 		node=$("<div></div>");
 		node.attr({
-			"id":msg_dec["mid"],
+			"id":mid,
 			"class":"area_m2m"
 		});
 	
 		var m2m_header=$("<div></div>");
 		m2m_header.attr({
-			"id":msg_dec["mid"]+"_header",
+			"id":mid+"_header",
 			"class":"m2m_header"
 		});
 		node.append(m2m_header);
 
+/*
 		var icon=$("<img></img>");
 		icon.attr({
-			"id": msg_dec["mid"]+"_icon",
+			"id": mid+"_icon",
 			"width": 64,
 			"height": 51,
 			"class":"m2m_header"
 			});
 		icon.addClass("cam_sym");
 		m2m_header.append(icon);
+*/
 
 		var m2m_header_text=$("<div></div>");
 		m2m_header_text.attr({
-			"id":msg_dec["mid"]+"_header_text",
+			"id":mid+"_header_text",
 			"class":"m2m_header_text"
 		});
 		m2m_header.append(m2m_header_text);
 	
 		var text=$("<div></div>").text(msg_dec["alias"]);
 		text.attr({
-			"id" : msg_dec["mid"]+"_name",
+			"id" : mid+"_name",
 			"class": "m2m_text_name"
 		});
 		m2m_header_text.append(text);
 		
 		var glow=$("<div></div>");
-		glow.attr("id",msg_dec["mid"]+"_glow");
+		glow.attr("id",mid+"_glow");
 		glow.addClass("glow_dot"); // setting real state in update routine
 		glow.addClass("float_left");
 		m2m_header_text.append(glow);
 
 		text=$("<div></div>");
 		text.attr({
-			"id" : msg_dec["mid"]+"_state",
+			"id" : mid+"_state",
 			"class": "m2m_text"
 		});
 		text.addClass("float_left");
@@ -921,7 +924,7 @@ function check_append_m2m(msg_dec){
 
 		text=$("<div></div>").text("--");
 		text.attr({
-			"id" : msg_dec["mid"]+"_lastseen",
+			"id" : mid+"_lastseen",
 			"class": "m2m_text"
 		});
 		text.addClass("clear_both");
@@ -951,7 +954,7 @@ function check_append_m2m(msg_dec){
 		set_button_state(button,msg_dec["state"]);
 		wb.append(button);
 		var wl=$("<div></div>");
-		wl.attr("id",msg_dec["mid"]+"_toggle_liveview_text");
+		wl.attr("id",mid+"_toggle_liveview_text");
 		wl.addClass("toggle_liveview_text");
 		wl.addClass("toggle_text");
 		wb.append(wl);
@@ -977,7 +980,7 @@ function check_append_m2m(msg_dec){
 		set_button_state(button,msg_dec["state"]);
 		wb.append(button);
 		wl=$("<div></div>");
-		wl.attr("id",msg_dec["mid"]+"_toggle_lightcontrol_text");
+		wl.attr("id",mid+"_toggle_lightcontrol_text");
 		wl.addClass("toggle_lightcontrol_text");
 		wl.addClass("toggle_text");
 		wb.append(wl);
@@ -1002,7 +1005,7 @@ function check_append_m2m(msg_dec){
 		button.text("no alarms");
 		wb.append(button);
 		wl=$("<div></div>");
-		wl.attr("id",msg_dec["mid"]+"_toggle_alarms_text");
+		wl.attr("id",mid+"_toggle_alarms_text");
 		wl.addClass("toggle_text");		// size etc
 		wl.addClass("toggle_alarms_text");	// color and text
 		wb.append(wl);
@@ -1017,29 +1020,29 @@ function check_append_m2m(msg_dec){
 		////////////////// LIVE VIEW ////////////////////////////
 		liveview=$("<div></div>");
 		liveview.attr({
-			"id" : msg_dec["mid"]+"_liveview",
+			"id" : mid+"_liveview",
 		});
 		liveview.addClass("center");
 		liveview.hide();
 		node.append(liveview);
 
 		var txt=$("<div></div>");
-		txt.attr("id",msg_dec["mid"]+"_liveview_txt");
+		txt.attr("id",mid+"_liveview_txt");
 		txt.attr("style","padding-top:20px;");
 		txt.html("Loading liveview<br>");
 		liveview.append(txt);
 
 		// fancybox link around the liveview
 		var rl = $("<a></a>");
-		rl.attr("href","#"+msg_dec["mid"]+"_liveview_pic");
+		rl.attr("href","#"+mid+"_liveview_pic");
 		rl.fancybox({
 			beforeShow: function() { 
-				mid=msg_dec["mid"]; 
-				resize_alert_pic(mid,""); 
+				mid_i=mid; 
+				resize_alert_pic(mid_i,""); 
 			},
 			afterClose: function() {	
-				mid=msg_dec["mid"]; 
-               	    		$("#"+mid+"_liveview_pic").show();
+				mid_i=mid;
+               	    		$("#"+mid_i+"_liveview_pic").show();
 				resize_alert_pic(mid,""); 
         		}
 		});
@@ -1048,7 +1051,7 @@ function check_append_m2m(msg_dec){
 		var img=$("<img></img>");
 		img.attr({
 			"src" : host+"images/support-loading.gif",
-			"id" : msg_dec["mid"]+"_liveview_pic",
+			"id" : mid+"_liveview_pic",
 			"width":64,
 			"height":64
 		});
@@ -1058,7 +1061,7 @@ function check_append_m2m(msg_dec){
 		////////////////// COLOR SLIDER ////////////////////////////
 		lightcontrol=$("<div></div>").text("this is the lightcontrol");
 		lightcontrol.attr({
-			"id" : msg_dec["mid"]+"_lightcontrol",
+			"id" : mid+"_lightcontrol",
 		});
 		lightcontrol.hide();
 		node.append(lightcontrol);
@@ -1070,7 +1073,7 @@ function check_append_m2m(msg_dec){
 
 		scroller=$("<div></div>");
 		scroller.attr({
-			"id":"colorslider_"+msg_dec["mid"],
+			"id":"colorslider_"+mid,
 			"class":"light_controll_scroller"
 		});
 		scroller.slider({min:0, max:255, value:msg_dec["color_pos"], 
@@ -1095,7 +1098,7 @@ function check_append_m2m(msg_dec){
 
 		scroller=$("<div></div>");
 		scroller.attr({
-			"id":"brightnessslider_"+msg_dec["mid"],
+			"id":"brightnessslider_"+mid,
 			"class":"light_controll_scroller"
 		});
 		scroller.slider({min:0, max:255, value:msg_dec["brightness_pos"], 
@@ -1118,34 +1121,34 @@ function check_append_m2m(msg_dec){
 		////////////////// ALARM MANAGER ////////////////////////////
 		alarms=$("<div></div>");
 		alarms.attr({
-			"id" : msg_dec["mid"]+"_alarms",
+			"id" : mid+"_alarms",
 		});
 
 
-		var open=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open");
+		var open=$("<div></div>").attr("id",mid+"_alarms_open");
 		open.append($("<div></div>").text("Not-acknowledged").addClass("m2m_text").addClass("inline_block"));
-		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
-		a=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_display");
+		open.append($("<div></div>").attr("id",mid+"_alarms_open_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
+		a=$("<div></div>").attr("id",mid+"_alarms_open_display");
 		open.append(a);
-		a.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_stopper"));		
-		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_list").hide());
-		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_start").text("0").hide());
-		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_count").text("10").hide());
-		open.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_open_max").hide());
+		a.append($("<div></div>").attr("id",mid+"_alarms_open_stopper"));		
+		open.append($("<div></div>").attr("id",mid+"_alarms_open_list").hide());
+		open.append($("<div></div>").attr("id",mid+"_alarms_open_start").text("0").hide());
+		open.append($("<div></div>").attr("id",mid+"_alarms_open_count").text("10").hide());
+		open.append($("<div></div>").attr("id",mid+"_alarms_open_max").hide());
 		alarms.append(open);	
 
 		alarms.append($("<hr>"));
 
-		var close=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed");
+		var close=$("<div></div>").attr("id",mid+"_alarms_closed");
 		close.append($("<div></div>").text("Acknowledged").addClass("m2m_text").addClass("inline_block"));
-		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
-		a=$("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_display");
+		close.append($("<div></div>").attr("id",mid+"_alarms_closed_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
+		a=$("<div></div>").attr("id",mid+"_alarms_closed_display");
 		close.append(a);
-		a.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_stopper"));		
-		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_list").hide());
-		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_start").text("0").hide());
-		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_count").text("10").hide());
-		close.append($("<div></div>").attr("id",msg_dec["mid"]+"_alarms_closed_max").hide());
+		a.append($("<div></div>").attr("id",mid+"_alarms_closed_stopper"));		
+		close.append($("<div></div>").attr("id",mid+"_alarms_closed_list").hide());
+		close.append($("<div></div>").attr("id",mid+"_alarms_closed_start").text("0").hide());
+		close.append($("<div></div>").attr("id",mid+"_alarms_closed_count").text("10").hide());
+		close.append($("<div></div>").attr("id",mid+"_alarms_closed_max").hide());
 		alarms.append(close);	
 
 		alarms.hide();
@@ -1158,8 +1161,8 @@ function check_append_m2m(msg_dec){
 		//console.log("hb feld in client angebaut");
 		/////////////////// CREATE M2M ////////////////////////////(
 	} // node
-	update_state(msg_dec["account"],msg_dec["area"],msg_dec["mid"],msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
-	show_old_alert_fb(msg_dec["mid"],msg_dec["open_alarms"]);
+	update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+	show_old_alert_fb(mid,msg_dec["open_alarms"]);
 }
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -1232,6 +1235,7 @@ function is_liveview_open(mid){
 function hide_liveview(mid,animation){
 	var view = $("#"+mid+"_liveview");
 	$("#"+mid+"_toggle_liveview").removeClass("live_sym_active");
+	$("#"+mid+"_toggle_liveview_text").removeClass("toggle_liveview_text_active");
 	if(view.is(":visible")){
 		set_interval(mid,0);
 		if(animation){
@@ -1254,6 +1258,8 @@ function show_liveview(mid){
 	hide_alarms(mid);
 	// set button active
 	$("#"+mid+"_toggle_liveview").addClass("live_sym_active");
+	$("#"+mid+"_toggle_liveview_text").addClass("toggle_liveview_text_active");
+
 	var view = $("#"+mid+"_liveview");
 
 	if(!view.is(":visible")){
@@ -1263,7 +1269,7 @@ function show_liveview(mid){
 			"width":64,
 			"height":64
 		});
-		var txt=$("#"+msg_dec["mid"]+"_liveview_txt");		
+		var txt=$("#"+mid+"_liveview_txt");		
 		txt.show();
 
 		view.fadeIn("fast");
@@ -1303,6 +1309,7 @@ function toggle_lightcontrol(mid){
 function hide_lightcontrol(mid){
 	var view = $("#"+mid+"_lightcontrol");
 	$("#"+mid+"_toggle_lightcontrol").removeClass("color_sym_active");
+	$("#"+mid+"_toggle_lightcontrol_text").removeClass("toggle_lightcontrol_text_active");
 	if(view.is(":visible")){
 		view.fadeOut("fast");
 	}
@@ -1319,6 +1326,7 @@ function show_lightcontrol(mid){
 	hide_liveview(mid,true);
 	hide_alarms(mid);
 	$("#"+mid+"_toggle_lightcontrol").addClass("color_sym_active");
+	$("#"+mid+"_toggle_lightcontrol_text").addClass("toggle_lightcontrol_text_active");
 	var view = $("#"+mid+"_lightcontrol");
 	if(!view.is(":visible")){
 		view.fadeIn("fast");
@@ -1373,6 +1381,7 @@ function is_alarm_open(mid){
 function hide_alarms(mid){
 	var view = $("#"+mid+"_alarms");
 	$("#"+mid+"_toggle_alarms").removeClass("alarm_sym_active");
+	$("#"+mid+"_toggle_alarms_text").removeClass("toggle_alarms_text_active");
 	if(view.is(":visible")){
 		view.fadeOut("fast");
 	}
@@ -1389,6 +1398,7 @@ function show_alarms(mid){
 	hide_lightcontrol(mid);
 	hide_liveview(mid,true);
 	$("#"+mid+"_toggle_alarms").addClass("alarm_sym_active");
+	$("#"+mid+"_toggle_alarms_text").addClass("toggle_alarms_text_active");
 
 	var view = $("#"+mid+"_alarms");
 	if(!view.is(":visible")){
@@ -1418,20 +1428,20 @@ function show_alarms(mid){
 function set_alert_button_state(button,txt,open_alarms){
 	if(open_alarms==0){
 		button.text("no alarms");
-		//button.addClass("button_deactivated"); // avoids clickability // we want it to be clickable
-		button.addClass("alarm_sym_deactivated");
-		button.removeClass("alarm_sym_active");
+		button.addClass("alarm_sym");
+		button.removeClass("alarm_sym_open_alerts");
 	} else if(open_alarms==1) {
 		button.text(open_alarms+" alarm");
-		button.addClass("alarm_sym");
-		button.removeClass("alarm_sym_deactivated");
+		button.addClass("alarm_sym_open_alerts");
+		button.removeClass("alarm_sym");
 	} else {
 		button.text(open_alarms+" alarms");
-		button.addClass("alarm_sym");
-		button.removeClass("alarm_sym_deactivated");
+		button.addClass("alarm_sym_open_alerts");
+		button.removeClass("alarm_sym");
 	}
 
 
+/*	
 	if(open_alarms==0){
 		txt.addClass("sym_text_deactivated");
 		txt.removeClass("toggle_alarms_text_active");
@@ -1439,6 +1449,7 @@ function set_alert_button_state(button,txt,open_alarms){
 		txt.addClass("toggle_alarms_text_active");
 		txt.removeClass("sym_text_deactivated");
 	}
+*/
 }		
 ///////////////////////// ALARM VIEW //////////////////////////////////
 
@@ -1662,10 +1673,29 @@ function update_state(account,area,mid,state,detection,rm){
 	}
 	// text state of the m2m
 
+	// icons of the area
+	e=$("#"+account+"_"+area+"_icon");
+	if(e.length){
+		if(detection>0){
+			e.removeClass("area_sym_not_protected");
+			e.addClass("area_sym_protected");
+		} else {
+			e.addClass("area_sym_not_protected");
+			e.removeClass("area_sym_protected");
+		}
+	}
+	// icons of the area
 	// text state of the area
 	e=$("#"+account+"_"+area+"_status");
 	if(e.length){
 		e.text(state2str(-2,detection));
+		if(detection>0){
+			e.removeClass("area_sym_not_protected");
+			e.addClass("area_sym_protected");
+		} else {
+			e.addClass("area_sym_not_protected");
+			e.removeClass("area_sym_protected");
+		}
 	}
 	// text state of the area
 
@@ -1706,32 +1736,31 @@ function update_state(account,area,mid,state,detection,rm){
 	var at=$("#"+mid+"_toggle_alarms_text");
 	if(state<0){
 		lv.addClass("button_deactivated"); // avoids clickability
-		lv.addClass("live_sym_deactivated");
+		lv.addClass("live_sym_not_available");
 		lv.removeClass("live_sym");
-		lt.addClass("sym_text_deactivated");
+
+		lt.addClass("sym_text_not_available");
 		lt.removeClass("toggle_liveview_text_active");
 	
 		cv.addClass("button_deactivated"); // avoids clickability
-		cv.addClass("color_sym_deactivated");
+		cv.addClass("color_sym_not_available");
 		cv.removeClass("color_sym");
-		ct.addClass("sym_text_deactivated");
+
+		ct.addClass("sym_text_not_available");
 		ct.removeClass("toggle_lightcontrol_text_active");
 
 		hide_liveview(mid,true);
 		hide_lightcontrol(mid);
-		//hide_alarms(mid); // alerts button will be shown/hidden by set_alarm .. something something
 	} else {
 		lv.removeClass("button_deactivated");
-		lv.removeClass("live_sym_deactivated");
+		lv.removeClass("live_sym_not_available");
 		lv.addClass("live_sym");		
-		lt.removeClass("sym_text_deactivated");
-		lt.addClass("toggle_liveview_text_active");
+		lt.removeClass("sym_text_not_available");
 
 		cv.removeClass("button_deactivated");
-		cv.removeClass("color_sym_deactivated");
+		cv.removeClass("color_sym_not_available");
 		cv.addClass("color_sym");
-		ct.removeClass("sym_text_deactivated");
-		ct.addClass("toggle_lightcontrol_text_active");
+		ct.removeClass("sym_text_not_available");
 	}
 	// make buttons available/unavailable
 
