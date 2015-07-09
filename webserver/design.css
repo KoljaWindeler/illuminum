@@ -1,40 +1,29 @@
-html{height:100%;-webkit-font-smoothing:antialiased;margin:0;padding:0;border:0;overflow-y:scroll}
-body{
+/******************************** GENERAL SETUP ***********************************/
+html{
 	height:100%;
+	-webkit-font-smoothing:antialiased;
+	margin:0;
+	padding:0;
+	border:0;
+	overflow-y:hidden;
+}
+
+body{
 	font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;
 	margin:0;
 	padding:0;
 	border:0;
 	background:url('images/bg.jpg') no-repeat center center fixed; 
+	background-attachment: fixed;
         -webkit-background-size: cover;
         -moz-background-size: cover;
         -o-background-size: cover;
         background-size: cover;
+	text-align: right;
 }
 
-img.logo {
-	content:url("images/logoc.png");
-	width: 262px;
-	height: 285px;
-}
-
-input,button,select,option{font-family:Arial,'Helvetica Neue',Helvetica,sans-serif}#container{width:400px}
-
-.logo_l1, .logo_l2{
-	color:#EFEFEF;
-	font-size:18px;
-	text-shadow:0 1px 4px rgba(0,0,0,0.68);
-	margin-left:70px;
-	text-align: left;
-}
-.logo_l2{
-	font-size:75px;
-	letter-spacing: 6px;
-	margin-bottom:20px;
-}
-
-.logo_l1{
-	margin-top:20px;
+input,button,select,option{
+	font-family:Arial,'Helvetica Neue',Helvetica,sans-serif
 }
 
 a.button{
@@ -77,68 +66,92 @@ a.button_active{
 	background: #9B2424;
 }
 
-
-a.button:active{-moz-box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;-webkit-box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;opacity:1}
-
-
-div.area_node {
-	color: #212121;
-	background-color:rgba(0,0,0,0.7);
-	margin-left:1%;
-	margin-right: 1%;
-	padding-bottom: 1%; 
-	padding-top: 0.5%; /*over the "home" */
-	margin-bottom: 1%;
-	border:1px solid #000000;
-	/*-moz-border-radius:6px;
-	-webkit-border-radius:6px;
-	border-radius:6px;*/
-	/*-moz-box-shadow:0 1px 0 rgba(255,255,255,0.2),0 1px 2px rgba(255,255,255,0.7) inset;
-	-webkit-box-shadow:0 1px 0 rgba(255,255,255,0.2),0 1px 2px rgba(255,255,255,0.7) inset;
-	box-shadow:0 1px 0 rgba(255,255,255,0.2),0 1px 2px rgba(255,255,255,0.7) inset; */
-
-	-webkit-box-shadow: 10px 10px 20px 0px rgba(0,0,0,1); 
-	-moz-box-shadow: 10px 10px 20px 0px rgba(0,0,0,1);
-	box-shadow: 10px 10px 20px 0px rgba(0,0,0,1);
-	/*display: inline-block;*/
-	vertical-align: top;
+a.button:active{
+	-moz-box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;
+	-webkit-box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;
+	box-shadow:0 1px 0 rgba(255,255,255,0.3),0 1px 3px rgba(0,0,0,0.7) inset;
+	opacity:1
 }
 
-div.area_header, div.m2m_header {
-	padding: 20px;
-	overflow: hidden;
+div.float_left, img.float_left {
+	float: left;
+}
+
+div.inline_block {
 	display: inline-block;
-	/*margin: 0 auto;  /* setzt den block mittig */
+}
+
+div.clear_both {
 	clear: both;
 }
 
-div.m2m_header_first_line {
-	padding-left: 10px;
-	padding-top: 0px;
-}
-
-div.area_header{
-	text-align: center;
-}
-
-div.m2m_header{
+div.center, img.center {
 	margin: 0 auto;  /* setzt den block mittig */
-	text-align: center;
-	clear:left;
+	text-align: center!important;
+	margin-left: auto;
+	margin-right: auto;	
 }
 
-img.area_header, div.area_header_text, img.m2m_header, div.m2m_header_text {
+div.center_hor {
+	position:absolute;
+	top: 50%;
+	width: 100%;
+}
+div.loading {
+	text-align: center;
+	margin: 0 auto;  /* setzt den block mittig */
+	clear: both;
+	color: #EFEFEF; 
+}
+/******************************************** GENERAL SETUP *******************************************/
+/******************************** floating text "welcome to glubsch ***********************************/
+.logo_l1, .logo_l2{
+	color:#EFEFEF;
+	font-size:18px;
+	text-shadow:0 1px 4px rgba(0,0,0,0.68);
+	margin-left:70px;
+	text-align: left;
+}
+.logo_l2{
+	font-size:75px;
+	letter-spacing: 6px;
+	margin-bottom:20px;
+}
+
+.logo_l1{
+	margin-top:20px;
+}
+/**************************** floating text "welcome to glubsch *********************************/
+/******************************** the box that groups the m2m ***********************************/
+div.area_node {
+	color: #212121;
+	background-color:rgba(0,0,0,0.7);
+	padding-bottom: 1%; 
+	padding-top: 0.5%; /*over the "home" */
+	margin-bottom: 1%;
+
+	vertical-align: top;
+	text-align:center;
+}
+
+div.area_header {
+	padding-top: 20px;
+	padding-left: 20px;
+	padding-bottom: 10px;
+	overflow: hidden;
+	display: inline-block;
+	text-align: center;
+	clear: both;
+}
+
+img.area_header, div.area_header_text {
 	float: left;
 	margin-right: 15px;
 }
 
-img.m2m_header {
-	margin-top: 12px;
-}
-
 div.area_header_status{
 	text-align: left;	
-	font-size: 10px;
+	font-size: 13px;
 }
 
 div.area_header_title{
@@ -148,7 +161,61 @@ div.area_header_title{
 	text-align: left;	
 }
 
-/***************** glowing dot ***************/
+/******************************* the box that groups the m2m **********************************/
+/******************************** the box that holds an m2m ***********************************/
+div.m2m_header {
+	padding-top: 20px;
+	padding-left: 20px;
+	padding-bottom: 10px;
+	overflow: hidden;
+	display: inline-block;
+	margin: 0 auto;  /* setzt den block mittig */
+	text-align: center;
+	clear:left;
+}
+
+div.m2m_header_first_line {
+	padding-left: 10px;
+	padding-top: 0px;
+}
+
+img.m2m_header, div.m2m_header_text {
+	float: left;
+	margin-right: 15px;
+}
+
+img.m2m_header {
+	margin-top: 12px;
+}
+
+div.area_m2m {
+	text-align: left;
+	background: rgba(143, 152, 162,0.8);
+	padding-top: 1%;
+	padding-left: 1%;
+	padding-bottom: 2%;
+	margin-left: 2%;
+	margin-right: 2%;
+}
+
+div.m2m_text, a.m2m_text{
+	font-size:12px;
+	text-align: left;
+}
+
+div.m2m_text_name{
+	font-size:20px;
+	text-align: left;
+}
+
+div.m2m_header_button{
+	margin: 0 auto;  /* setzt den block mittig */
+	text-align: center;
+	clear:left;
+}
+
+/******************************** the box that holds an m2m ***********************************/
+/**************************************** glowing dot *****************************************/
 div.glow_dot{
 	border-radius: 50%;
 	display: inline-block;
@@ -187,77 +254,19 @@ div.glow_yellow {
 	box-shadow: 0px 0px 6px 3px rgba(255,255,0,1);
 	background-color: #ffff00;
 }
-/***************** glowing dot ***************/
+/**************************************** glowing dot *****************************************/
+/**************************************** m2m icons *****************************************/
 
-div.float_left, img.float_left {
-	float: left;
-}
+/**************************************** m2m buttons *****************************************/
+/* TOP section in the area*/
+img.area_sym_protected{ 	content:url("images/ic_place_green_48dp.png"); 	}
+.area_sym_protected {		color: #47F363;					}
+img.area_sym_not_protected{	content:url("images/ic_place_red_48dp.png");	}
+.area_sym_not_protected{ 	color: #A20000; 				}
 
-div.inline_block {
-	display: inline-block;
-}
+/*img.cam_sym{	content:url("images/ic_camera_black_48dp.png");}*/
 
-div.clear_both {
-	clear: both;
-}
-
-div.center, img.center {
-	margin: 0 auto;  /* setzt den block mittig */
-	text-align: center!important;
-	margin-left: auto;
-	margin-right: auto;	
-}
-
-/**************************** HEADER ***********************/
-
-div.area_m2m {
-	text-align: left;
-	/*border:3px solid #2a3f56;
-	-moz-border-radius:6px;
-	-webkit-border-radius:6px;
-	border-radius:6px;*/
-	background-color:#8F98A2;
-	opacity: 0.8;
-
-	/*background-color: #fff;*/
-	margin-left: 2%;
-	margin-right: 2%;
-	margin-bottom: 1%;
-	margin-top: 1%;
-	padding-top: 1%;
-	padding-left: 1%;
-	padding-bottom: 2%;
-}
-
-
-div.m2m_text, a.m2m_text{
-	font-size:12px;
-	text-align: left;
-}
-
-div.m2m_text_name{
-	font-size:20px;
-	text-align: left;
-}
-
-/**************************** icons ***********************/
-.area_sym{
-	display: block;
-	padding-right:5px;
-	float:left;
-	width: 100px;
-	height: 100px;
-}
-
-img.area_sym_protected{ 	content:url("images/ic_place_gray_48dp.png"); }
-.area_sym_protected{		color: #47F363;	}
-img.area_sym_not_protected{	content:url("images/ic_place_red_48dp.png"); }
-.area_sym_not_protected{	color: #F55959; }
-
-img.cam_sym{
-	content:url("images/ic_camera_black_48dp.png");
-}
-
+/* M2M Section */
 .live_sym,.color_sym,.alarm_sym,
 .live_sym_not_available,.color_sym_not_available,.alarm_sym_not_available,
 .live_sym_active,.color_sym_active,.alarm_sym_active,.alarm_sym_open_alerts{
@@ -273,7 +282,6 @@ img.cam_sym{
 	outline-width:0;
 	margin-right: 30px;
 	margin-left: 30px;
-	fill: #000000;
 }
 
 a.live_sym_not_available{ 		content:url("images/ic_camera_gray_48dp.png");	}
@@ -282,13 +290,11 @@ a.live_sym_active{ 			content:url("images/ic_camera_red_48dp.png");	}
 div.toggle_liveview_text::after {	content:'glubsch!';	}
 div.toggle_liveview_text_active {	color:#d80000;		}
 
-
 a.color_sym_not_available{		content:url("images/ic_flare_gray_48dp.png");	}
 a.color_sym{				content:url("images/ic_flare_black_48dp.png");	}
 a.color_sym_active{			content:url("images/ic_flare_red_48dp.png");	}
 div.toggle_lightcontrol_text::after {	content:'color';	}
 div.toggle_lightcontrol_text_active {	color:#d80000;		}
-
 
 a.alarm_sym{				content:url("images/ic_notifications_black_48dp.png");	}
 a.alarm_sym_open_alerts{		content:url("images/ic_notifications_red_48dp.png");	}
@@ -296,15 +302,14 @@ a.alarm_sym_active{			content:url("images/ic_notifications_red_48dp.png");	}
 div.toggle_alarms_text::after {		content:'alarms';	}
 div.toggle_alarms_text_active {		color:#d80000;		}
 
-
 div.toggle_text {
 	height:20px;
 	font-size:12px;
 }
 
 div.sym_text_not_available 		{	color:#555555;		}
-/**************************** icons ***********************/
-
+/**************************************** m2m buttons *****************************************/
+/**************************************** m2m alert navigation *****************************************/
 div.alert_navigation{
         display: inline-block;
         float:right;
@@ -333,12 +338,18 @@ img.alert_navigation_prev_deactivated{
 	content:url("images/prev_d.png");
 }
 
-div.m2m_header_button{
-	margin: 0 auto;  /* setzt den block mittig */
-	text-align: center;
-	clear:left;
+div.alert_side{
+	padding-top:20px;
+	padding-left: 10px;
+	float: left;
+	vertical-align:bottom;
 }
 
+img.alert_preview{
+	padding-top:10px;
+}
+/**************************************** m2m alert navigation *****************************************/
+/**************************************** m2m light scroller *****************************************/
 div.light_controll_scroller{
 	width: 85%;
 	margin: 0 auto;  /* setzt den block mittig */
@@ -352,19 +363,8 @@ div.light_controll_color{
 	height: 30px;
 	clear: both;
 }
-
-div.alert_side{
-	padding-top:20px;
-	padding-left: 10px;
-	float: left;
-	vertical-align:bottom;
-}
-
-img.alert_preview{
-	padding-top:10px;
-}
-
-/************* MENU ******************/
+/**************************************** m2m light scroller *****************************************/
+/******************************************** MENU ***************************************************/
 div.menu{
 	position:fixed;
 	background: #333333;
@@ -415,28 +415,35 @@ div.hamb_l {
     margin-top: 3px;
     width: 90%;
 }
-/************* MENU ******************/
-
-/************* loading ******************/
-div.loading {
-	text-align: center;
-	margin: 0 auto;  /* setzt den block mittig */
-	clear: both;
-	color: #EFEFEF; 
-}
-/************* loading ******************/
-
-
-
-/************************* different resolutions ************************************/
-
+/******************************************** MENU ***************************************************/
+/*********************************** different resolutions *******************************************/
+/* BIG screen */
 @media only screen and (min-width: 768px) {
+
+	div.area_m2m {
+		margin-bottom: 1%;
+		margin-top: 3%;
+	}
+
 	div.area_node {
 		display: inline-block;
 		width:500px;
-	}
-}
 
+		margin-left:1%;
+		margin-right: 3%;
+		padding-bottom: 1%; 
+		padding-top: 0.5%; /*over the "home" */
+		margin-bottom: 1%;
+		border:1px solid #000000;
+
+		-webkit-box-shadow: 10px 10px 20px 0px rgba(0,0,0,1); 
+		-moz-box-shadow: 10px 10px 20px 0px rgba(0,0,0,1);
+		box-shadow: 10px 10px 20px 0px rgba(0,0,0,1);
+	}
+
+}
+/* BIG screen */
+/* small screen */
 @media only screen and (max-width: 767px) {
 	h1{
 		font-size:150%;
@@ -452,11 +459,9 @@ div.loading {
 		margin-bottom:10px;
 	}
 
-	div.area_node{
-	}
 
 	div.m2m_text{
-		font-size:14px;
+		font-size:12px;
 	}
 
 	div.area_header_title{
@@ -492,12 +497,13 @@ div.loading {
 	}
 
 	.live_sym,.color_sym,.alarm_sym,.alarm_sym_open_alerts{
-		margin-right: 10px;
-		margin-left: 10px;
+		margin-right: 20px;
+		margin-left: 20px;
 	}
 
 	div.m2m_header {
-		padding: 8px;
+		padding-top: 8px;
+		padding-left: 20px;
 	}
 
 	img.m2m_header {
@@ -520,5 +526,20 @@ div.loading {
 		margin-bottom: 0px;
 	}
 	
+	div.area_node {
+		margin-left:2%;
+		margin-right: 2%;
+	}
+
 	
 }
+/* small screen */
+
+
+/* unused stuff */
+
+/*img.logo {	
+	content:url("images/logoc.png");
+	width: 262px;
+	height: 285px;
+}*/
