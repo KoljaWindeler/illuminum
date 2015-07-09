@@ -5,7 +5,6 @@ html{
 	margin:0;
 	padding:0;
 	border:0;
-	overflow-y:hidden;
 }
 
 body{
@@ -13,7 +12,7 @@ body{
 	margin:0;
 	padding:0;
 	border:0;
-	background:url('images/bg.jpg') no-repeat center center fixed; 
+	background:url('../images/bg.jpg') no-repeat center center fixed; 
 	background-attachment: fixed;
         -webkit-background-size: cover;
         -moz-background-size: cover;
@@ -259,12 +258,12 @@ div.glow_yellow {
 
 /**************************************** m2m buttons *****************************************/
 /* TOP section in the area*/
-img.area_sym_protected{ 	content:url("images/ic_place_green_48dp.png"); 	}
+img.area_sym_protected{ 	content:url("../images/ic_place_green_48dp.png"); 	}
 .area_sym_protected {		color: #47F363;					}
-img.area_sym_not_protected{	content:url("images/ic_place_red_48dp.png");	}
+img.area_sym_not_protected{	content:url("../images/ic_place_red_48dp.png");	}
 .area_sym_not_protected{ 	color: #A20000; 				}
 
-/*img.cam_sym{	content:url("images/ic_camera_black_48dp.png");}*/
+/*img.cam_sym{	content:url("../images/ic_camera_black_48dp.png");}*/
 
 /* M2M Section */
 .live_sym,.color_sym,.alarm_sym,
@@ -284,21 +283,21 @@ img.area_sym_not_protected{	content:url("images/ic_place_red_48dp.png");	}
 	margin-left: 30px;
 }
 
-a.live_sym_not_available{ 		content:url("images/ic_camera_gray_48dp.png");	}
-a.live_sym{ 				content:url("images/ic_camera_black_48dp.png"); }
-a.live_sym_active{ 			content:url("images/ic_camera_red_48dp.png");	}
+a.live_sym_not_available{ 		content:url("../images/ic_camera_gray_48dp.png");	}
+a.live_sym{ 				content:url("../images/ic_camera_black_48dp.png"); }
+a.live_sym_active{ 			content:url("../images/ic_camera_red_48dp.png");	}
 div.toggle_liveview_text::after {	content:'glubsch!';	}
 div.toggle_liveview_text_active {	color:#d80000;		}
 
-a.color_sym_not_available{		content:url("images/ic_flare_gray_48dp.png");	}
-a.color_sym{				content:url("images/ic_flare_black_48dp.png");	}
-a.color_sym_active{			content:url("images/ic_flare_red_48dp.png");	}
+a.color_sym_not_available{		content:url("../images/ic_flare_gray_48dp.png");	}
+a.color_sym{				content:url("../images/ic_flare_black_48dp.png");	}
+a.color_sym_active{			content:url("../images/ic_flare_red_48dp.png");	}
 div.toggle_lightcontrol_text::after {	content:'color';	}
 div.toggle_lightcontrol_text_active {	color:#d80000;		}
 
-a.alarm_sym{				content:url("images/ic_notifications_black_48dp.png");	}
-a.alarm_sym_open_alerts{		content:url("images/ic_notifications_red_48dp.png");	}
-a.alarm_sym_active{			content:url("images/ic_notifications_red_48dp.png");	}
+a.alarm_sym{				content:url("../images/ic_notifications_black_48dp.png");	}
+a.alarm_sym_open_alerts{		content:url("../images/ic_notifications_red_48dp.png");	}
+a.alarm_sym_active{			content:url("../images/ic_notifications_red_48dp.png");	}
 div.toggle_alarms_text::after {		content:'alarms';	}
 div.toggle_alarms_text_active {		color:#d80000;		}
 
@@ -326,16 +325,16 @@ img.alert_navigation_next_deactivated,img.alert_navigation_prev_deactivated {
 	cursor: pointer;
 }
 img.alert_navigation_next{
-	content:url("images/next.png");
+	content:url("../images/next.png");
 }
 img.alert_navigation_prev{
-	content:url("images/prev.png");
+	content:url("../images/prev.png");
 }
 img.alert_navigation_next_deactivated{
-	content:url("images/next_d.png");
+	content:url("../images/next_d.png");
 }
 img.alert_navigation_prev_deactivated{
-	content:url("images/prev_d.png");
+	content:url("../images/prev_d.png");
 }
 
 div.alert_side{
@@ -539,7 +538,7 @@ div.hamb_l {
 /* unused stuff */
 
 /*img.logo {	
-	content:url("images/logoc.png");
+	content:url("../images/logoc.png");
 	width: 262px;
 	height: 285px;
 }*/

@@ -220,7 +220,6 @@ def recv_m2m_msg_handle(data,m2m):
 
 					# get detecion state based on db
 					db_r2=db.get_state(m2m.area,m2m.account)
-					#FIND ME
 					m2m.detection=int(db_r2["state"])
 					msg["detection"]=m2m.detection
 
@@ -600,6 +599,28 @@ def recv_ws_msg_handle(data,ws):
 							#print("disconnecting "+str(cli_ws.login)+" IP "+str(cli_ws.ip)+" as that has the same UUID")
 							cli_ws.conn.close()
 							recv_ws_con_handle("disconnect", cli_ws)
+				
+				# check if the user has areas which have been un-protected for a long long time
+				areas=db.get_areas_for_account(ws.account)
+				print(areas)
+				if(areas!=-1):
+					for a in areas:
+						a=a["area"]
+						#print("check for area "+a)
+						data=db.get_areas_state(ws.account,a)
+						if(data!=-1):
+							#print(data)
+							a_ts=int(data['updated'])
+							a_state=int(data['state'])
+							if(a_state<=0 and (a_ts+5*86400)<time.time()):
+								#print("Area "+a+" is not active for more than 5 days")
+								# area is not protected
+								msg_add={}
+								msg_add["cmd"]="msg"
+								msg_add["msg"]="check_area,"+str(a)+",unprotected,"+str(a_ts)
+								msg_q_ws.append((msg_add,ws))
+				#end of long unprotection check
+							
 				
 			else:
 				try:

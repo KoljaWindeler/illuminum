@@ -185,6 +185,18 @@ class sql:
 			result = -1
 		return result
 	#############################################################
+	def get_areas_state(self,account,area):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT `updated`,`state` FROM  `area_state` WHERE  `account` = '"+str(account)+"' and `area`= '"+str(area)+"'"
+				cursor.execute(req)
+				result = cursor.fetchone()
+		except:
+			result = -1
+		return result
+
+	#############################################################
 	def get_areas_for_account(self,account):
 		try:
 			with self.connection.cursor() as cursor:

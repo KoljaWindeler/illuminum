@@ -9,14 +9,17 @@ var c_t=0;
 
 // cordova helper
 var c_freeze_state=0;
-var g_user="browser";
-var g_pw="hui";
+var g_user="";//"browser";
+var g_pw="";//"hui";
 
 
 // run as son as everything is loaded
 $(function(){
 	c_set_callback();
-	get_loading("welcome_loading","Connecting...").insertAfter("#clients");
+	var l=$("<div></div>");
+	l.addClass("center_hor").addClass("center").attr("id","welcome_loading");
+	l.insertAfter("#clients");
+	l.append(get_loading("wli","Connecting..."));
 	
 	add_menu();
 	open_ws();
@@ -109,9 +112,9 @@ function parse_msg(msg_dec){
 		if($("#welcome_loading").length){
 			$("#dummy").remove();
 			$("#welcome_loading").remove();
-			$('html,body').animate({
+			/*$('html,body').animate({
 				scrollTop: $("#clients").offset().top-($(window).height()/20)
-			},1000);
+			},1000);*/
 		};
 
 		// restart camera if it was open before reconnect
@@ -2094,12 +2097,18 @@ function add_login(msg){
 	$("#login_node").remove();
 	$("#clients").html("");
 
+	var node_wrap=$("<div></div>");
+	node_wrap.addClass("center_hor");
+	node_wrap.addClass("center");
+	node_wrap.attr("id","login_node");
+
 	var node=$("<div></div>");
 	node.addClass("area_node");
-	node.attr("id","login_node");
+	node_wrap.append(node);
+
 
 	var dummy=$("<iframe></iframe");
-	dummy.attr("src","dummy.php");
+	dummy.attr("src","index.php?useas=dummy");
 	dummy.attr("name","dummy");
 	dummy.attr("id","dummy");
 	dummy.hide();	
@@ -2146,7 +2155,7 @@ function add_login(msg){
 	};
 	node.append(message);
 
-	node.insertBefore($("#clients"));
+	node_wrap.insertBefore($("#clients"));
 
 };
 
@@ -2169,8 +2178,14 @@ function send_login(user,pw){
 
 		var cmd_data = { "cmd":"login", "login":user, "client_pw":pw, "alarm_view":0};
 		console.log(JSON.stringify(cmd_data));
-		con.send(JSON.stringify(cmd_data));
-		get_loading("welcome_loading","Login in...").insertAfter("#clients");
+		con.send(JSON.stringify(cmd_data)); 
+		$("#welcome_loading").remove();
+	
+		// vertically and horizontally center box
+		var l=$("<div></div>");
+		l.addClass("center_hor").addClass("center").attr("id","welcome_loading");
+		l.insertAfter("#clients");
+		l.append(get_loading("wli","Login in..."));
 	};
 };
 
