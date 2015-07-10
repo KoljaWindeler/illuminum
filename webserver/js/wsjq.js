@@ -9,8 +9,8 @@ var c_t=0;
 
 // cordova helper
 var c_freeze_state=0;
-var g_user="";//"browser";
-var g_pw="";//"hui";
+var g_user="browser";
+var g_pw="hui";
 
 
 // run as son as everything is loaded
@@ -176,7 +176,8 @@ function parse_msg(msg_dec){
 	else if(msg_dec["cmd"]=="update_open_alerts"){
 		var button=$("#"+mid+"_toggle_alarms");
 		var txt=$("#"+mid+"_toggle_alarms_text");
-		set_alert_button_state(button,txt,msg_dec["open_alarms"]);
+		var counter=$("#"+mid+"_alarm_counter");
+		set_alert_button_state(counter,button,txt,msg_dec["open_alarms"]);
 
 		// close msg about open alarms if someone already acknowledged them
 		if($("#"+mid+"_old_alerts").length && msg_dec["open_alarms"]==0){
@@ -688,7 +689,8 @@ function ack_alert(id,mid){
 	var button=$("#"+mid+"_toggle_alarms");
 	var open_alarms=parseInt(button.text().substring(0,button.text().indexOf(" ")))-1;
 	var txt=$("#"+mid+"_toggle_alarms_text");
-	set_alert_button_state(button,txt,open_alarms);
+	var counter=$("#"+mid+"_alarm_counter");
+	set_alert_button_state(counter,button,txt,open_alarms);
 
 	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
 	//console.log(JSON.stringify(cmd_data));
@@ -914,7 +916,8 @@ function check_append_m2m(msg_dec){
 		glow.attr("id",mid+"_glow");
 		glow.addClass("glow_dot"); // setting real state in update routine
 		glow.addClass("float_left");
-		m2m_header_text.append(glow);
+	//	m2m_header_text.append(glow);
+	
 
 		text=$("<div></div>");
 		text.attr({
@@ -931,7 +934,7 @@ function check_append_m2m(msg_dec){
 			"class": "m2m_text"
 		});
 		text.addClass("clear_both");
-		m2m_header_text.append(text);
+		//m2m_header_text.append(text);
 
 		var m2m_header_button=$("<div></div>");
 		m2m_header_button.attr({
@@ -994,6 +997,20 @@ function check_append_m2m(msg_dec){
 		//////////// alert button /////////////
 		wb=$("<div></div>");
 		wb.addClass("inline_block");
+		wb.addClass("alarm_button");
+
+		var num_text=$("<div></div>");
+		num_text.text("4");
+		num_text.addClass("alarm_sym_wrap");
+		num_text.attr("id",msg_dec["mid"]+"_alarm_counter");
+		num_text.click(function(){
+			var msg_int=msg_dec;
+			return function(){
+				toggle_alarms(msg_int["mid"]);
+			};
+		}());
+		wb.append(num_text);
+
 		button=$("<a></a>");
 		button.attr({
 			"id": msg_dec["mid"]+"_toggle_alarms",
@@ -1007,6 +1024,7 @@ function check_append_m2m(msg_dec){
 		}());
 		button.text("no alarms");
 		wb.append(button);
+
 		wl=$("<div></div>");
 		wl.attr("id",mid+"_toggle_alarms_text");
 		wl.addClass("toggle_text");		// size etc
@@ -1015,7 +1033,7 @@ function check_append_m2m(msg_dec){
 		m2m_header_button.append(wb);
 
 		// hide it if no alarm is available
-		set_alert_button_state(button,wl,msg_dec["open_alarms"]);
+		set_alert_button_state(num_text,button,wl,msg_dec["open_alarms"]);
 		//////////// alert button /////////////
 
 
@@ -1062,7 +1080,7 @@ function check_append_m2m(msg_dec){
 		////////////////// LIVE VIEW ////////////////////////////
 
 		////////////////// COLOR SLIDER ////////////////////////////
-		lightcontrol=$("<div></div>").text("this is the lightcontrol");
+		lightcontrol=$("<div></div>");
 		lightcontrol.attr({
 			"id" : mid+"_lightcontrol",
 		});
@@ -1328,6 +1346,7 @@ function hide_lightcontrol(mid){
 function show_lightcontrol(mid){
 	hide_liveview(mid,true);
 	hide_alarms(mid);
+	send_color(mid);
 	$("#"+mid+"_toggle_lightcontrol").addClass("color_sym_active");
 	$("#"+mid+"_toggle_lightcontrol_text").addClass("toggle_lightcontrol_text_active");
 	var view = $("#"+mid+"_lightcontrol");
@@ -1428,7 +1447,8 @@ function show_alarms(mid){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function set_alert_button_state(button,txt,open_alarms){
+function set_alert_button_state(counter,button,txt,open_alarms){
+	// the image button
 	if(open_alarms==0){
 		button.text("no alarms");
 		button.addClass("alarm_sym");
@@ -1443,8 +1463,14 @@ function set_alert_button_state(button,txt,open_alarms){
 		button.removeClass("alarm_sym");
 	}
 
+	// text over the image
+	if(open_alarms==0){
+		counter.text("");
+	} else {
+		counter.text(open_alarms);
+	};
 
-/*	
+/*	// Text under the image
 	if(open_alarms==0){
 		txt.addClass("sym_text_deactivated");
 		txt.removeClass("toggle_alarms_text_active");
@@ -1908,7 +1934,7 @@ function resize_alert_pic(mid,data){
 		// if picture is open in the website, use dimensions of the m2m box
 		var lv=$("#"+msg_dec["mid"]);
 		var scale=lv.width()/1280;
-		scale*=0.8;
+		scale*=0.9;
  
 		img.attr({
 			"src":"data:image/jpeg;base64,"+msg_dec["img"],
@@ -1973,6 +1999,7 @@ function resize_alert_pic(mid,data){
 function txt2fb(text){
 	var fb=$("<a></a>");
 	fb.attr("id","txt2fb");
+	fb.attr("style","text-align:left;");
 	fb.html(text);
 	fb.fancybox().trigger('click');
 };

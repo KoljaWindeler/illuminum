@@ -258,10 +258,26 @@ div.glow_yellow {
 
 /**************************************** m2m buttons *****************************************/
 /* TOP section in the area*/
-img.area_sym_protected{ 	content:url("../images/ic_place_green_48dp.png"); 	}
-.area_sym_protected {		color: #47F363;					}
-img.area_sym_not_protected{	content:url("../images/ic_place_red_48dp.png");	}
-.area_sym_not_protected{ 	color: #A20000; 				}
+img.area_sym_protected{ 	
+	content:url("../images/ic_place_green_48dp.png"); 			
+	height:88px;
+	width: 57px;
+}
+.area_sym_protected {		
+	color: #36BF00;	
+	font-weight:bold; 
+	text-shadow: 0 -1px #000000, 1px 0 #000000, 0 1px #000000, -1px 0 #000000;
+}
+img.area_sym_not_protected{	
+	content:url("../images/ic_place_red_48dp.png");				
+	height:88px;
+	width: 57px;
+}
+.area_sym_not_protected{ 	
+	color: #E94B36; 
+	font-weight:bold; 
+	text-shadow: 0 -1px #000000, 1px 0 #000000, 0 1px #000000, -1px 0 #000000;
+}
 
 /*img.cam_sym{	content:url("../images/ic_camera_black_48dp.png");}*/
 
@@ -307,6 +323,23 @@ div.toggle_text {
 }
 
 div.sym_text_not_available 		{	color:#555555;		}
+
+div.alarm_button{
+	position:relative;
+}
+
+div.alarm_sym_wrap{
+  	position: absolute;
+  	z-index: 2;
+	left: 0;
+	right: 0;
+	cursor: pointer;
+
+  	font-size: 20px;
+  	font-weight: bold;
+	margin-top: 12px;
+	color: #dddddd;
+}
 /**************************************** m2m buttons *****************************************/
 /**************************************** m2m alert navigation *****************************************/
 div.alert_navigation{
@@ -361,12 +394,13 @@ div.light_controll_color{
 	margin: 0 auto;  /* setzt den block mittig */
 	height: 30px;
 	clear: both;
+	margin-top: 15px;
 }
 /**************************************** m2m light scroller *****************************************/
 /******************************************** MENU ***************************************************/
 div.menu{
 	position:fixed;
-	background: #333333;
+	background: rgba(143, 152, 162, 1.0);
 	left: 0px;
 	top: 0px;
 	padding: 0 64px;
