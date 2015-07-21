@@ -39,7 +39,7 @@ public class s_ws implements WebSocketConnectionObserver {
     private AudioManager am;
     private Vibrator v;
 
-    private ArrayList<s_area> areas = new ArrayList<s_area>();
+    public ArrayList<s_area> areas = new ArrayList<s_area>();
     private long last_ts_in;
     public long last_ts_out;
     public WebSocketConnection mWebSocketClient;
@@ -165,6 +165,7 @@ public class s_ws implements WebSocketConnectionObserver {
                     o_snd.put("cmd", "login");
                     o_snd.put("login", login);
                     o_snd.put("uuid", uuid);
+                    o_snd.put("alarm_view",1);
                     o_snd.put("client_pw", pw);
                 } catch (JSONException e) {
                     e.printStackTrace();
@@ -241,7 +242,7 @@ public class s_ws implements WebSocketConnectionObserver {
                 }
 
                 // show notification
-                mNofity.showNotification(mContext.getString(R.string.app_name)+" read message", mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
+                mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
@@ -259,7 +260,7 @@ public class s_ws implements WebSocketConnectionObserver {
                     mNofity.set_image(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length)); // todo: we need a kind of, if app has started reset picture to null
                     mNofity.set_time();
                     // show notification
-                    mNofity.showNotification(mContext.getString(R.string.app_name)+" read file", mNofity.Notification_text_builder(false, areas), "");
+                    //mNofity.showNotification(mContext.getString(R.string.app_name)+" read file", mNofity.Notification_text_builder(false, areas), "");
                 }
             }
 
@@ -283,7 +284,6 @@ public class s_ws implements WebSocketConnectionObserver {
 //                mDebug.write_to_file("Websocket: send: " + o_snd.toString());
 //                send_msg(o_snd.toString());
 //            }
-
             else {
                 mDebug.write_to_file("Websocket: I got no idea why i've received this: " + message);
             }
@@ -324,7 +324,7 @@ public class s_ws implements WebSocketConnectionObserver {
                         if(detection>0 && state>0) {
                             mNofity.set_area(area); // set last alarm area
                             if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
-                                v.vibrate(500);
+                                //v.vibrate(500);
                             }
                         }
                     }

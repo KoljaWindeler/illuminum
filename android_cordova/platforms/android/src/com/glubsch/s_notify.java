@@ -1,5 +1,6 @@
 package com.glubsch;
 
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -22,7 +23,7 @@ public class s_notify {
     private NotificationCompat.Builder mNotificationBuilder = null;
     private NotificationManager mNotificationManager = null;
     private Context mContext;
-    private Bitmap last_picture = null;
+    public Bitmap last_picture = null;
     private SharedPreferences mSettings;
     private String area_of_last_alert = "";
     private String time_of_last_alert = "";
@@ -90,13 +91,16 @@ public class s_notify {
 
     public void showNotification(String title, String short_text, Bitmap picture) {
         mNotificationBuilder
+                .setAutoCancel(true)
+                //.setVibrate(new long[]{1000, 1000, 1000, 1000, 1000, 1000})
+                //.setPriority(Notification.PRIORITY_HIGH)
                 .setContentTitle(title)
                 .setContentText(short_text)
                 .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(picture).setSummaryText(short_text));
         displayNotification();
     }
 
-    private void displayNotification() {
+    public void displayNotification() {
         if (mNotificationManager != null) {
             mNotificationManager.notify(1, mNotificationBuilder.build());
         }

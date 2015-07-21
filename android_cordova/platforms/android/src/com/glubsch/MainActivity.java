@@ -38,5 +38,7 @@ public class MainActivity extends CordovaActivity
         // start / resume service
         Intent intent = new Intent(this, bg_service.class);
         startService(intent);
+
+
     }
 }

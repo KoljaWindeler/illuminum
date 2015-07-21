@@ -184,6 +184,7 @@ public class bg_service extends Service {
 
         // establish comm interfaces to the APP and the NETWORK
         registerReceiver(network_change_receiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+        registerReceiver(app_receiver, new IntentFilter(bg_service.SENDER));
 
         // Register the listener with the Location Manager to receive location updates
         if (mLocationManager == null) {
@@ -321,6 +322,21 @@ public class bg_service extends Service {
                 }
             } catch (Exception ex) {
                 mDebug.write_to_file("catched this on network receiving " + ex.toString());
+            }
+        }
+    };
+
+    private BroadcastReceiver app_receiver= new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try{
+                if(intent!=null && intent.getExtras() != null){
+                    Bundle bundle=intent.getExtras();
+                    mNofity.last_picture=null;
+                    mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,mWs.areas), mNofity.Notification_text_builder(true, mWs.areas));
+                }
+            } catch (Exception ex){
+
             }
         }
     };
