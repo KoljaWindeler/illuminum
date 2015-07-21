@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    id="com.glubsch.get_login_plugin"
+    version="0.2.12">
+    <name>GetLoginPlugin</name>
+    <description>The coolest Plugin ever implemented</description>
+    <license>Apache 2.0</license>
+    <keywords>cordova,login</keywords>
+    <repo></repo>
+    <issue></issue>
+    <js-module src="www/GetLogin.js" name="GetLoginPlugin">
+        <clobbers target="GetLogin" />
+    </js-module>
+    <!-- android -->
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="GetLogin" >
+                <param name="android-package" value="GetLogin"/>
+            </feature>
+        </config-file>
+        <source-file src="src/android/GetLogin.java" target-dir="src/" />
+    </platform>
+</plugin>

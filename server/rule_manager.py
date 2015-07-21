@@ -453,18 +453,20 @@ class area:
 		return (conn,arg1,arg2)
 	#############################################################
 	def rm_override(self, override):
+		del_list=[]
 		if(override=="*"):
 			self.has_override_detection_on=0
 			for r in self.rules:
 				if(r.conn=="*"):
-					self.rm_rule(r.id)
-					break;
+					del_list.append(r)
 		elif(override=="/"):
 			self.has_override_detection_off=0
 			for r in self.rules:
 				if(r.conn=="/"):
-					self.rm_rule(r.id)
-					break;
+					del_list.append(r)
+
+		for r in del_list:
+			self.rm_rule(r.id)
 	#############################################################
 	def rm_rule(self, id):
 		found=0

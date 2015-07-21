@@ -61,17 +61,22 @@ def send_data_all_clients(data):
 
 #************* HANDLE CONNECTION *****************************************#
 def handle (client,addr):
+	busy=1
 	#lock = threading.Lock()
 	while 1:
 		try:
 			rList, wList, xList = select([client.ws.sock], [client.ws.sock], [client.ws.sock], 3)
 		except:
 			break;
-		
+
+		if(busy==0):
+			time.sleep(0.03)
+		busy=0
 		######################## SEND ###########################
 		if(len(wList)>0):
 			try:
 				while client.ws.sendq:
+					busy=1
 					opcode, payload = client.ws.sendq.popleft()
 					remaining = client.ws._sendBuffer(payload)
 					if remaining is not None:
@@ -101,6 +106,7 @@ def handle (client,addr):
 		######################## SEND ###########################
 		####################### RECEIVE ##########################
 		if(len(rList)>0):
+			busy=1
 			try:
 				client.ws._handleData()
 				while(client.ws.data_ready==True):
@@ -133,6 +139,7 @@ def handle (client,addr):
 		####################### RECEIVE ##########################
 		######################## ERROR ##########################
 		if(len(xList)>0):
+			busy=1
 			try:
 				if client.ws.sock:
 					client.ws.sock.close()
@@ -153,7 +160,7 @@ def handle (client,addr):
 			break;
 		######################## ERROR ##########################
 	# end of while 1
-	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Client "+client.login+" closed: "+str(client.ip),"l")
+	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Client "+str(client.login)+" closed: "+str(client.ip),"l")
 	#lock.acquire()
 	#if(client in clients):
 	#	clients.remove(client)

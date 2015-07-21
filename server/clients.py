@@ -46,6 +46,7 @@ class ws_clients:
 		self.location=""
 		self.ws=None
 		self.webcam_countdown=99				# remaining webcam frames
+		self.alarm_view=0					# if we should send the client alarm view without request (used in the service)
 
 class webcam_viewer:
 	def __init__(self,cli):

@@ -1,0 +1,39 @@
+<html>
+ <head>
+ <meta charset="utf-8" />
+ <meta name="format-detection" content="telephone=no" />
+ <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+ <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+ <link rel="stylesheet" type="text/css" href="css/index.css" />
+ <meta name="msapplication-tap-highlight" content="no" />
+ <title>Cool Plugin Test</title>
+ </head>
+ <body>
+ <div class="app">
+ <script type="text/javascript" src="cordova.js"></script>
+ <script type="text/javascript" src="GetLogin.js"></script>
+ <script type="text/javascript" src="js/index.js"></script>
+ <script type="text/javascript">
+ 
+ app.initialize();
+ 
+ function showToast()
+ {
+ var textValue = document.getElementById("myText").value;
+ alert("TEST");
+ GetLogin.showToast(textValue);	
+ }
+ 
+ function onDeviceReady() {
+ // console.log("Device ready");
+ }
+ document.addEventListener("deviceready", onDeviceReady, false);
+ </script>
+ 
+ <input type="text" id="myText" text="Doh! I'm a Toast!"></input>
+ <button id="myButton" title="" onclick="showToast()">Generate Toast!</button>
+ <p>
+ </p>
+ 
+ </body>
+</html>

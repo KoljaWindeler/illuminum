@@ -3,16 +3,13 @@ import pymysql.cursors, time, p, sys
 class sql:
 	def __init__(self):
 		self.connection=''
-		#print("init done")
 	#############################################################
 	def connect(self):
 		# Connect to the database
 		self.connection = pymysql.connect(host='localhost',user='root',passwd='EEkiM05$.',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
-		#print("connect done")
 	#############################################################
 	def connection_check(self):
 		try:
-			#print("try:")
 			with self.connection.cursor() as cursor:
 				req = "SELECT now()"
 				cursor.execure(req)
@@ -22,12 +19,10 @@ class sql:
 			return -1
 	#############################################################
 	def load_rules(self,area,account,sub_rules):
-		#print("get data mid:"+mid)
 		if(self.connection==''):
 			p.rint("sql has to be called with connect() first","d")
 			result = -1
 		else:
-			#print("connection existing")
 			try:
 				#print("try:")
 				with self.connection.cursor() as cursor:
@@ -190,6 +185,18 @@ class sql:
 			result = -1
 		return result
 	#############################################################
+	def get_areas_state(self,account,area):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT `updated`,`state` FROM  `area_state` WHERE  `account` = '"+str(account)+"' and `area`= '"+str(area)+"'"
+				cursor.execute(req)
+				result = cursor.fetchone()
+		except:
+			result = -1
+		return result
+
+	#############################################################
 	def get_areas_for_account(self,account):
 		try:
 			with self.connection.cursor() as cursor:
@@ -328,11 +335,34 @@ class sql:
 			result = -1
 		return result
 	#############################################################
-	def get_open_alert_ids(self, account, mid):
+	def get_closed_alert_count(self, account,mid):
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0 and `mid`='"+mid+"'"
+				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`!=0 and `mid`='"+mid+"'"
+				cursor.execute(req)
+				result = cursor.fetchone()
+				result = result['COUNT(*)']
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_open_alert_ids(self, account, mid, a,b):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`=0 and `mid`='"+mid+"' ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
+				cursor.execute(req)
+				result = cursor.fetchall()
+		except:
+			result = -1
+		return result
+	#############################################################
+	def get_closed_alert_ids(self, account, mid, a,b):
+		try:
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  '"+account+"' and `ack`!=0 and `mid`='"+mid+"' ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
 				cursor.execute(req)
 				result = cursor.fetchall()
 		except:
@@ -368,9 +398,11 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				if(int(century)>=0 and int(century)<100):
-					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` ="+str(alert_id)+" LIMIT "+str(int(century)*100)+" , "+str((int(century)+1)*100)
+					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` ="+str(alert_id)+" ORDER BY `id` DESC LIMIT "+str(int(century)*10)+" , "+str((int(century)+1)*20)
 					cursor.execute(req)
 					result = cursor.fetchall()
+					#print(req)
+					#print(result)
 				else:
 					result = -1
 		except:
@@ -392,6 +424,18 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				req = "UPDATE  `alert`.`alerts` SET  `ack` =  '1',`ack_ts` =  '"+str(int(time.time()))+"',`ack_by` =  '"+login+"' WHERE  `id` ="+str(aid)+" and `mid`='"+str(mid)+"'";
+				cursor.execute(req)
+			self.connection.commit()
+			result=0
+		except:
+			result = -1
+			p.rint(sys.exc_info()[0],"d")
+		return result
+	#############################################################
+	def ack_all_alert(self,mid,login):
+		try:
+			with self.connection.cursor() as cursor:
+				req = "UPDATE  `alert`.`alerts` SET  `ack` =  '1',`ack_ts` =  '"+str(int(time.time()))+"',`ack_by` =  '"+login+"' WHERE  `ack`=0  and `mid`='"+str(mid)+"'";
 				cursor.execute(req)
 			self.connection.commit()
 			result=0
