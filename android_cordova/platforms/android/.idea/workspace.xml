@@ -4,7 +4,7 @@
     <option name="TOOL_WINDOW_CUSTOM_FILTER" value="glubsch" />
   </component>
   <component name="BookmarkManager">
-    <bookmark url="file://$PROJECT_DIR$/src/com/glubsch/bg_service.java" line="127" mnemonic="7" />
+    <bookmark url="file://$PROJECT_DIR$/src/com/glubsch/bg_service.java" line="125" mnemonic="7" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d863ab30-31c3-4b17-b20c-ad99e2396384" name="Default" comment="" />
@@ -69,40 +69,34 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="bg_service.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="bg_service.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/com/glubsch/bg_service.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-9.088235">
-              <caret line="69" column="25" selection-start-line="69" selection-start-column="24" selection-end-line="69" selection-end-column="25" />
-              <folding>
-                <element signature="e#1424#1432#0" expanded="false" />
-                <element signature="e#1501#1509#0" expanded="false" />
-                <element signature="e#1872#1873#0" expanded="false" />
-                <element signature="e#1914#1915#0" expanded="false" />
-                <element signature="e#7809#7810#0" expanded="false" />
-                <element signature="e#7858#7859#0" expanded="false" />
-                <element signature="e#8132#8133#0" expanded="false" />
-                <element signature="e#8169#8170#0" expanded="false" />
-                <element signature="e#9090#9118#0" expanded="false" />
-                <element signature="e#13752#13780#0" expanded="false" />
-                <element signature="e#16753#16754#0" expanded="false" />
-                <element signature="e#16783#16784#0" expanded="false" />
-                <element signature="e#16912#18585#0" expanded="false" />
-                <element signature="e#18584#18585#0" expanded="false" />
-                <element signature="e#18632#19195#0" expanded="false" />
-                <element signature="e#18967#19004#0" expanded="false" />
-                <element signature="e#19194#19195#0" expanded="false" />
-              </folding>
+            <state vertical-scroll-proportion="2.1898305">
+              <caret line="137" column="64" selection-start-line="137" selection-start-column="64" selection-end-line="137" selection-end-column="64" />
+              <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="s_ws.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="s_ws.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/com/glubsch/s_ws.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="2.4865901">
-              <caret line="259" column="0" selection-start-line="259" selection-start-column="0" selection-end-line="259" selection-end-column="0" />
-              <folding />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="288" column="18" selection-start-line="288" selection-start-column="18" selection-end-line="288" selection-end-column="18" />
+              <folding>
+                <element signature="imports" expanded="false" />
+                <element signature="e#1208#1216#0" expanded="false" />
+                <element signature="e#1443#1451#0" expanded="false" />
+                <element signature="e#3310#3311#0" expanded="false" />
+                <element signature="e#3343#3344#0" expanded="false" />
+                <element signature="e#3787#3824#0" expanded="false" />
+                <element signature="e#4282#4319#0" expanded="false" />
+                <element signature="e#9759#9796#0" expanded="false" />
+                <element signature="e#13730#13731#0" expanded="false" />
+                <element signature="e#13758#13759#0" expanded="false" />
+                <element signature="e#15146#15155#0" expanded="false" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -1331,8 +1325,8 @@
         <option value="$PROJECT_DIR$/assets/www/index.html" />
         <option value="$PROJECT_DIR$/src/com/glubsch/MainActivity.java" />
         <option value="$PROJECT_DIR$/src/com/glubsch/s_notify.java" />
-        <option value="$PROJECT_DIR$/src/com/glubsch/bg_service.java" />
         <option value="$PROJECT_DIR$/src/com/glubsch/s_ws.java" />
+        <option value="$PROJECT_DIR$/src/com/glubsch/bg_service.java" />
       </list>
     </option>
   </component>
@@ -1776,7 +1770,7 @@
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3294509" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Captures" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.67035174" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.67035174" sideWeight="0.5" order="12" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -1806,11 +1800,11 @@
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="true" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
       <window_info id="Build Variants" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
-      <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="15" side_tool="false" content_ui="tabs" />
+      <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24973261" sideWeight="0.5" order="4" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
@@ -1827,8 +1821,8 @@
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3286432" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3977143" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24973261" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="14" side_tool="false" content_ui="tabs" />
     </layout-to-restore>
   </component>
@@ -1848,7 +1842,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/src/com/glubsch/bg_service.java</url>
-          <line>376</line>
+          <line>374</line>
           <properties />
           <option name="timeStamp" value="7" />
         </line-breakpoint>
@@ -1877,25 +1871,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#1424#1432#0" expanded="false" />
-            <element signature="e#1501#1509#0" expanded="false" />
-            <element signature="e#1872#1873#0" expanded="false" />
-            <element signature="e#1914#1915#0" expanded="false" />
-            <element signature="e#7809#7810#0" expanded="false" />
-            <element signature="e#7858#7859#0" expanded="false" />
-            <element signature="e#8132#8133#0" expanded="false" />
-            <element signature="e#8169#8170#0" expanded="false" />
-            <element signature="e#9090#9118#0" expanded="false" />
-            <element signature="e#13752#13780#0" expanded="false" />
-            <element signature="e#16753#16754#0" expanded="false" />
-            <element signature="e#16783#16784#0" expanded="false" />
-            <element signature="e#16912#18585#0" expanded="false" />
-            <element signature="e#18584#18585#0" expanded="false" />
-            <element signature="e#18632#19195#0" expanded="false" />
-            <element signature="e#18967#19004#0" expanded="false" />
-            <element signature="e#19194#19195#0" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1903,7 +1879,19 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="172" column="58" selection-start-line="172" selection-start-column="58" selection-end-line="172" selection-end-column="58" />
-          <folding />
+          <folding>
+            <element signature="imports" expanded="false" />
+            <element signature="e#1208#1216#0" expanded="false" />
+            <element signature="e#1443#1451#0" expanded="false" />
+            <element signature="e#3310#3311#0" expanded="false" />
+            <element signature="e#3343#3344#0" expanded="false" />
+            <element signature="e#3787#3824#0" expanded="false" />
+            <element signature="e#4282#4319#0" expanded="false" />
+            <element signature="e#9759#9796#0" expanded="false" />
+            <element signature="e#13730#13731#0" expanded="false" />
+            <element signature="e#13758#13759#0" expanded="false" />
+            <element signature="e#15146#15155#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1961,25 +1949,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="103" column="36" selection-start-line="103" selection-start-column="36" selection-end-line="103" selection-end-column="36" />
-          <folding>
-            <element signature="e#1424#1432#0" expanded="false" />
-            <element signature="e#1501#1509#0" expanded="false" />
-            <element signature="e#1872#1873#0" expanded="false" />
-            <element signature="e#1914#1915#0" expanded="false" />
-            <element signature="e#7809#7810#0" expanded="false" />
-            <element signature="e#7858#7859#0" expanded="false" />
-            <element signature="e#8132#8133#0" expanded="false" />
-            <element signature="e#8169#8170#0" expanded="false" />
-            <element signature="e#9090#9118#0" expanded="false" />
-            <element signature="e#13752#13780#0" expanded="false" />
-            <element signature="e#16753#16754#0" expanded="false" />
-            <element signature="e#16783#16784#0" expanded="false" />
-            <element signature="e#16912#18585#0" expanded="false" />
-            <element signature="e#18584#18585#0" expanded="false" />
-            <element signature="e#18632#19195#0" expanded="false" />
-            <element signature="e#18967#19004#0" expanded="false" />
-            <element signature="e#19194#19195#0" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -2030,25 +2000,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="25" column="13" selection-start-line="25" selection-start-column="13" selection-end-line="25" selection-end-column="13" />
-          <folding>
-            <element signature="e#1424#1432#0" expanded="false" />
-            <element signature="e#1501#1509#0" expanded="false" />
-            <element signature="e#1872#1873#0" expanded="false" />
-            <element signature="e#1914#1915#0" expanded="false" />
-            <element signature="e#7809#7810#0" expanded="false" />
-            <element signature="e#7858#7859#0" expanded="false" />
-            <element signature="e#8132#8133#0" expanded="false" />
-            <element signature="e#8169#8170#0" expanded="false" />
-            <element signature="e#9090#9118#0" expanded="false" />
-            <element signature="e#13752#13780#0" expanded="false" />
-            <element signature="e#16753#16754#0" expanded="false" />
-            <element signature="e#16783#16784#0" expanded="false" />
-            <element signature="e#16912#18585#0" expanded="false" />
-            <element signature="e#18584#18585#0" expanded="false" />
-            <element signature="e#18632#19195#0" expanded="false" />
-            <element signature="e#18967#19004#0" expanded="false" />
-            <element signature="e#19194#19195#0" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -2099,25 +2051,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="9" column="0" selection-start-line="9" selection-start-column="0" selection-end-line="9" selection-end-column="41" />
-          <folding>
-            <element signature="e#1424#1432#0" expanded="false" />
-            <element signature="e#1501#1509#0" expanded="false" />
-            <element signature="e#1872#1873#0" expanded="false" />
-            <element signature="e#1914#1915#0" expanded="false" />
-            <element signature="e#7809#7810#0" expanded="false" />
-            <element signature="e#7858#7859#0" expanded="false" />
-            <element signature="e#8132#8133#0" expanded="false" />
-            <element signature="e#8169#8170#0" expanded="false" />
-            <element signature="e#9090#9118#0" expanded="false" />
-            <element signature="e#13752#13780#0" expanded="false" />
-            <element signature="e#16753#16754#0" expanded="false" />
-            <element signature="e#16783#16784#0" expanded="false" />
-            <element signature="e#16912#18585#0" expanded="false" />
-            <element signature="e#18584#18585#0" expanded="false" />
-            <element signature="e#18632#19195#0" expanded="false" />
-            <element signature="e#18967#19004#0" expanded="false" />
-            <element signature="e#19194#19195#0" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -2296,36 +2230,30 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/glubsch/bg_service.java">
+    <entry file="file://$PROJECT_DIR$/src/com/glubsch/s_ws.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-9.088235">
-          <caret line="69" column="25" selection-start-line="69" selection-start-column="24" selection-end-line="69" selection-end-column="25" />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="288" column="18" selection-start-line="288" selection-start-column="18" selection-end-line="288" selection-end-column="18" />
           <folding>
-            <element signature="e#1424#1432#0" expanded="false" />
-            <element signature="e#1501#1509#0" expanded="false" />
-            <element signature="e#1872#1873#0" expanded="false" />
-            <element signature="e#1914#1915#0" expanded="false" />
-            <element signature="e#7809#7810#0" expanded="false" />
-            <element signature="e#7858#7859#0" expanded="false" />
-            <element signature="e#8132#8133#0" expanded="false" />
-            <element signature="e#8169#8170#0" expanded="false" />
-            <element signature="e#9090#9118#0" expanded="false" />
-            <element signature="e#13752#13780#0" expanded="false" />
-            <element signature="e#16753#16754#0" expanded="false" />
-            <element signature="e#16783#16784#0" expanded="false" />
-            <element signature="e#16912#18585#0" expanded="false" />
-            <element signature="e#18584#18585#0" expanded="false" />
-            <element signature="e#18632#19195#0" expanded="false" />
-            <element signature="e#18967#19004#0" expanded="false" />
-            <element signature="e#19194#19195#0" expanded="false" />
+            <element signature="imports" expanded="false" />
+            <element signature="e#1208#1216#0" expanded="false" />
+            <element signature="e#1443#1451#0" expanded="false" />
+            <element signature="e#3310#3311#0" expanded="false" />
+            <element signature="e#3343#3344#0" expanded="false" />
+            <element signature="e#3787#3824#0" expanded="false" />
+            <element signature="e#4282#4319#0" expanded="false" />
+            <element signature="e#9759#9796#0" expanded="false" />
+            <element signature="e#13730#13731#0" expanded="false" />
+            <element signature="e#13758#13759#0" expanded="false" />
+            <element signature="e#15146#15155#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/glubsch/s_ws.java">
+    <entry file="file://$PROJECT_DIR$/src/com/glubsch/bg_service.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="2.4865901">
-          <caret line="259" column="0" selection-start-line="259" selection-start-column="0" selection-end-line="259" selection-end-column="0" />
+        <state vertical-scroll-proportion="2.1898305">
+          <caret line="137" column="64" selection-start-line="137" selection-start-column="64" selection-end-line="137" selection-end-column="64" />
           <folding />
         </state>
       </provider>
