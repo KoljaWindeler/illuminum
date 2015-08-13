@@ -239,6 +239,7 @@ public class s_ws implements WebSocketConnectionObserver {
                     //mDebug.write_to_file("creating new area");
                     areas.add(new s_area(name, det, new_loc, 500, state, mid));
                     //mDebug.write_to_file("Done");
+                    ((bg_service) mContext).resetLocation();
                     ((bg_service) mContext).check_locations(((bg_service) mContext).get_last_known_location().getCoordinaes());
                 }
 
