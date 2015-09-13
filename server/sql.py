@@ -242,7 +242,7 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT login FROM  `ws` WHERE  `account` = '"+str(account)+"' and `location` = '"+str(area)+"'"
+				req = "SELECT login FROM  `ws` WHERE  `account` = '"+str(account)+"' and `location` like '%"+str(area)+"%'"
 				#print(req)
 				cursor.execute(req)
 				result = cursor.fetchall()
