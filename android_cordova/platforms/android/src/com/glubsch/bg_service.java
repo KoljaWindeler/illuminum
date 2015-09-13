@@ -120,8 +120,6 @@ public class bg_service extends Service {
                         } else {
                             String locationCSV="";
 
-                            server_told_locations=near_by_locations;
-
                             //mDebug.write_to_file("setting server told location to:");
                             //for(int i=0; i<server_told_locations.size();i++){
                             //    mDebug.write_to_file("server_told_locations["+(String.valueOf(i))+"]="+String.valueOf(server_told_locations.get(i)));
@@ -134,7 +132,7 @@ public class bg_service extends Service {
                             locationCSV=locationCSV.substring(0,locationCSV.length()-1);
                             object.put("loc", locationCSV);
                         }
-
+                        server_told_locations=near_by_locations;
                         //mDebug.write_to_file("Sending a location update to the server:" + object.toString());
                         //Log.i(getString(R.string.debug_id), object.toString());
                         //console.log(JSON.stringify(cmd_data));
