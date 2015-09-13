@@ -9,8 +9,8 @@ var c_t=0;
 
 // cordova helper
 var c_freeze_state=0;
-var g_user="browser";
-var g_pw="hui";
+var g_user="";//"browser";
+var g_pw="";//"hui";
 
 
 // run as son as everything is loaded
@@ -107,6 +107,8 @@ function parse_msg(msg_dec){
 		check_append_m2m(msg_dec);
 		update_hb(mid,msg_dec["last_seen"]);
 		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+		// do it again here, to update a m2m that was existing (reconnect situation)
+		set_alert_button_state($("#"+mid+"_alarm_counter"),$("#"+mid+"_toggle_alarms"),$("#"+mid+"_toggle_alarms_text"),msg_dec["open_alarms"]);
 
 		// remove loading if still existing and scroll down to the box 
 		if($("#welcome_loading").length){
@@ -170,6 +172,16 @@ function parse_msg(msg_dec){
 			console.log("nicht gefunden");
 		};
 
+	}
+
+	// update "sendmail" button
+	else if(msg_dec["cmd"]=="send_alert"){
+		var send_button=$("#alert_"+msg_dec["mid"]+"_"+msg_dec["aid"]+"_send");
+		if(parseInt(msg_dec["status"])==1){
+			send_button.text("eMail send!").fadeIn();
+		} else {
+			send_button.text("eMail error!").fadeIn();
+		};
 	}
 
 	// updated count of alerts, show correct button style and maybe close the popup
@@ -580,6 +592,23 @@ function add_alert(aid,mid,view){
 	ack.hide();
 	side.append(ack);
 
+	// send button
+	var send=$("<a></a>");
+	send.attr({
+		"id":"alert_"+mid+"_"+aid+"_send",
+		"class":"button"
+	});
+	send.text("eMail pictures");
+	send.click(function(){
+		var id_int=aid;
+		var mid_int=mid;
+		return function(){
+			send_alert(id_int,mid_int);
+		};
+	}());
+	send.hide();
+	side.append(send);
+
 	// slider
 	var slider=$("<div></div>");
 	slider.attr({
@@ -643,6 +672,10 @@ function add_alert_details(msg_dec){
 		var ack_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_ack");
 		ack_button.show();
 	};
+
+	// show send button
+	var send_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_send");
+	send_button.show();
 	
 
 	// add new placeholder image
@@ -674,6 +707,8 @@ function add_alert_details(msg_dec){
 	} // end of if img 
 };
 
+
+
 /////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 // triggered by: user button
 // arguemnts:	 id of the alert and MID
@@ -693,6 +728,21 @@ function ack_alert(id,mid){
 	set_alert_button_state(counter,button,txt,open_alarms);
 
 	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
+	//console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 		
+};
+
+/////////////////////////////////////////// SEND ALERT //////////////////////////////////////////
+// triggered by: user button
+// arguemnts:	 id of the alert and MID
+// what it does: sends a message to the server to generate a mail with the pictures
+// why: 	 to get evidence if you need it
+/////////////////////////////////////////// SEND ALERT //////////////////////////////////////////
+
+function send_alert(id,mid){
+	$("#alert_"+mid+"_"+id+"_send").text("eMail requested...");
+
+	var cmd_data = { "cmd":"send_alert", "mid":mid, "aid":id};
 	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data)); 		
 };
@@ -1449,25 +1499,29 @@ function show_alarms(mid){
 
 function set_alert_button_state(counter,button,txt,open_alarms){
 	// the image button
-	if(open_alarms==0){
-		button.text("no alarms");
-		button.addClass("alarm_sym");
-		button.removeClass("alarm_sym_open_alerts");
-	} else if(open_alarms==1) {
-		button.text(open_alarms+" alarm");
-		button.addClass("alarm_sym_open_alerts");
-		button.removeClass("alarm_sym");
-	} else {
-		button.text(open_alarms+" alarms");
-		button.addClass("alarm_sym_open_alerts");
-		button.removeClass("alarm_sym");
-	}
+	if(button.length){
+		if(open_alarms==0){
+			button.text("no alarms");
+			button.addClass("alarm_sym");
+			button.removeClass("alarm_sym_open_alerts");
+		} else if(open_alarms==1) {
+			button.text(open_alarms+" alarm");
+			button.addClass("alarm_sym_open_alerts");
+			button.removeClass("alarm_sym");
+		} else {
+			button.text(open_alarms+" alarms");
+			button.addClass("alarm_sym_open_alerts");
+			button.removeClass("alarm_sym");
+		}
+	};
 
 	// text over the image
-	if(open_alarms==0){
-		counter.text("");
-	} else {
-		counter.text(open_alarms);
+	if(counter.length){
+		if(open_alarms==0){
+			counter.text("");
+		} else {
+			counter.text(open_alarms);
+		};
 	};
 
 /*	// Text under the image
@@ -1687,12 +1741,14 @@ function update_state(account,area,mid,state,detection,rm){
 	//console.log("running update state on "+mid+"/"+state);
 
 	// set the rulemanager text explainaition
-	$("#"+account+"_"+area+"_status").click(function(){
-		var rm_int=rm;
-		return function(){
-			txt2fb(format_rm_status(rm_int));
-		};
-	}());
+	if(state>=0){
+		$("#"+account+"_"+area+"_status").click(function(){
+			var rm_int=rm;
+			return function(){
+				txt2fb(format_rm_status(rm_int));
+			};
+		}());
+	};
 	// set the rulemanager text explainaition
 
 	// text state of the m2m
