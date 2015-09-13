@@ -561,6 +561,7 @@ def recv_ws_msg_handle(data,ws):
 			db_f={}
 			db_f["pw"]=h.hexdigest() # todo get those data from sql
 			db_f["account"]="jkw"
+			db_f["email"]="kkoolljjaa@gmail.com"
 			# database output
 
 			# check parameter
@@ -572,6 +573,7 @@ def recv_ws_msg_handle(data,ws):
 				# add socket infos
 				ws.logged_in=1
 				ws.account=db_f["account"]
+				ws.email=db_f["email"]
 				ws.last_comm=time.time()
 				ws.uuid=enc.get("uuid","")
 				ws.alarm_view=enc.get("alarm_view",0)
@@ -602,7 +604,6 @@ def recv_ws_msg_handle(data,ws):
 				
 				# check if the user has areas which have been un-protected for a long long time
 				areas=db.get_areas_for_account(ws.account)
-				print(areas)
 				if(areas!=-1):
 					for a in areas:
 						a=a["area"]
@@ -767,6 +768,35 @@ def recv_ws_msg_handle(data,ws):
 				msg["ack_ts"]=db_r1['ack_ts']
 				msg["ack_by"]=db_r1['ack_by']
 				msg_q_ws.append((msg,ws))
+
+		## send pictures to email adress
+		elif(enc.get("cmd")=="send_alert"):
+			id=enc.get("aid")
+
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["mid"]=enc.get("mid")
+			msg["aid"]=id
+			msg["status"]=-1
+
+			if(id!=-1 and ws.email!=""):
+				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" to mail","v")
+				## get picture path for 0..100 
+				db_r3=db.get_img_for_alerts(id,0)
+				db_account=db.get_account_for_path(db_r3[0]['path'])
+				if(str(db_account)==str(ws.account)):
+					file_lst=[]
+					for f in db_r3:
+						file_lst.append("../webserver/upload/"+f['path'])
+						# FIND ME
+					send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")		
+				msg["status"]=1
+			else:
+				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Invalid request for alarm: "+str(id)+" to mail "+str(ws.email),"v")
+				
+
+			msg_q_ws.append((msg,ws))
+
 
 		## reset webcam_countdown
 		elif(enc.get("cmd")=="reset_webcam_countdown"):

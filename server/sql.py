@@ -112,14 +112,12 @@ class sql:
 						result=-1
 						p.rint("count not 1","d")
 						p.rint(req,"d")
-						exit()
 					#print(result)
 			except:
 				p.rint("exception running self check","d")
 				if(self.connection_check()==0):
 					result = -2
 					p.rint("cobnectuon checjlh ==0","d")
-					exit()
 				else:
 					p.rint("self check return NOT 0","d")
 					self.connection=""
@@ -232,7 +230,7 @@ class sql:
 		try:
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT COUNT(*) FROM  `ws` WHERE  `account` = '"+str(account)+"' and `location` = '"+str(area)+"'"
+				req = "SELECT COUNT(*) FROM  `ws` WHERE  `account` = '"+str(account)+"' and `location` LIKE '%"+str(area)+"%'"
 				#print(req)
 				cursor.execute(req)
 				result = cursor.fetchone()

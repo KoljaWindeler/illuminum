@@ -15,8 +15,8 @@ def send( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from="kol
 	threading.Thread(target = send_now, args = (subject,text,files,send_to,send_from,server)).start()
 
 def send_now( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost"):
-	print("virtually send a mail")
-	return 0
+	#print("virtually send a mail")
+	#return 0
 	#assert isinstance(send_to, list)
 	#assert isinstance(files, list)
 	#print("send now")
@@ -54,5 +54,6 @@ def send_now( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from=
 	if CONST_DEBUG:
 		print("--> Done")
 	smtp.close()
-	print("[A_E   "+time.strftime("%H:%M:%S")+"] Email send")
-
+	if CONST_DEBUG:
+		print("[A_E   "+time.strftime("%H:%M:%S")+"] Email send")
+	return 0
