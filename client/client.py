@@ -273,7 +273,7 @@ while 1:
 					if(enc.get("cmd")=="prelogin"):
 						#### login 
 						#print("received challange "+enc.get("challange"))
-						h = hashlib.new('ripemd160')
+						h = hashlib.md5()
 						h.update(str(pw+enc.get("challange")).encode("UTF-8"))
 						#print("total to code="+str(pw+enc.get("challange")))
 						pw_c=h.hexdigest()
