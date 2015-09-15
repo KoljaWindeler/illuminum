@@ -19,6 +19,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URI;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 
 import de.tavendo.autobahn.WebSocket.WebSocketConnectionObserver;
@@ -135,6 +136,19 @@ public class s_ws implements WebSocketConnectionObserver {
     }
 
 
+    private static String convertToHex(byte[] data) {
+        StringBuilder buf = new StringBuilder();
+        for (byte b : data) {
+            int halfbyte = (b >>> 4) & 0x0F;
+            int two_halfs = 0;
+            do {
+                buf.append((0 <= halfbyte) && (halfbyte <= 9) ? (char) ('0' + halfbyte) : (char) ('a' + (halfbyte - 10)));
+                halfbyte = b & 0x0F;
+            } while (two_halfs++ < 1);
+        }
+        return buf.toString();
+    }
+
     // handle message that came in
     private void read_msg(String message){
         PowerManager.WakeLock wakelock = ((PowerManager)((bg_service)mContext).getSystemService(mContext.POWER_SERVICE)).newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, mContext.getString(R.string.app_name));
@@ -160,13 +174,29 @@ public class s_ws implements WebSocketConnectionObserver {
                     mDebug.write_to_file("s_ws: read from sharedPrefereces");
                     login = settings.getString("LOGIN", MainActivity.nongoodlogin);
                     String pw = settings.getString("PW", MainActivity.nongoodlogin);
-                    mDebug.write_to_file("s_ws: result "+pw);
-                    mDebug.write_to_file("Websocket: send login:" + login+ "/"+pw);
+                    //mDebug.write_to_file("s_ws: result " + pw);
+
+                    // encrypt pw to hash
+                    MessageDigest digester = MessageDigest.getInstance("MD5");
+                    digester.update(pw.getBytes());
+                    String digest = convertToHex(digester.digest());
+
+                    //mDebug.write_to_file(pw+" as hash is "+digest);
+                    // append the challange to the hash and hash again
+                    String sec=digest+o_recv.getString("challange");
+
+                    digester = MessageDigest.getInstance("MD5");
+                    digester.update(sec.getBytes("UTF-8"));
+                    digest = convertToHex(digester.digest());
+
+                    //mDebug.write_to_file("together we have "+sec+" as hash is "+digest);
+                    mDebug.write_to_file("Websocket: send login:" + login+ "/"+digest);
                     o_snd.put("cmd", "login");
                     o_snd.put("login", login);
                     o_snd.put("uuid", uuid);
                     o_snd.put("alarm_view",1);
-                    o_snd.put("client_pw", pw);
+
+                    o_snd.put("client_pw", digest);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
