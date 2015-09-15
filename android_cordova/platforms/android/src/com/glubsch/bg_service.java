@@ -66,6 +66,7 @@ public class bg_service extends Service {
 
         // find closest s_area to our coordinates
         ArrayList<s_area> areas = mWs.get_areas();
+        near_by_locations.clear();
         //mDebug.write_to_file("Starting Check_location with "+String.valueOf(areas.size())+" areas");
         if(areas.size()>0) { // just search if we have areas at all
             for (int i = 0; i < areas.size(); i++) {
