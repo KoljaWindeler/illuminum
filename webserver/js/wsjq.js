@@ -1,6 +1,7 @@
 // connection
 var con = null;
 var host="https://52.24.157.229/illumino/";
+var prelogin="";
 var fast_reconnect=0;
 
 // debug
@@ -41,7 +42,7 @@ function open_ws() {
 		};
 
 		console.log("onOpen");
-		check_login_data(1);
+		request_pre_login();
 	};
 
 	// reacting on incoming messages
@@ -88,8 +89,15 @@ function open_ws() {
 function parse_msg(msg_dec){
 	var mid=msg_dec["mid"];
 
+	// receive requested prelogin phrase
+	if(msg_dec["cmd"]=="prelogin"){
+		// store result in variable and continue with the login
+		prelogin=msg_dec["challange"];
+		check_login_data(1); 
+	}
+
 	// wrong login response
-	if(msg_dec["cmd"]=="login"){
+	else if(msg_dec["cmd"]=="login"){
 		if(msg_dec["ok"]!="1"){
 			console.log("received LOGIN-reject");
 			g_user="nongoodlogin";
@@ -2259,8 +2267,11 @@ function send_login(user,pw){
 		g_user=user;
 		g_pw=pw;
 
-		var cmd_data = { "cmd":"login", "login":user, "client_pw":pw, "alarm_view":0};
-		console.log(JSON.stringify(cmd_data));
+		// hash the password, combine it with the challange and submit the hash of the result
+		var hash_pw = CryptoJS.MD5(pw).toString(CryptoJS.enc.Hex);
+		var hash = CryptoJS.MD5(hash_pw+prelogin).toString(CryptoJS.enc.Hex);
+		console.log("received pw="+pw+" as hash="+hash_pw+" and prelogin="+prelogin+" and generated hash="+hash);
+		var cmd_data = { "cmd":"login", "login":user, "client_pw":hash, "alarm_view":0};
 		con.send(JSON.stringify(cmd_data)); 
 		$("#welcome_loading").remove();
 	
@@ -2270,6 +2281,18 @@ function send_login(user,pw){
 		l.insertAfter("#clients");
 		l.append(get_loading("wli","Login in..."));
 	};
+};
+
+/////////////////////////////////////////// REQUEST PRE LOGIN //////////////////////////////////////////
+// triggered by: on connection open
+// arguemnts:	 none
+// what it does: sends a message to the server to receive a randomized string that avoids repetition of passwords
+// why: 	 to increase security
+/////////////////////////////////////////// REQUEST PRE LOGIN //////////////////////////////////////////
+function request_pre_login(){
+	var cmd_data = { "cmd":"prelogin" };
+	console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 
 };
 
 function check_login_data(try_cordova){

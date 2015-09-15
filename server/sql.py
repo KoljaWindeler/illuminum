@@ -85,6 +85,47 @@ class sql:
 					return self.rm_rule(id)
 		return result
 	#############################################################
+	def get_ws_data(self,login):
+		#print("get data mid:"+mid)
+		if(self.connection==''):
+			p.rint("sql has to be called with connect() first","d")
+			result = -1
+		else:
+			#print("connection existing")
+			try:
+				#print("try:")
+				with self.connection.cursor() as cursor:
+					# Read a single record
+					#print("get_data gen req:")
+					req = "SELECT COUNT(*) FROM ws WHERE login='"+str(login)+"'"
+					cursor.execute(req)
+					result = cursor.fetchone()
+					#print(result)
+					#print(result)
+					if(result["COUNT(*)"]==1):
+						req = "SELECT  pw, account, email FROM ws WHERE login='"+str(login)+"'"
+						#print(req)
+						cursor.execute(req)
+						#print("setting result to ")
+						result = cursor.fetchone()
+					else:
+						result=-1
+						p.rint("count not 1","d")
+						p.rint(req,"d")
+					#print(result)
+			except:
+				p.rint("exception running self check","d")
+				if(self.connection_check()==0):
+					result = -2
+					p.rint("cobnectuon checjlh ==0","d")
+				else:
+					p.rint("self check return NOT 0","d")
+					self.connection=""
+					self.connect()
+					result=self.get_ws_data(login)
+				#print("failed!")
+		return result
+	#############################################################
 	def get_data(self,mid):
 		#print("get data mid:"+mid)
 		if(self.connection==''):
