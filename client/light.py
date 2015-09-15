@@ -82,8 +82,10 @@ def start_light():
 					l.c_g=int(l.t_g)
 					l.c_b=int(l.t_b)
 					l.state=0 							# stop further dimming
-					if(LED_DEBUG):
-						print("LED stop at "+str(time.time())+" "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b))
+					if(LED_DEBUG or 1):
+						print("LED stop at ", end="")
+						print(time.localtime(),end="")
+						print(" "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b))
 	
 				
 				l.c_r=max(min(255,l.c_r),0)				# avoid that we set a value bigger then 255 or smaller then 0
