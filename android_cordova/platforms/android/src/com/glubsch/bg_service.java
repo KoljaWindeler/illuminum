@@ -22,6 +22,7 @@ import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class bg_service extends Service {
     public static final String LOG = "LOG";
@@ -40,8 +41,9 @@ public class bg_service extends Service {
 
     // debugging
     private String distance_debug = "";
-    private s_coordinate last_known_location = new s_coordinate();
-    private int server_told_location = -2;
+    private s_coordinate last_known_location=new s_coordinate();
+    private ArrayList<String>near_by_locations=new ArrayList<String>();
+    private ArrayList<String> server_told_locations=new ArrayList<String>(Arrays.asList("nonsense"));
     private Context mContext;
 
 
@@ -57,68 +59,107 @@ public class bg_service extends Service {
     // if so, we check if that is still the same location that we've told the server
     // if now, we'll update the server
     public void check_locations(Location location) {
+        boolean update_server_location=false;
         last_known_location.setCoordinaes(location);
-        int closest_area = -1;
-
         // debug
         distance_debug = "Distance Debug\n";
 
         // find closest s_area to our coordinates
         ArrayList<s_area> areas = mWs.get_areas();
-        for (int i = 0; i < areas.size(); i++) {
-            float this_distance = areas.get(i).getCoordinates().distanceTo(last_known_location.getCoordinaes());
+        near_by_locations.clear();
+        //mDebug.write_to_file("Starting Check_location with "+String.valueOf(areas.size())+" areas");
+        if(areas.size()>0) { // just search if we have areas at all
+            for (int i = 0; i < areas.size(); i++) {
+                float this_distance = areas.get(i).getCoordinates().distanceTo(location);
+                //mDebug.write_to_file("areas " + String.valueOf(i) + " is " + String.valueOf(this_distance) + " away");
 
-            // debug
-            distance_debug += "Area:" + areas.get(i).getName() + ", " + String.valueOf(this_distance) + "m\n";
+                // debug
+                distance_debug += "Area:" + areas.get(i).getName() + ", " + String.valueOf(this_distance) + "m\n";
 
-            // check if we are IN a region
-            if (this_distance < areas.get(i).getCriticalRange()) {
-                // lets see if we are even closer to the coordinates then the others
-                if (closest_area == -1) {
-                    closest_area = i;
-                } else { // so we had already a "close s_area"
-                    // see if we are even closer to this one
-                    if (this_distance < areas.get(closest_area).getCoordinates().distanceTo(last_known_location.getCoordinaes())) {
-                        closest_area = i;
+                // check if we are IN a region
+                if (this_distance < areas.get(i).getCriticalRange()) {
+                    boolean area_in_array=false;
+                    for(int ii=0;ii<near_by_locations.size();ii++){
+                        if(near_by_locations.get(ii).equals(areas.get(i).getName())){
+                            area_in_array=true;
+                            break;
+                        }
+                    }
+                    if(!area_in_array) {
+                        near_by_locations.add(near_by_locations.size(), areas.get(i).getName());
+                        //mDebug.write_to_file("areas " + String.valueOf(i) + " was not in the critial range, I'll add it");
                     }
                 }
             }
-        }
+            // mDebug.write_to_file("after loop:" + String.valueOf(closest_area) + " old location was:" + String.valueOf(server_told_location));
 
-        // only send an update if we are logged in
-        if (mWs.mConnected && mWs.mLoggedIn) {
-            // check if we should update the server
-            if (server_told_location != closest_area) {
-                server_told_location = closest_area;
+            // only send an update if we are logged in
+            if (mWs.mConnected && mWs.mLoggedIn) {
+                // check if we should update the server
+                //mDebug.write_to_file("checking if server_told_location (size:"+String.valueOf(server_told_locations.size())+") and near_by_location (size:"+String.valueOf(near_by_locations.size())+") are the same");
 
-                // tell the server that we are in that s_area
-                JSONObject object = new JSONObject();
-                try {
-                    object.put("cmd", "update_location");
-                    if (closest_area == -1) {
-                        object.put("loc", "www");
-                    } else {
-                        object.put("loc", areas.get(closest_area).getName());
+                if(near_by_locations.size()!=server_told_locations.size()){
+                    update_server_location=true;
+                    // mDebug.write_to_file("different size!");
+                } else {
+                    for (int i = 0; i < near_by_locations.size(); i++) {
+                        if (!server_told_locations.get(i).equals(near_by_locations.get(i))) {
+                            update_server_location = true;
+                            //mDebug.write_to_file("different content!");
+                        }
                     }
-
-                    mDebug.write_to_file("Sending a location update to the server:"+object.toString());
-                    //Log.i(getString(R.string.debug_id), object.toString());
-                    //console.log(JSON.stringify(cmd_data));
-                    mWs.send_msg(object.toString());
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
                 }
-            }
 
-            // update once we've change our position, just for the DUBUG line!!
-            //mNofity.showNotification(getString(R.string.app_name)+" check location", mNofity.Notification_text_builder(false, areas), mNofity.Notification_text_builder(true, areas));
+                if(update_server_location){
+                    //mDebug.write_to_file("not the same, updating");
+                    // tell the server that we are in that s_area
+                    JSONObject object = new JSONObject();
+                    try {
+                        object.put("cmd", "update_location");
+                        if (near_by_locations.size() <= 0) {
+                            object.put("loc", "www");
+                        } else {
+                            String locationCSV="";
+
+                            //mDebug.write_to_file("setting server told location to:");
+                            //for(int i=0; i<server_told_locations.size();i++){
+                            //    mDebug.write_to_file("server_told_locations["+(String.valueOf(i))+"]="+String.valueOf(server_told_locations.get(i)));
+                            //}
+
+
+                            for(int i=0;i<near_by_locations.size();i++){
+                                locationCSV+=near_by_locations.get(i)+",";
+                            }
+                            locationCSV=locationCSV.substring(0,locationCSV.length()-1);
+                            object.put("loc", locationCSV);
+                        }
+                        server_told_locations=near_by_locations;
+                        //mDebug.write_to_file("Sending a location update to the server:" + object.toString());
+                        //Log.i(getString(R.string.debug_id), object.toString());
+                        //console.log(JSON.stringify(cmd_data));
+                        mWs.send_msg(object.toString());
+
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    //mDebug.write_to_file("they are the same, not updating");
+                    //for(int i=0; i<server_told_locations.size();i++){
+                    //    mDebug.write_to_file("server_told_locations["+(String.valueOf(i))+"]="+String.valueOf(server_told_locations.get(i)));
+                    //}
+                }
+
+                // update once we've change our position, just for the DUBUG line!!
+                //mNofity.showNotification(getString(R.string.app_name)+" check location", mNofity.Notification_text_builder(false, areas), mNofity.Notification_text_builder(true, areas));
+            }
         }
     };
 
     // this will be called by the reconnect handle. this will enforce us to resend our current location
     public void resetLocation(){
-        server_told_location=-1;
+        server_told_locations=new ArrayList<String>();
+        server_told_locations.add(0,"nonsense");
     }
 
     // Define a listener that responds to location updates

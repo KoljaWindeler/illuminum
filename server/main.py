@@ -56,7 +56,7 @@ def recv_m2m_con_dq_handle():
 # it shall handle disconnect situations to avoid that we are talking to dead sockets
 def recv_m2m_con_handle(data,m2m):
 	# this function is is used to be callen if a m2m disconnects, we have to update all ws clients
-	#print("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
+	#rint("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
 		p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' disconneted","l")
 		db.update_last_seen_m2m(m2m.mid,"") #<- this returns bad file descriptor
@@ -114,7 +114,7 @@ def recv_m2m_msg_handle(data,m2m):
 		enc=""
 		p.rint("-d--> json decoding failed on:" + data,"d")
 
-	#print("m2m:"+str(m2m.port)+"/"+str(m2m.ip))
+	#rint("m2m:"+str(m2m.port)+"/"+str(m2m.ip))
 	if(type(enc) is dict):
 		# if the message would like to be debugged
 		if(enc.get("debug",0)==1):
@@ -141,7 +141,7 @@ def recv_m2m_msg_handle(data,m2m):
 			msg["cmd"]=enc.get("cmd")
 			msg["challange"]=m2m.challange
 			msg_q_m2m.append((msg,m2m))
-			#print("received prelogin request, sending challange "+m2m.challange)
+			#rint("received prelogin request, sending challange "+m2m.challange)
 
 
 		#### login try to set the logged_in to 1 to upload files etc, for M2M
@@ -151,18 +151,18 @@ def recv_m2m_msg_handle(data,m2m):
 
 			# data base has to give us this values based on enc.get("mid")
 			db_r=db.get_data(enc.get("mid"))
-			#print("Ergebniss der datenbank:")
-			#print(db_r)
+			#rint("Ergebniss der datenbank:")
+			#rint(db_r)
 
 			if(type(db_r) is int): #user not found
-				#print("db error")
+				#rint("db error")
 				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("mid"))+"' not found in DB, log-in: failed","l")
 				msg["ok"]=-3 # not logged in
 			else:
-				h = hashlib.new('ripemd160')
+				h = hashlib.md5()
 				h.update(str(db_r["pw"]+m2m.challange).encode("UTF-8"))
-				#print("total to code="+(str(db["pw"]+m2m.challange)))
-				#print("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
+				#rint("total to code="+(str(db["pw"]+m2m.challange)))
+				#rint("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
 
 				# check parameter
 				if(h.hexdigest()==enc.get("client_pw")):
@@ -189,34 +189,34 @@ def recv_m2m_msg_handle(data,m2m):
 
 					# add rules to the rule manager for this area if it wasn there before
 					# first check if the account is known to the rule manager at all and add it if not
-					#print("### rm debug ###")
+					#rint("### rm debug ###")
 					#rm.print_all()
-					#print("### rm debug ###")
+					#rint("### rm debug ###")
 					if(not(rm.is_account(m2m.account))):
-						#print("account did not exist, adding")
+						#rint("account did not exist, adding")
 						new_rule_account=rule_account(m2m.account)
 						rm.add_account(new_rule_account)
 
 					# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
 					if(not(rm.is_area_in_account(m2m.account,m2m.area))):
-						#print("area did not exist, adding")
+						#rint("area did not exist, adding")
 						new_area=area(m2m.area,m2m.account,db) # will load rule set on its own from the database
 						rm.add_area_to_account(m2m.account,new_area)
 
 						# if the area wasn in the rule manager we have to
 						# check the state, as there could be a time based trigger that wasn executed
 						# lets do it for all areas for this account (kind of a waste but its is very quick)
-						#print("### rm debug ###")
+						#rint("### rm debug ###")
 						#rm.print_all()
-						#print("### rm debug ###")
-						#print("checking for this account")
+						#rint("### rm debug ###")
+						#rint("checking for this account")
 						acc=rm.get_account(m2m.account)
 						if(acc!=-1):
 							for b in acc.areas:
 								detection_state=b.check_rules(1) 	# get the state, check and use db
 								db.update_det("m2m",m2m.account,m2m.area,detection_state)
-								#print("area "+str(b.area)+" should be")
-								#print(detection_state)
+								#rint("area "+str(b.area)+" should be")
+								#rint(detection_state)
 
 					# get detecion state based on db
 					db_r2=db.get_state(m2m.area,m2m.account)
@@ -225,9 +225,9 @@ def recv_m2m_msg_handle(data,m2m):
 
 					# search for all (active and logged-in) viewers for this client (same account)
 					info_viewer=0
-					#print("my m2m account is "+m2m.account)
+					#rint("my m2m account is "+m2m.account)
 					for viewer in server_ws.clients:
-						#print("this client has account "+viewer.account)
+						#rint("this client has account "+viewer.account)
 						if(viewer.account==m2m.account):
 							# introduce them to each other
 							connect_ws_m2m(m2m,viewer,1)
@@ -263,7 +263,7 @@ def recv_m2m_msg_handle(data,m2m):
 			msg["cmd"]=enc.get("cmd")
 			msg["ts"]=time.time()
 			for subscriber in m2m.m2v:
-				#print("Tell that to "+subscriber.login)
+				#rint("Tell that to "+subscriber.login)
 				msg_q_ws.append((msg,subscriber))
 
 
@@ -339,7 +339,7 @@ def recv_m2m_msg_handle(data,m2m):
 					elif(m2m.detection==2): # if detection = permanant fire, then we're going to save the picture, even after fireing the mail
 						db.append_alert_photo(m2m,des_location)
 				#tmp_loc=des_location.split('/')
-				#print("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
+				#rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
 				m2m.paket_count_per_file=0
 
 			# write this file
@@ -440,7 +440,7 @@ def snd_m2m_msg_dq_handle():
 	ret=0
 	if(len(msg_q_m2m)>0):
 		ret=1
-		#print(str(time.time())+' fire in the hole')
+		#rint(str(time.time())+' fire in the hole')
 		data=msg_q_m2m[0]
 		msg_q_m2m.remove(data)
 
@@ -483,7 +483,7 @@ def recv_ws_con_dq_handle():
 # dequeue above will call us to process the new connection
 def recv_ws_con_handle(data,ws):
 	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients and their webcam lists
-	#print("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
+	#rint("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
 		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted","l")
 		# try to find that websockets in all client lists, so go through all clients and their lists
@@ -531,7 +531,7 @@ def recv_ws_msg_handle(data,ws):
 		enc=""
 		p.rint("-d--> json decoding failed on:" + str(data),"d")
 
-		#print("ws:"+str(ws.port)+"/"+str(ws.ip))
+		#rint("ws:"+str(ws.port)+"/"+str(ws.ip))
 	if(type(enc) is dict):
 		if(enc.get("debug",0)==1):
 			p.rint("websocket_msg","d")
@@ -545,7 +545,8 @@ def recv_ws_msg_handle(data,ws):
 			msg["cmd"]=enc.get("cmd")
 			msg["challange"]=ws.challange
 			msg_q_ws.append((msg,ws))
-			#print("received prelogin request, sending challange "+m2m.challange)
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] prelogin request received","l")
+			#rint("received prelogin request, sending challange "+m2m.challange)
 
 		## LOGIN from a viewer, for WS
 		elif(enc.get("cmd")=="login"):
@@ -554,82 +555,91 @@ def recv_ws_msg_handle(data,ws):
 			# data base has to give us this values
 			ws.login=enc.get("login")
 			
-			# database output
-			pw2="124"
-			h = hashlib.new('ripemd160')
-			h.update(pw2.encode("UTF-8"))
-			db_f={}
-			db_f["pw"]=h.hexdigest() # todo get those data from sql
-			db_f["account"]="jkw"
-			# database output
+			# data base has to give us this values based on login
+			db_r=db.get_ws_data(ws.login)
+			#rint("Ergebniss der datenbank:")
+			#rint(db_r)
 
-			# check parameter
-			if(db_f["pw"]==enc.get("client_pw") or enc.get("client_pw")=="hui"): # <<-- TODO, that is no very safe ;D
-				# complete message
-				msg_ws["ok"]=1 # logged in
+			if(type(db_r) is int): #user not found results in return -1 or so
+				#rint("db error")
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' not found in DB, log-in: failed","l")
+				msg_ws["ok"]=-3 # not logged in
 				msg_q_ws.append((msg_ws,ws))
-				
-				# add socket infos
-				ws.logged_in=1
-				ws.account=db_f["account"]
-				ws.last_comm=time.time()
-				ws.uuid=enc.get("uuid","")
-				ws.alarm_view=enc.get("alarm_view",0)
-				
-				# print and update db, as this fails when the client already disconnected, surrond with try catch
-				p.ws_login(ws)
-				try:
-					ip=ws.conn.getpeername()[0]
-				except:
-					ip="???"
-				db.update_last_seen_ws(ws.login, ip)
-				
-				# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
-				# introduce them to each other
-				for m2m in server_m2m.clients:
-					if(m2m.account==ws.account):
-						connect_ws_m2m(m2m,ws)
-				# and finally connect all disconnected m2m to the ws
-				connect_ws_m2m("",ws)
-				
-				# check if the same UUID has another open connection
-				if(ws.uuid!=""):
-					for cli_ws in server_ws.clients:
-						if((cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login) or (cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60))  :
-							#print("disconnecting "+str(cli_ws.login)+" IP "+str(cli_ws.ip)+" as that has the same UUID")
-							cli_ws.conn.close()
-							recv_ws_con_handle("disconnect", cli_ws)
-				
-				# check if the user has areas which have been un-protected for a long long time
-				areas=db.get_areas_for_account(ws.account)
-				print(areas)
-				if(areas!=-1):
-					for a in areas:
-						a=a["area"]
-						#print("check for area "+a)
-						data=db.get_areas_state(ws.account,a)
-						if(data!=-1):
-							#print(data)
-							a_ts=int(data['updated'])
-							a_state=int(data['state'])
-							if(a_state<=0 and (a_ts+5*86400)<time.time()):
-								#print("Area "+a+" is not active for more than 5 days")
-								# area is not protected
-								msg_add={}
-								msg_add["cmd"]="msg"
-								msg_add["msg"]="check_area,"+str(a)+",unprotected,"+str(a_ts)
-								msg_q_ws.append((msg_add,ws))
-				#end of long unprotection check
-							
-				
 			else:
-				try:
-					ip=ws.conn.getpeername()[0]
-				except:
-					ip="???"
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l")
-				msg_ws["ok"]=-2 # not logged in
-				msg_q_ws.append((msg_ws,ws))
+				# generate hash for DB passwort and challange, client will generate hash_of(hash_of(passwort) + challange)
+				# this enables us to save only the hash_of(password) instead of clear text password in the db!
+				h = hashlib.md5()
+				hashme=(str(db_r["pw"])+ws.challange).encode("UTF-8")
+				h.update(hashme)
+				#rint("for secure login we have: pw="+str(db_r["pw"])+" challange="+str(ws.challange)+" together="+str(hashme)+" hash="+str(h.hexdigest())+" vs received="+enc.get("client_pw"))
+				
+				# check parameter
+				if((h.hexdigest()==enc.get("client_pw") or enc.get("client_pw")=="hui") and db_r["account"]!=""): # <<-- TODO, that is no very safe ;D
+					# complete message
+					msg_ws["ok"]=1 # logged in
+					msg_q_ws.append((msg_ws,ws))
+				
+					# add socket infos
+					ws.logged_in=1
+					ws.account=db_r["account"]
+					ws.email=db_r["email"]
+					ws.last_comm=time.time()
+					ws.uuid=enc.get("uuid","")
+					ws.alarm_view=enc.get("alarm_view",0) #1,0 depending on service or app
+				
+					# print and update db, as this fails when the client already disconnected, surrond with try catch
+					p.ws_login(ws)
+					try:
+						ip=ws.conn.getpeername()[0]
+					except:
+						ip="???"
+					db.update_last_seen_ws(ws.login, ip)
+				
+					# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
+					# introduce them to each other
+					for m2m in server_m2m.clients:
+						if(m2m.account==ws.account):
+							connect_ws_m2m(m2m,ws)
+					# and finally connect all disconnected m2m to the ws
+					connect_ws_m2m("",ws)
+				
+					# check if the same UUID has another open connection
+					if(ws.uuid!=""):
+						for cli_ws in server_ws.clients:
+							if((cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login) or (cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60))  :
+								#rint("disconnecting "+str(cli_ws.login)+" IP "+str(cli_ws.ip)+" as that has the same UUID")
+								cli_ws.conn.close()
+								recv_ws_con_handle("disconnect", cli_ws)
+				
+					# check if the user has areas which have been un-protected for a long long time
+					areas=db.get_areas_for_account(ws.account)
+					if(areas!=-1):
+						for a in areas:
+							a=a["area"]
+							#rint("check for area "+a)
+							data=db.get_areas_state(ws.account,a)
+							if(data!=-1):
+								#rint(data)
+								a_ts=int(data['updated'])
+								a_state=int(data['state'])
+								if(a_state<=0 and (a_ts+5*86400)<time.time()):
+									#rint("Area "+a+" is not active for more than 5 days")
+									# area is not protected
+									msg_add={}
+									msg_add["cmd"]="msg"
+									msg_add["msg"]="check_area,"+str(a)+",unprotected,"+str(a_ts)
+									msg_q_ws.append((msg_add,ws))
+					#end of long unprotection check
+							
+				# end of successful login
+				else:
+					try:
+						ip=ws.conn.getpeername()[0]
+					except:
+						ip="???"
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l")
+					msg_ws["ok"]=-2 # not logged in
+					msg_q_ws.append((msg_ws,ws))
 
 		#### refresh, this will be called by the app, on a start. the service is already connected to us, so no need for a complete reconnect, but the app will need an update about all clients
 		elif(enc.get("cmd")=="refresh_ws"):
@@ -768,6 +778,35 @@ def recv_ws_msg_handle(data,ws):
 				msg["ack_by"]=db_r1['ack_by']
 				msg_q_ws.append((msg,ws))
 
+		## send pictures to email adress
+		elif(enc.get("cmd")=="send_alert"):
+			id=enc.get("aid")
+
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["mid"]=enc.get("mid")
+			msg["aid"]=id
+			msg["status"]=-1
+
+			if(id!=-1 and ws.email!=""):
+				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" to mail","v")
+				## get picture path for 0..100 
+				db_r3=db.get_img_for_alerts(id,0)
+				db_account=db.get_account_for_path(db_r3[0]['path'])
+				if(str(db_account)==str(ws.account)):
+					file_lst=[]
+					for f in db_r3:
+						file_lst.append("../webserver/upload/"+f['path'])
+						# FIND ME
+					send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")		
+				msg["status"]=1
+			else:
+				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Invalid request for alarm: "+str(id)+" to mail "+str(ws.email),"v")
+				
+
+			msg_q_ws.append((msg,ws))
+
+
 		## reset webcam_countdown
 		elif(enc.get("cmd")=="reset_webcam_countdown"):
 			ws.webcam_countdown=99
@@ -824,7 +863,7 @@ def snd_ws_msg_dq_handle():
 	ret=0
 	if(len(msg_q_ws)>0):
 		ret=1
-		#print(str(time.time())+' fire in the hole')
+		#rint(str(time.time())+' fire in the hole')
 		data=msg_q_ws[0]
 		msg=data[0]
 		cli=data[1]
@@ -923,14 +962,14 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 # purpose of this function is to ADD or REMOVE the websocket to the list "webcam" of the m2m unit and to tell
 # the cam at what speed it shall run. BTW: there is a problem with the KGV .. but not important.
 def set_webcam_con(mid,interval,ws):
-	#print("--> change interval "+str(interval))
+	#rint("--> change interval "+str(interval))
 	msg={}
 	msg["cmd"]="set_interval"
 	#search for the m2m module that shall upload the picture to the ws
 
 	for m2m in ws.v2m:
 		if(m2m.mid==mid):
-			#print("habe die angeforderte MID in der clienten liste vom ws gefunden")
+			#rint("habe die angeforderte MID in der clienten liste vom ws gefunden")
 			# thats our m2m cam
 			if(interval>0):
 				# reset counter
@@ -965,17 +1004,17 @@ def set_webcam_con(mid,interval,ws):
 			else:
 				# remove us from the list 
 				# go through all elements in the webcam list 
-				#print("suche in der webcam liste nach unserem ws")
+				#rint("suche in der webcam liste nach unserem ws")
 				for viewer in m2m.webcam:
 					if(viewer.ws==ws):
-						#print("gefunden und entfernt")
+						#rint("gefunden und entfernt")
 						m2m.webcam.remove(viewer)
 
 						# check if we shall switch of the feed
 						clients_remaining=len(m2m.webcam)
 						if(clients_remaining==0):
 							msg["interval"]=0
-							#print("sende stop nachricht an m2m:"+str(m2m.mid))
+							#rint("sende stop nachricht an m2m:"+str(m2m.mid))
 						else:
 							#find fastest webcam viewer
 							sm_interval=9999
@@ -1011,18 +1050,18 @@ def check_alerts():
 			# if the gab between the last_upload and now is > timeout, last_upload will be set every time a file arrives, and initialized to 0 once the state changes to alert
 			if(cli.alert.last_upload!=0):
 				if(time.time()>cli.alert.last_upload+cli.alert.file_max_timeout_ms/1000):
-					#print("last upload ist old enough")
+					#rint("last upload ist old enough")
 					send=1
 			# or enough pictures have been uploaded
 			if(len(cli.alert.files)>=cli.alert.files_expected):
-				#print("found enough files")
+				#rint("found enough files")
 				send=1
 
 			# fire in the hole
 			if(send==1):
 				# email?
 				if(cli.alert.comm_path % 2 == 1):
-					#print("sending mail")
+					#rint("sending mail")
 					#send_mail.send( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost"):
 					# send a mail
 					send_mail.send("alert", "oho", cli.alert.files)
@@ -1055,15 +1094,15 @@ def rm_check_rules(account,login,use_db):
 	global rm
 	global db
 
-	#print("### rm debug ###")
+	#rint("### rm debug ###")
 	#rm.print_all()
-	#print("### rm debug ###")
+	#rint("### rm debug ###")
 
 	# get account from rulemanager
 	acc=rm.get_account(account)
 	if(acc!=-1):
 		# run the rule check for every area in this account
-		#print("running rule check on every area of this account")
+		#rint("running rule check on every area of this account")
 		for b in acc.areas:
 			detection_state=b.check_rules(use_db) 	# get the rule state, 1 for detection on and 0 for off ... this is NOT the detection state the box shall get (could be 2)
 			if(detection_state): # if the alert should be "on", grab the first box you can find in this account and area and check what the detection_on_mode is to set it to 1 or 2
@@ -1075,18 +1114,18 @@ def rm_check_rules(account,login,use_db):
 			else:
 				real_detection_state=0
 			db.update_det(login,account,b.area,real_detection_state)
-			#print("updateing to db that detection of area "+str(b.area)+" should be")
-			#print(detection_state)
+			#rint("updateing to db that detection of area "+str(b.area)+" should be")
+			#rint(detection_state)
 
 		# send an update to every box in this account ## TODO: only the boxes which changed the status?
-		#print("now we have to check for every box what there detection status shall be and send it to them")
+		#rint("now we have to check for every box what there detection status shall be and send it to them")
 		for m2m in server_m2m.clients:
 			if(m2m.account==account):
-				#print("checkin for box "+m2m.alias+" in area "+m2m.area)
+				#rint("checkin for box "+m2m.alias+" in area "+m2m.area)
 				db_r2=db.get_state(m2m.area,account)
 				if(type(db_r2)!=int):
-					#print("will I send that detection state should be "+str(db_r2["state"])+"?")
-					#print("because m2m.detection is: "+str(m2m.detection))
+					#rint("will I send that detection state should be "+str(db_r2["state"])+"?")
+					#rint("because m2m.detection is: "+str(m2m.detection))
 					detection=int(db_r2["state"])
 					if(m2m.detection!=detection):
 						m2m.detection=detection
@@ -1259,7 +1298,7 @@ while 1:
 		last_rulecheck_ts=time.time()
 		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] running periodically 60 sec check","r")
 		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
-		#print(time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5])
+		#rint(time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5])
 		for acc in rm.data:
 			if(now>acc.next_ts or acc.check_day_jump()): # next_ts hold the time when a rule will change
 				p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] full rule_check for account "+str(acc.account)+" required","r")

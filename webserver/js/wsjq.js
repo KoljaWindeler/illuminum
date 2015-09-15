@@ -1,6 +1,7 @@
 // connection
 var con = null;
 var host="https://52.24.157.229/illumino/";
+var prelogin="";
 var fast_reconnect=0;
 
 // debug
@@ -9,8 +10,8 @@ var c_t=0;
 
 // cordova helper
 var c_freeze_state=0;
-var g_user="browser";
-var g_pw="hui";
+var g_user="";//"browser";
+var g_pw="";//"hui";
 
 
 // run as son as everything is loaded
@@ -41,7 +42,7 @@ function open_ws() {
 		};
 
 		console.log("onOpen");
-		check_login_data(1);
+		request_pre_login();
 	};
 
 	// reacting on incoming messages
@@ -88,8 +89,15 @@ function open_ws() {
 function parse_msg(msg_dec){
 	var mid=msg_dec["mid"];
 
+	// receive requested prelogin phrase
+	if(msg_dec["cmd"]=="prelogin"){
+		// store result in variable and continue with the login
+		prelogin=msg_dec["challange"];
+		check_login_data(1); 
+	}
+
 	// wrong login response
-	if(msg_dec["cmd"]=="login"){
+	else if(msg_dec["cmd"]=="login"){
 		if(msg_dec["ok"]!="1"){
 			console.log("received LOGIN-reject");
 			g_user="nongoodlogin";
@@ -107,6 +115,8 @@ function parse_msg(msg_dec){
 		check_append_m2m(msg_dec);
 		update_hb(mid,msg_dec["last_seen"]);
 		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+		// do it again here, to update a m2m that was existing (reconnect situation)
+		set_alert_button_state($("#"+mid+"_alarm_counter"),$("#"+mid+"_toggle_alarms"),$("#"+mid+"_toggle_alarms_text"),msg_dec["open_alarms"]);
 
 		// remove loading if still existing and scroll down to the box 
 		if($("#welcome_loading").length){
@@ -170,6 +180,16 @@ function parse_msg(msg_dec){
 			console.log("nicht gefunden");
 		};
 
+	}
+
+	// update "sendmail" button
+	else if(msg_dec["cmd"]=="send_alert"){
+		var send_button=$("#alert_"+msg_dec["mid"]+"_"+msg_dec["aid"]+"_send");
+		if(parseInt(msg_dec["status"])==1){
+			send_button.text("eMail send!").fadeIn();
+		} else {
+			send_button.text("eMail error!").fadeIn();
+		};
 	}
 
 	// updated count of alerts, show correct button style and maybe close the popup
@@ -580,6 +600,23 @@ function add_alert(aid,mid,view){
 	ack.hide();
 	side.append(ack);
 
+	// send button
+	var send=$("<a></a>");
+	send.attr({
+		"id":"alert_"+mid+"_"+aid+"_send",
+		"class":"button"
+	});
+	send.text("eMail pictures");
+	send.click(function(){
+		var id_int=aid;
+		var mid_int=mid;
+		return function(){
+			send_alert(id_int,mid_int);
+		};
+	}());
+	send.hide();
+	side.append(send);
+
 	// slider
 	var slider=$("<div></div>");
 	slider.attr({
@@ -643,6 +680,10 @@ function add_alert_details(msg_dec){
 		var ack_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_ack");
 		ack_button.show();
 	};
+
+	// show send button
+	var send_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_send");
+	send_button.show();
 	
 
 	// add new placeholder image
@@ -674,6 +715,8 @@ function add_alert_details(msg_dec){
 	} // end of if img 
 };
 
+
+
 /////////////////////////////////////////// ACK ALERT //////////////////////////////////////////
 // triggered by: user button
 // arguemnts:	 id of the alert and MID
@@ -693,6 +736,21 @@ function ack_alert(id,mid){
 	set_alert_button_state(counter,button,txt,open_alarms);
 
 	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
+	//console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 		
+};
+
+/////////////////////////////////////////// SEND ALERT //////////////////////////////////////////
+// triggered by: user button
+// arguemnts:	 id of the alert and MID
+// what it does: sends a message to the server to generate a mail with the pictures
+// why: 	 to get evidence if you need it
+/////////////////////////////////////////// SEND ALERT //////////////////////////////////////////
+
+function send_alert(id,mid){
+	$("#alert_"+mid+"_"+id+"_send").text("eMail requested...");
+
+	var cmd_data = { "cmd":"send_alert", "mid":mid, "aid":id};
 	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data)); 		
 };
@@ -1449,25 +1507,29 @@ function show_alarms(mid){
 
 function set_alert_button_state(counter,button,txt,open_alarms){
 	// the image button
-	if(open_alarms==0){
-		button.text("no alarms");
-		button.addClass("alarm_sym");
-		button.removeClass("alarm_sym_open_alerts");
-	} else if(open_alarms==1) {
-		button.text(open_alarms+" alarm");
-		button.addClass("alarm_sym_open_alerts");
-		button.removeClass("alarm_sym");
-	} else {
-		button.text(open_alarms+" alarms");
-		button.addClass("alarm_sym_open_alerts");
-		button.removeClass("alarm_sym");
-	}
+	if(button.length){
+		if(open_alarms==0){
+			button.text("no alarms");
+			button.addClass("alarm_sym");
+			button.removeClass("alarm_sym_open_alerts");
+		} else if(open_alarms==1) {
+			button.text(open_alarms+" alarm");
+			button.addClass("alarm_sym_open_alerts");
+			button.removeClass("alarm_sym");
+		} else {
+			button.text(open_alarms+" alarms");
+			button.addClass("alarm_sym_open_alerts");
+			button.removeClass("alarm_sym");
+		}
+	};
 
 	// text over the image
-	if(open_alarms==0){
-		counter.text("");
-	} else {
-		counter.text(open_alarms);
+	if(counter.length){
+		if(open_alarms==0){
+			counter.text("");
+		} else {
+			counter.text(open_alarms);
+		};
 	};
 
 /*	// Text under the image
@@ -1687,12 +1749,14 @@ function update_state(account,area,mid,state,detection,rm){
 	//console.log("running update state on "+mid+"/"+state);
 
 	// set the rulemanager text explainaition
-	$("#"+account+"_"+area+"_status").click(function(){
-		var rm_int=rm;
-		return function(){
-			txt2fb(format_rm_status(rm_int));
-		};
-	}());
+	if(state>=0){
+		$("#"+account+"_"+area+"_status").click(function(){
+			var rm_int=rm;
+			return function(){
+				txt2fb(format_rm_status(rm_int));
+			};
+		}());
+	};
 	// set the rulemanager text explainaition
 
 	// text state of the m2m
@@ -2203,8 +2267,11 @@ function send_login(user,pw){
 		g_user=user;
 		g_pw=pw;
 
-		var cmd_data = { "cmd":"login", "login":user, "client_pw":pw, "alarm_view":0};
-		console.log(JSON.stringify(cmd_data));
+		// hash the password, combine it with the challange and submit the hash of the result
+		var hash_pw = CryptoJS.MD5(pw).toString(CryptoJS.enc.Hex);
+		var hash = CryptoJS.MD5(hash_pw+prelogin).toString(CryptoJS.enc.Hex);
+		console.log("received pw="+pw+" as hash="+hash_pw+" and prelogin="+prelogin+" and generated hash="+hash);
+		var cmd_data = { "cmd":"login", "login":user, "client_pw":hash, "alarm_view":0};
 		con.send(JSON.stringify(cmd_data)); 
 		$("#welcome_loading").remove();
 	
@@ -2214,6 +2281,18 @@ function send_login(user,pw){
 		l.insertAfter("#clients");
 		l.append(get_loading("wli","Login in..."));
 	};
+};
+
+/////////////////////////////////////////// REQUEST PRE LOGIN //////////////////////////////////////////
+// triggered by: on connection open
+// arguemnts:	 none
+// what it does: sends a message to the server to receive a randomized string that avoids repetition of passwords
+// why: 	 to increase security
+/////////////////////////////////////////// REQUEST PRE LOGIN //////////////////////////////////////////
+function request_pre_login(){
+	var cmd_data = { "cmd":"prelogin" };
+	console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 
 };
 
 function check_login_data(try_cordova){

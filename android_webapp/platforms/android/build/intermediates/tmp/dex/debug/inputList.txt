@@ -1,0 +1,5 @@
+C:\Users\windkol\Documents\GitHub\illumino\android_webapp\platforms\android\build\intermediates\classes\debug
+C:\Users\windkol\Documents\GitHub\illumino\android_webapp\platforms\android\build\intermediates\pre-dexed\debug\support-annotations-20.0.0-faba285de213e125bade98113818a5dd125e87a9.jar
+C:\Users\windkol\Documents\GitHub\illumino\android_webapp\platforms\android\build\intermediates\pre-dexed\debug\internal_impl-20.0.0-f663894c48535c57bfaf02eac424cc71e1041d2f.jar
+C:\Users\windkol\Documents\GitHub\illumino\android_webapp\platforms\android\build\intermediates\pre-dexed\debug\classes-c377f6822e77bf32f91af414308064beceba0c86.jar
+C:\Users\windkol\Documents\GitHub\illumino\android_webapp\platforms\android\build\intermediates\pre-dexed\debug\classes-a6ab273144b558a65a65a3d90395986bd9570dff.jar

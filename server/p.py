@@ -89,22 +89,25 @@ def start_listen():
 			callback[0](input)
 
 def rint(input,sc):
-	found=0
-	for a in print_out:
-		if(a.shortcut==sc):
-			found=1
-			if(a.state==1):
-				input="("+sc+")"+input
-				print(input)
-				
-				input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
-				with open("log.txt", "a") as log_file:
-					log_file.write(input_log)
-					log_file.close()
+	try:
+		found=0
+		for a in print_out:
+			if(a.shortcut==sc):
+				found=1
+				if(a.state==1):
+					input="("+str(sc)+")"+input
+					print(input)
+					
+					input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
+					with open("log.txt", "a") as log_file:
+						log_file.write(input_log)
+						log_file.close()
     				
-				
-	if(not(found)):
-		print("didn't recogice shortcut '"+sc+"'")
+					
+		if(not(found)):
+			print("didn't recogice shortcut '"+sc+"'")
+	except:
+		ignore=1
 
 
 def m2m_login(m2m,viewer):
