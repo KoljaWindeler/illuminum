@@ -36,7 +36,7 @@ class led:
 l = led()					# initialize one object of the class LED to have all vars set.
 
 # LED strip configuration:
-LED_COUNT      = 4      # Number of LED pixels.
+LED_COUNT      = 8      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
 LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
@@ -96,10 +96,8 @@ def start_light():
 				#strip.setPixelColor(1,Color(0,255,0))		# set value
 				#strip.setPixelColor(2,Color(0,0,255))		# set value
 				#strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
-				strip.setPixelColor(0,Color(l.c_r,l.c_g,l.c_b))		# set value
-				strip.setPixelColor(1,Color(l.c_r,l.c_g,l.c_b))		# set value
-				strip.setPixelColor(2,Color(l.c_r,l.c_g,l.c_b))		# set value
-				strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
+				for i in range(0,LED_COUNT):
+					strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
 				strip.show()
 				time.sleep(0.8*l.ms_step/1000) # we can wait here a little while because we know that nothing will happen for us earlier than that anyway
 

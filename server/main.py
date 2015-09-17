@@ -159,7 +159,7 @@ def recv_m2m_msg_handle(data,m2m):
 				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("mid"))+"' not found in DB, log-in: failed","l")
 				msg["ok"]=-3 # not logged in
 			else:
-				h = hashlib.new('ripemd160')
+				h = hashlib.md5()
 				h.update(str(db_r["pw"]+m2m.challange).encode("UTF-8"))
 				#rint("total to code="+(str(db["pw"]+m2m.challange)))
 				#rint("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
