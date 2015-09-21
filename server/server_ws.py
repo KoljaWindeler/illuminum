@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from OpenSSL import SSL
+import ssl
 import socket, struct,  threading, cgi, time, p, sys
 from clients import ws_clients
 from base64 import b64encode
@@ -108,6 +108,8 @@ def handle (client,addr):
 		if(len(rList)>0):
 			busy=1
 			try:
+				#print(addr,end="")
+				#print("server_ws: rList has "+str(len(rList))+" Elements")
 				client.ws._handleData()
 				while(client.ws.data_ready==True):
 					msg=client.ws.getMessage() # getMessage will unset the data_ready flag if no data left
@@ -119,7 +121,7 @@ def handle (client,addr):
 						#client.ws.last_data=""
 			except Exception as n:
 				print("")
-				print("except",end="")
+				print("except ",end="")
 				print(sys.exc_info()[0])
 				print("")
 
@@ -168,30 +170,36 @@ def handle (client,addr):
 #************* HANDLE CONNECTION *****************************************#
 	
 def start_server ():
-	context = SSL.Context(SSL.TLSv1_METHOD)
-	context.use_privatekey_file('key')
-	context.use_certificate_file('cert')
+	#context = SSL.Context(SSL.TLSv1_METHOD)
+	#context.use_privatekey_file('key')
+	#context.use_certificate_file('cert')
 	
 	s_n = socket.socket()
 	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	s = SSL.Connection(context, s_n)
+	#s = SSL.Connection(context, s_n)
 
-	s.bind(('', PORT))
-	s.listen(MAX_CLIENTS) # max clients
+	s_n.bind(('', PORT))
+	s_n.listen(MAX_CLIENTS) # max clients
 
 	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] Waiting on wss_clients on Port "+str(PORT),"l")
 	while 1:
-		conn, addr = s.accept()
-		# generate new client
-		new_client=ws_clients(conn)
-		new_client.ws=WebSocket(conn) 
-		# append it
-		clients.append(new_client)
-		p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" ws_clients now","l")
-		threading.Thread(target = handle, args = (new_client,addr)).start()
-		# send every subscr
-		for callb in callback_con:
-			callb("conn",new_client)
+		conn, addr = s_n.accept()
+		try:
+			connstream = ssl.wrap_socket(conn, server_side=True, certfile="cert", keyfile="key")
+			# generate new client
+			new_client=ws_clients(connstream)
+			new_client.ws=WebSocket(connstream) 
+			# append it
+			clients.append(new_client)
+			p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" ws_clients now","l")
+			threading.Thread(target = handle, args = (new_client,addr)).start()
+			# send every subscr
+			for callb in callback_con:
+				callb("conn",new_client)
+		except Exception as n:
+			p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] exception before starting connect thread","d")
+			print(n)
+			
 
  
 def start():
@@ -379,8 +387,17 @@ class WebSocket(object):
 	def _handleData(self):
 		# do the HTTP header and handshake
 		if self.handshaked is False:
-			data = self.sock.recv(self.headertoread).decode("UTF-8")
+			try:
+				data = self.sock.recv(self.headertoread)
+				#print("I've received:",end="")
+				#print(data)
+				data = data.decode("UTF-8")
+			except Exception as e:
+				print("recv exception in server_ws:'", end="")
+				print(e,end="")
+				print("'")
 			if not data:
+				#print("empty data received, eventhough headertoread was "+str(self.headertoread))
 				raise Exception("remote socket closed")
 
 			else:
