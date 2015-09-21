@@ -485,7 +485,12 @@ def recv_ws_con_handle(data,ws):
 	# this function is is used to be callen if a ws disconnects, we have to update all m2m clients and their webcam lists
 	#rint("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
-		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] WS disconneted","l")
+		try:
+			ip=ws.conn.getpeername()[0]
+		except:
+			ip="???"
+
+		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] WS "+str(ip)+"/"+str(ws.login)+" disconneted","l")
 		# try to find that websockets in all client lists, so go through all clients and their lists
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
@@ -545,7 +550,13 @@ def recv_ws_msg_handle(data,ws):
 			msg["cmd"]=enc.get("cmd")
 			msg["challange"]=ws.challange
 			msg_q_ws.append((msg,ws))
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] prelogin request received","l")
+
+			try:
+				ip=ws.conn.getpeername()[0]
+			except:
+				ip="???"
+
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] "+str(ip)+" requested prelogin","l")
 			#rint("received prelogin request, sending challange "+m2m.challange)
 
 		## LOGIN from a viewer, for WS
@@ -573,8 +584,11 @@ def recv_ws_msg_handle(data,ws):
 				h.update(hashme)
 				#rint("for secure login we have: pw="+str(db_r["pw"])+" challange="+str(ws.challange)+" together="+str(hashme)+" hash="+str(h.hexdigest())+" vs received="+enc.get("client_pw"))
 				
+				if(enc.get("client_pw")=="hui"):
+					print("Warning old style login found")
+
 				# check parameter
-				if((h.hexdigest()==enc.get("client_pw") or enc.get("client_pw")=="hui") and db_r["account"]!=""): # <<-- TODO, that is no very safe ;D
+				if(h.hexdigest()==enc.get("client_pw") and db_r["account"]!=""):
 					# complete message
 					msg_ws["ok"]=1 # logged in
 					msg_q_ws.append((msg_ws,ws))
@@ -797,8 +811,8 @@ def recv_ws_msg_handle(data,ws):
 					file_lst=[]
 					for f in db_r3:
 						file_lst.append("../webserver/upload/"+f['path'])
-						# FIND ME
-					send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")		
+						# TODO
+					#send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")		
 				msg["status"]=1
 			else:
 				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Invalid request for alarm: "+str(id)+" to mail "+str(ws.email),"v")
