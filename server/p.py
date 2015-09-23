@@ -147,7 +147,7 @@ def show_ws(id,l,ws):
 		p_last_seen=(datetime.datetime.fromtimestamp(int(ws.last_comm)).strftime('%H:%M:%S')+"                         ")[0:10]
 		p_qlen=(str(ws.snd_q_len)+"                    ")[0:8]
 		p_uuid=(str(ws.uuid)+"                   ")[0:15]
-		p_location=(str(ws.location)+"             ")[0:10]
+		p_location=(str(ws.location)+"             ")[0:14]
 		
 		output=p_login+" | "+p_account+" | "+str(p_ip)+" | "+str(ws.logged_in)+"    | "+p_last_seen+" | "+p_qlen+" | "+p_uuid
 		output+=" | "+p_location
