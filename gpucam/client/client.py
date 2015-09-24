@@ -32,6 +32,7 @@ mRed=0
 mGreen=0
 mBlue=0
 
+
 #******************************************************#
 def get_time():
 	return time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
@@ -210,6 +211,9 @@ recv_buffer=""
 last_pic=time.time()
 
 while 1:
+	pu_num=0
+	pu_start_ts=0
+
 	logged_in=0
 	client_socket=connect()	
 	while(client_socket!=""):
@@ -384,9 +388,9 @@ while 1:
 			if(msg!=""):
 				#print("A message is ready to send")
 				send_msg=json.dumps(msg)
-				if(json.loads(send_msg).get("cmd"," ")=="wf"):
-					if(json.loads(send_msg).get("sof",0)==1):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn"))
+				if(msg.get("cmd"," ")=="wf"):
+					if(msg.get("sof",0)==1):
+						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+msg.get("fn"))
 						msg["td"].append((time.time(),"upload start"))
 
 				send_msg_enc=send_msg.encode("UTF-8")
@@ -410,20 +414,20 @@ while 1:
 					ignore=1
 
 				#print("message send")
-				if(json.loads(send_msg).get("ack",0)==-1):
+				if(msg.get("ack",0)==-1):
 					#print("waiting on response")
 					comm_wait=1
 					msg_out_ts=time.time()
-				if(json.loads(send_msg).get("cmd"," ")=="wf"):
-					if(json.loads(send_msg).get("eof",0)==1):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
+				if(msg.get("cmd"," ")=="wf"):
+					if(msg.get("eof",0)==1):
+						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+msg.get("fn")+" done")
 						#os.remove(json.loads(send_msg).get("fn"))
 						
 						#print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
 						if(trigger.TIMING_DEBUG):
 							msg["td"].append((time.time(),"upload done"))
 							old=msg["td"][0][0]
-							print("Debug of "+json.loads(send_msg).get("fn")+"'s timing")
+							print("Debug of "+msg.get("fn")+"'s timing")
 							for a in msg["td"]:
 								p_state=(a[1]+"             ")[0:15]
 								p_t1=(str(int((a[0]-old)*1000))+"          ")[0:5]
@@ -435,6 +439,14 @@ while 1:
 							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic))
 							print("[A "+time.strftime("%H:%M:%S")+"] delay "+str(time.time()-msg["td"][0][0]))
 							last_pic=time.time()
+
+							pu_num=pu_num+1
+							if(pu_start_ts==0):
+								pu_start_ts=time.time()
+								pu_num=0
+							else:
+								print("Uploaded "+str(pu_num)+" Frames in "+str((time.time()-pu_start_ts))+" this is "+str(pu_num*25/(time.time()-pu_start_ts))+"kBps or "+str(pu_num/(time.time()-pu_start_ts))+"fps")
+
 
 		elif(comm_wait==1 and logged_in==1):
 			if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
