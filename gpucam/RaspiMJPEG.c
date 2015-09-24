@@ -151,6 +151,7 @@ static void jpegencoder_buffer_callback (MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
       free(filename_temp);
       free(filename_temp2);
       image_cnt++;
+      image_cnt=image_cnt%20;
       mjpeg_cnt = 0;
       cam_set_annotation();
     }
@@ -206,6 +207,7 @@ static void jpegencoder_buffer_callback2 (MMAL_PORT_T *port, MMAL_BUFFER_HEADER_
       free(filename_temp);
       free(filename_temp2);
       image2_cnt++;
+      image2_cnt=image2_cnt%20;
       mjpeg2_cnt = 0;
       cam_set_annotation();
     }
