@@ -33,6 +33,7 @@ mGreen=0
 mBlue=0
 
 
+
 #******************************************************#
 def get_time():
 	return time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
@@ -238,7 +239,7 @@ while 1:
 				os._exit(1)
 			else:
 				print("what do you mean by: "+input)
-	
+
 		## do some light dimming
 		if(len(light_dimming_q) > 0):
 			for data in light_dimming_q:
@@ -388,10 +389,10 @@ while 1:
 			if(msg!=""):
 				#print("A message is ready to send")
 				send_msg=json.dumps(msg)
-				if(msg.get("cmd"," ")=="wf"):
-					if(msg.get("sof",0)==1):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+msg.get("fn"))
-						msg["td"].append((time.time(),"upload start"))
+#				if(msg.get("cmd"," ")=="wf"):
+#					if(msg.get("sof",0)==1):
+#						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+msg.get("fn"))
+#						msg["td"].append((time.time(),"upload start"))
 
 				send_msg_enc=send_msg.encode("UTF-8")
 				try:
@@ -420,25 +421,24 @@ while 1:
 					msg_out_ts=time.time()
 				if(msg.get("cmd"," ")=="wf"):
 					if(msg.get("eof",0)==1):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+msg.get("fn")+" done")
+#						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+msg.get("fn")+" done")
 						#os.remove(json.loads(send_msg).get("fn"))
 						
 						#print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
 						if(trigger.TIMING_DEBUG):
-							msg["td"].append((time.time(),"upload done"))
-							old=msg["td"][0][0]
-							print("Debug of "+msg.get("fn")+"'s timing")
-							for a in msg["td"]:
-								p_state=(a[1]+"             ")[0:15]
-								p_t1=(str(int((a[0]-old)*1000))+"          ")[0:5]
-								p_t2=(str(int((a[0]-msg["td"][0][0])*1000))+"          ")[0:5]
-								
-								print("[A "+time.strftime("%H:%M:%S")+"] -> event:"+p_state+": "+p_t1+" / "+p_t2+" ms at "+str(a[0]))
-								old=a[0]
-							#os._exit(1)
-							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic))
-							print("[A "+time.strftime("%H:%M:%S")+"] delay "+str(time.time()-msg["td"][0][0]))
-							last_pic=time.time()
+#							msg["td"].append((time.time(),"upload done"))
+#							old=msg["td"][0][0]
+#							print("Debug of "+msg.get("fn")+"'s timing")
+#							for a in msg["td"]:
+#								p_state=(a[1]+"             ")[0:15]
+#								p_t1=(str(int((a[0]-old)*1000))+"          ")[0:5]
+#								p_t2=(str(int((a[0]-msg["td"][0][0])*1000))+"          ")[0:5]
+#								
+#								print("[A "+time.strftime("%H:%M:%S")+"] -> event:"+p_state+": "+p_t1+" / "+p_t2+" ms at "+str(a[0]))
+#								old=a[0]
+#							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic))
+#							print("[A "+time.strftime("%H:%M:%S")+"] delay "+str(time.time()-msg["td"][0][0]))
+#							last_pic=time.time()
 
 							pu_num=pu_num+1
 							if(pu_start_ts==0):
