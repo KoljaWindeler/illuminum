@@ -314,6 +314,8 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file , for M2M
 		elif(enc.get("cmd")=="wf"):
+#			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' uploaded "+enc.get("fn"),"u")			
+#		elif(enc.get("cmd")=="wf_4real"):
 			# handle new file
 			if(m2m.openfile!=enc.get("fn")):
 				if(m2m.fp!=""):
@@ -402,19 +404,12 @@ def recv_m2m_msg_handle(data,m2m):
 						set_webcam_con(m2m.mid,0,v.ws) # disconnect the webcam from us						
 					else:
 						p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
-				if(m2m.detection==0):
+#				if(m2m.detection==0):
 					#  delete the picture from our memory, as it can not be a alert picture
-					os.remove(this_file)
+					#os.remove(this_file)
 
 				tmp_loc=this_file.split('/')
 				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
-				# send good ack
-			if(enc.get("ack")==-1):
-				msg={}
-				msg["cmd"]=enc.get("cmd")
-				msg["fn"]=enc.get("fn")
-				msg["ok"]=1
-				msg_q_m2m.append((msg,m2m))
 
 			m2m.paket_count_per_file+=1
 
@@ -422,6 +417,18 @@ def recv_m2m_msg_handle(data,m2m):
 		#### unsupported command, for M2M
 		else:
 			p.rint("unsupported command: "+str(enc.get("cmd")),"d")
+
+		# send good ack
+		if(enc.get("ack")==-1):
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ack_ok"]=1
+			msg_q_m2m.append((msg,m2m))
+#			for a in range(0,5):
+#				time.sleep(1)
+#				print(str(a))
+
+
 		#********* msg handling **************#
 	#### comm error , for M2M
 	else:
@@ -443,6 +450,7 @@ def snd_m2m_msg_dq_handle():
 		#rint(str(time.time())+' fire in the hole')
 		data=msg_q_m2m[0]
 		msg_q_m2m.remove(data)
+		#print(data)
 
 		msg=data[0]
 		m2m=data[1]
@@ -1078,7 +1086,7 @@ def check_alerts():
 					#rint("sending mail")
 					#send_mail.send( subject, text, files=[], send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost"):
 					# send a mail
-					send_mail.send("alert", "oho", cli.alert.files)
+					#send_mail.send("alert", "oho", cli.alert.files)
 
 					# send a notification to all clients
 					msg={}
