@@ -141,7 +141,7 @@ def upload_file(data):
 			msg["sof"]=1
 		msg["eof"]=0
 		msg["msg_id"]=i	
-		msg["ack"]=0 #-1
+		msg["ack"]=-1 #-1
 		msg["ts"]=td
 		if(len(strng)!=(MAX_MSG_SIZE-100)):
 			msg["eof"]=1
@@ -267,6 +267,7 @@ while 1:
 				break;
 			
 			comm_wait=0
+			print("reset comm")
 			msg_out_ts=0
 			data_dec=recv_buffer+data_dec
 			data_array=data_dec.split('}')
@@ -334,7 +335,7 @@ while 1:
 						
 					elif(enc.get("cmd")=="set_interval"):
 						print("setting interval to "+str(enc.get("interval",0)))
-						trigger.set_interval(enc.get("interval",0))
+						#trigger.set_interval(enc.get("interval",0))
 						#if(enc.get("interval",0)>0):
 						#	light_dimming_q.append((time.time(),0,100,0,1000)) # 4 sec to dimm to off - in 10 min from now
 						#else:
@@ -416,7 +417,7 @@ while 1:
 
 				#print("message send")
 				if(msg.get("ack",0)==-1):
-					#print("waiting on response")
+					print("waiting on response")
 					comm_wait=1
 					msg_out_ts=time.time()
 				if(msg.get("cmd"," ")=="wf"):
@@ -436,9 +437,9 @@ while 1:
 #								
 #								print("[A "+time.strftime("%H:%M:%S")+"] -> event:"+p_state+": "+p_t1+" / "+p_t2+" ms at "+str(a[0]))
 #								old=a[0]
-#							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic))
+							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic),end="")
 #							print("[A "+time.strftime("%H:%M:%S")+"] delay "+str(time.time()-msg["td"][0][0]))
-#							last_pic=time.time()
+							last_pic=time.time()
 
 							pu_num=pu_num+1
 							if(pu_start_ts==0):
