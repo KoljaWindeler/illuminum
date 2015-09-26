@@ -5,8 +5,6 @@ import threading
 import os
 import io
 
-WIDTH=1280
-HEIGHT=720
 TIMING_DEBUG=1
 STEP_DEBUG=0
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
@@ -16,13 +14,14 @@ img_q=[]
 webcam_interval=0
 change_det_event=0
 #change_res_event=0
-cam_width=WIDTH
-cam_height=HEIGHT
 last_webcam_ts=0
 callback_action=[""]
 detection=0 # set to 1 for default, 0=off,1=send just the first 5 shoots if alert, 2=send all shoots as long as pin is HIGH
 alias=""
 
+high_res=0
+webcam_capture_remaining=0
+path=""
 
 # this is how the photos travel:
 # the server will tell us via "set interval" how often we should make a photo (at most)
@@ -50,12 +49,14 @@ def start_trigger():
 		GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
 		global last_webcam_ts
+		global webcam_capture_remaining
 		global webcam_interval
 		global detection
 		global img_q
 		global alias
+		global high_res
+		global path
 		state=-1 # to be refreshed
-		webcam_capture_remaining=0
 		busy=1
 		webcam_ok=1
 
@@ -75,7 +76,7 @@ def start_trigger():
 			# set detection on / off
 			if(change_det_event):
 				busy=1
-				state=-1 #to be refreshed by the part above
+				state=-1 #to be refreshed by the part below
 				change_det_event=0
 				
 			# react on pin state change
@@ -85,11 +86,13 @@ def start_trigger():
 				if(state == 1 and detection!=0): #alarm conditions
 					start = time.time()
 					webcam_capture_remaining=5
+					high_res=1
 
 				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[state]+"' with detection '"+det_state[detection]+"'")
 
 				for callb in callback_action:
-					callb("state_change",(state,detection))
+					if(not(type(callb) is str)):
+						callb("state_change",(state,detection))
 
 			elif(gpio_state == 1 and detection == 2): # the "send all photos until low mode"
 				busy=1
@@ -99,53 +102,31 @@ def start_trigger():
 			
 			# interval photos
 			if(webcam_interval>0):
-				if(time.time()>last_webcam_ts+0.1):
-				#if(time.time()>last_webcam_ts+webcam_interval):
-					webcam_capture_remaining=1
-					#print("taking a snap")
-					#webcam_interval=0 -> will turn of after one picture
+				high_res=0
+				webcam_capture_remaining=1
 
 
 			# capture photos!
 			if(webcam_capture_remaining>0):
 				busy=1
-				l_last_webcam_ts=time.time()
-				#img_q=[]
-				td=[]
-				td.append((time.time(),"start"))
-
-				# take as many shoots as in webcam_capture_remaining, place in buffer
-				for i in range(0,webcam_capture_remaining):
-					# to time dispaying
-					td.append((time.time(),"snapping"))
-					
-					# saving to file
-					add="SNAP"
-					if(state==1 and detection>=1):
-						path=str(int(time.time()*100) % 10000)+'alert'+str(i)+'.jpg';
-						add="ALERT"
-					else:
-						path=str(int(time.time()*100) % 10000)+'snap'+str(i)+'.jpg';
+				add="SNAP"
+				if(state==1 and detection>=1):
+					path=str(int(time.time()*100) % 10000)+'alert'+str(webcam_capture_remaining)+'.jpg';
+					add="ALERT"
+				else:
+					path=str(int(time.time()*100) % 10000)+'snap'+str(webcam_capture_remaining)+'.jpg';
 						
-					print("[A "+time.strftime("%H:%M:%S")+"] Picture taken "+path)
-				
-					td.append((time.time(),"loading"))
-
-					print("[A "+time.strftime("%H:%M:%S")+"] -> Pic "+path+" saved")
-					for callb in callback_action:
-						# todo, if is not a function, skip
-						while(callb("uploading",(path,td))): # the callback will return 1 if is more then one file in the queue
-							if(STEP_DEBUG):
-								print("[A "+time.strftime("%H:%M:%S")+"] Step 2.1. upload handle was not yet ready for "+path+", waiting 0.1sec")
-							time.sleep(0.1) # give the upload process a little more cpu priority
-						if(STEP_DEBUG):
-							print("[A "+time.strftime("%H:%M:%S")+"] Step 3. passed image "+path+" to upload handle")
-
-						
-				webcam_capture_remaining=0
-				last_webcam_ts=l_last_webcam_ts
 
 		GPIO.cleanup()
+
+def get_photo_state():
+	global webcam_capture_remaining
+	global high_res
+	global path	
+
+	webcam_capture_remaining_old=webcam_capture_remaining
+	webcam_capture_remaining=max(webcam_capture_remaining-1,0)
+	return ((webcam_capture_remaining_old,path,high_res))
 
 def subscribe_callback(fun,method):
 	if callback_action[0]=="":
