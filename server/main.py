@@ -406,7 +406,7 @@ def recv_m2m_msg_handle(data,m2m):
 						p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
 #				if(m2m.detection==0):
 					#  delete the picture from our memory, as it can not be a alert picture
-					#os.remove(this_file)
+					os.remove(this_file)
 
 				tmp_loc=this_file.split('/')
 				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
