@@ -270,7 +270,10 @@ while 1:
 					last_transfer=time.time()
 					#print("json decoded msg")
 					#print(enc)
-					if(enc.get("cmd")=="prelogin"):
+					if(enc.get("ack_ok",0)==1):
+						#print("comm wait dec at "+str(time.time())+" -> "+str(len(comm_wait)))
+						msg_out_ts=0
+					elif(enc.get("cmd")=="prelogin"):
 						#### login 
 						#print("received challange "+enc.get("challange"))
 						h = hashlib.md5()
