@@ -1353,7 +1353,7 @@ function show_liveview(mid){
 
 		view.fadeIn("fast");
 		
-		set_interval(mid,1);
+		set_interval(mid,0.01);
 	};
 }
 ///////////////////////// LIVE VIEW //////////////////////////////////
@@ -1675,9 +1675,11 @@ function set_override(user,area,on_off){
 function createRainbowDiv(s){
 	var gradient = $("<div>").css({display:"flex", height:"100%"});
 	if(s>0){
-		for (var i = 0; i<=255; i++){
+		for (var i = 0; i<255; i++){
 			gradient.append($("<div>").css({"background-color":'hsl('+i+','+s+'%,50%)',flex:1}));
 		}
+		gradient.append($("<div>").css({"background-color":'hsl(300,100%,94%)',flex:1}));
+
 	} else {
 		for (var i = 0; i<=255; i++){
 			gradient.append($("<div>").css({"background-color":'rgb('+i+','+i+','+i+')',flex:1}));
@@ -1700,6 +1702,11 @@ function send_color(mid) {
 		var color=$("#colorslider_"+mid).slider( "value" );
 		var brightness=$("#brightnessslider_"+mid).slider( "value" );
 		var mul=brightness/255;
+		if(color==255){
+			rgb[0]=255;
+			rgb[1]=255;
+			rgb[2]=255;
+		};
 
 		var cmd_data = { 
 				"cmd":"set_color", 
