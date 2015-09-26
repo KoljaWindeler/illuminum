@@ -1,1 +1,2 @@
-uv4l --driver raspicam  --auto-video_nr --width 1280 --height 7200 --framerate 10
+mkdir /dev/shm/mjpeg/
+/home/pi/python/illumino/gpucam/raspimjpeg -v --config /home/pi/python/illumino/gpucam/raspimjpeg.config
