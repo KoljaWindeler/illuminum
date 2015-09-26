@@ -5,7 +5,7 @@ from clients import m2m_clients
 from base64 import b64encode
 from hashlib import sha1
 SERVER_PORT=9875
-MAX_CONN=5
+MAX_CONN=50
 MAX_MSG_SIZE=1024000
 
 #******************************************************#
@@ -27,7 +27,7 @@ def start_server ():
 	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] Waiting on m2m_clients on port "+str(SERVER_PORT),"l")
 	while 1:
 		conn, addr = s.accept()
-		#print(conn.recv(65535))
+		#rint(conn.recv(65535))
 		new_client=m2m_clients(conn)
 		clients.append(new_client)
 		p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" m2m_clients now","l")
@@ -42,7 +42,7 @@ def handle (client, addr):
 	while 1:
 		res = recv_data(client, MAX_MSG_SIZE)
 		if res<0:
-			#print("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
+			#rint("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
 			break
 	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr),"l")
 
@@ -59,13 +59,18 @@ def handle (client, addr):
 	
 #******************************************************#
 def recv_data (client, length):
-	#print("Wait on data")
+	#rint("Wait on data")
 	try:
+		#rint("before recv ",end="")
+		#rint(time.time())
 		data = bytearray(client.conn.recv(length))
+		#rint("after recv ",end="")
+		#rint(time.time())
 	except:	
 		p.rint("recv killed","d")
 		return -1;
-	#print("[S_m2m] -> Incoming")
+	#rint("[S_m2m] -> Incoming")
+	#rint("[S_m2m] -> recv "+str(len(data))+" bytes")
 	if(len(data)==0):
 		p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client disconnected!","l")
 		return -1
@@ -75,24 +80,27 @@ def recv_data (client, length):
 	except:
 		p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> UTF8 decoding failed!","d")
 		data_dec=""
-	#print("input:"+data_dec+"<-")
+	#rint("input:"+data_dec+"<-")
 	
 	# add everything that we couldn't use from the last message (saved in the buffer)
 	data_dec=client.buffer+data_dec
+	#rint("[S_m2m] buffer holds "+str(len(data_dec)))
+
 	# split messages at the end of the json identifier
 	data_array=data_dec.split('}');
 	
 	# assume a good return value
 	ret=0
 	
-	#print("we have "+str(len(data_array))+" elements")
+	#rint("we have "+str(len(data_array))+" elements")
 	#for a in range(0,len(data_array)):
-		#print("element "+str(a)+" value: "+data_array[a])
+		#rint("element "+str(a)+" value: "+data_array[a])
 	
 	# handle all but the last element
 	for a in range(0,len(data_array)-1):
 		# re-create the end tag
 		data_array[a]+='}'
+		#rint("found EOJM")
 		
 		# send the message to all subscribers of the msg event
 		for callb in callback_msg:	 
@@ -105,7 +113,7 @@ def recv_data (client, length):
 	else:
 		# but if we grabbed something like 1.5 messages, we should buffer the 0.5 message and use it in the next round
 		client.buffer=data_array[len(data_array)-1]
-		#print("using buffer!")
+		#rint("using buffer!")
 	
 	return ret
 	#end
@@ -119,7 +127,7 @@ def send_data(client, data):
 	for d in bytearray(data):
             msg.append(d)
 	try:
-		#print('-s-->'+str(msg))
+		#rint('-s-->'+str(msg))
 		client.conn.send(msg)
 	except:
 		p.rint("m2m send data failed","d")
