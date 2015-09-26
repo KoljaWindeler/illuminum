@@ -139,7 +139,7 @@ static void jpegencoder_buffer_callback (MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T
   if(buffer->flags & MMAL_BUFFER_HEADER_FLAG_FRAME_END) {
 	  currTime = time(NULL);
 	  localTime = localtime (&currTime);
-    printf("1:%i_%02i:%02i:%02i\n",image_cnt,localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
+    //printf("1:%i_%02i:%02i:%02i\n",image_cnt,localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
 
     mjpeg_cnt++;
     if(mjpeg_cnt == divider || 1) {
@@ -195,7 +195,7 @@ static void jpegencoder_buffer_callback2 (MMAL_PORT_T *port, MMAL_BUFFER_HEADER_
   if(buffer->flags & MMAL_BUFFER_HEADER_FLAG_FRAME_END) {
 	  currTime = time(NULL);
 	  localTime = localtime (&currTime);
-    printf("2:%i_%02i:%02i:%02i\n",image2_cnt,localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
+    //printf("2:%i_%02i:%02i:%02i\n",image2_cnt,localTime->tm_hour, localTime->tm_min, localTime->tm_sec);
 
     mjpeg2_cnt++;
     if(mjpeg2_cnt == divider || 1) {
