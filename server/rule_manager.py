@@ -1,5 +1,5 @@
 __author__ = 'kolja'
-import time, datetime, p
+import time, datetime, p, calendar
 
 # 4 # rule_manager, used to hold multiple rule_accounts
 # .data																			list of all "rule_accounts"
@@ -208,9 +208,11 @@ class rule_account:
 		p.rint("|+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:","r")
 		i=1
 		for a in self.areas:
+			p.rint("|","r")
 			p.rint("||+ Area "+str(i)+"/"+str(len(self.areas)),"r")
 			a.print_rules()
 			i+=1
+		p.rint("|","r")
 		p.rint("|+ my next timebased trigger event is at '"+str(self.next_ts)+"'","r")
 	
 #*************************************#
@@ -317,24 +319,50 @@ class area:
 					p_conn+=": "
 					user_present=self.db.user_on_area(self.account,self.area)
 					ii=0
+					p_conn+="<b>"
 					for u in user_present:
 						ii+=1
 						p_conn+=u["login"]
 						if(ii<user_count):
 							p_conn+=", "	
+					p_conn+="</b>"
 										
 		###############
 		elif(str(r.conn)=="AND"):
 			if(on):
-				p_conn="Activating protection, because both subrules id="+str(r.arg1)+" and id="+str(r.arg2)+" are true"
+				p_conn="Activating protection, because both subrules id=<b>"+str(r.arg1)+"</b> and id=<b>"+str(r.arg2)+"</b> are true"
 			else:
-				p_conn="Not activating protection, because not both subrules id="+str(r.arg1)+" and id="+str(r.arg2)+" are true"
+				p_conn="Not activating protection, because not both subrules id=<b>"+str(r.arg1)+"</b> and id=<b>"+str(r.arg2)+"</b> are true"
+		###############
+		elif(str(r.conn)=="day"):
+			if(on):
+				p_conn="Activating protection, because it is <b>"+str(calendar.day_name[int(r.arg1)])+"</b>."
+			else:
+				p_conn="Not activating protection, because today is not <b>"+str(calendar.day_name[int(r.arg1)])+"</b>."
+		###############
+		elif(str(r.conn)=="time_d"):
+			now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
+			if(int(r.arg1)<int(r.arg2)):
+				add="between"
+				mode="time_daymode"
+			else:
+				add="outside of"
+				mode="time_nightmode"
+
+			if(on):
+				p_conn="Activating protection, "+mode+": <b>"+time.strftime("%H:%M:%S",time.localtime(now))
+				p_conn+="</b> is "+add+" "+time.strftime("%H:%M:%S",time.localtime(int(r.arg1)))
+				p_conn+=" and "+time.strftime("%H:%M:%S",time.localtime(int(r.arg2)))
+			else:
+				p_conn="Not activating protection, "+mode+": <b>"+time.strftime("%H:%M:%S", time.localtime(now))
+				p_conn+="</b> is "+add+" "+time.strftime("%H:%M:%S",time.localtime(int(r.arg1)))
+				p_conn+=" and "+time.strftime("%H:%M:%S",time.localtime(int(r.arg2)))
 		###############
 		elif(str(r.conn)=="/" or str(r.conn)=="*"):
 			if(str(r.conn)=="/"):
-				p_conn="OVERRIDE: this will deactivate the protection"
+				p_conn="OVERRIDE: this will <b>deactivate</b> the protection"
 			else:
-				p_conn="OVERRIDE: this will activate the protection"
+				p_conn="OVERRIDE: this will <b>activate</b> the protection"
 			if(int(r.arg1)>0):
 				p_conn+=", until "+str((datetime.datetime.fromtimestamp(int(r.arg1))).strftime('%y_%m_%d %H:%M:%S'))
 			else:
@@ -349,7 +377,8 @@ class area:
 			p_conn+=p_arg1+p_arg2
 		###############
 			
-		return str(i)+"/"+str(len(self.rules))+" id: ("+str(r.id)+") "+p_conn
+		#return str(i)+"/"+str(len(self.rules))+" id: ("+str(r.id)+") "+p_conn
+		return "("+str(r.id)+") "+p_conn
 		## msg
 		
 	#############################################################
@@ -363,13 +392,13 @@ class area:
 			ret+=str(len(self.rules))+" active rules and "+str(len(self.sub_rules))+" subrules\r\n"
 		i=1
 		if(bars):
-			ret+="|||+ "
-		ret+="Rules: (protection activated if one or more of them is true)\r\n"
+			ret+="(r)|||+ "
+		ret+="Rules: <br>(protection activ if at least one is true)\r\n"
 		for r in self.rules:
 			## marker
 			g=0
 			if(bars):
-				ret+="||||- "
+				ret+="(r)||||- "
 			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)>=1):
 				ret+="<g>"
 				g=1
@@ -387,20 +416,20 @@ class area:
 			
 		if(len(self.rules)==0):
 			if(bars):
-				ret+="||||- "
-			ret+="none\r\n"
+				ret+="(r)||||- "
+			ret+="<g>none</g>\r\n"
 
 		i=1
 		if(bars):
-			ret+="|||\r\n"
-			ret+="|||+ "
+			ret+="(r)|||\r\n"
+			ret+="(r)|||+ "
 		ret+="Sub-Rules:\r\n"
 		
 		for r in self.sub_rules:
 		## marker
 			g=0
 			if(bars):
-				ret+="||||- "
+				ret+="(r)||||- "
 			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)>=1):
 				ret+="<g>"
 				g=1
@@ -410,16 +439,18 @@ class area:
 			ret+=self.explain_rule(r,g,i)
 			## marker
 			if(g):
-				ret+="</g>\r\n"
+				ret+="</g>"
 			else:
-				ret+="</r>\r\n"
+				ret+="</r>"
 			## marker
 			i+=1
+			if((i-1)<len(self.sub_rules)):
+				ret+="\r\n"
 			
 		if(len(self.sub_rules)==0):
 			if(bars):
-				ret+="||||- "
-			ret+="none\r\n"
+				ret+="(r)||||- "
+			ret+="<g>none</g>"
 			
 		if(print_out):
 			p.rint(ret,"r")
