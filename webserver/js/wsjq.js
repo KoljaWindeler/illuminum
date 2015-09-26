@@ -887,6 +887,12 @@ function check_append_m2m(msg_dec){
 				"id" : msg_dec["account"]+"_"+msg_dec["area"]+"_status",
 				"class": "area_header_status"
 			});
+			text.click(function(){
+				var rm_int="all cameras in this area offline,<br>will load rules as soon as<br>a camera comes online";
+				return function(){
+					txt2fb(format_rm_status(rm_int));
+				};
+			}());
 			header_text.append(text);
 
 			var header_button=$("<div></div>");
@@ -1240,7 +1246,6 @@ function check_append_m2m(msg_dec){
 		//console.log("hb feld in client angebaut");
 		/////////////////// CREATE M2M ////////////////////////////(
 	} // node
-	update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
 	show_old_alert_fb(mid,msg_dec["open_alarms"]);
 }
 
@@ -1753,7 +1758,7 @@ function update_hb(mid,ts){
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function update_state(account,area,mid,state,detection,rm){
-	//console.log("running update state on "+mid+"/"+state);
+	//console.log("running update state on "+mid+"/"+state+"/"+rm);
 
 	// set the rulemanager text explainaition
 	if(state>=0){
@@ -2096,7 +2101,7 @@ function format_rm_status(text){
 	};
 	//console.log("returning:");
 	//console.log(text);
-	return text;
+	return '<div align="left">'+text+'</div>';
 };
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -2277,7 +2282,7 @@ function send_login(user,pw){
 		// hash the password, combine it with the challange and submit the hash of the result
 		var hash_pw = CryptoJS.MD5(pw).toString(CryptoJS.enc.Hex);
 		var hash = CryptoJS.MD5(hash_pw+prelogin).toString(CryptoJS.enc.Hex);
-		console.log("received pw="+pw+" as hash="+hash_pw+" and prelogin="+prelogin+" and generated hash="+hash);
+		//console.log("received pw="+pw+" as hash="+hash_pw+" and prelogin="+prelogin+" and generated hash="+hash);
 		var cmd_data = { "cmd":"login", "login":user, "client_pw":hash, "alarm_view":0};
 		con.send(JSON.stringify(cmd_data)); 
 		$("#welcome_loading").remove();
@@ -2325,7 +2330,7 @@ console.log("sending login "+g_user+"/"+g_pw);
 //////////////////////////////////////// CORDOVA ///////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
 function c_set_login(user,pw){
-	console.log("setting data:"+user+"/"+pw);
+	//console.log("setting data:"+user+"/"+pw);
 	if(typeof cordova !== 'undefined'){
 		cordova.exec(
 			function(r){ 		/*alert("c_set_ok"); 	*/	},
