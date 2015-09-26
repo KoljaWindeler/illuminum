@@ -7,11 +7,12 @@ from login import *
 from math import *
 
 MAX_MSG_SIZE = 10024000 # 10 MB?
-#SERVER_IP = "52.24.157.229"
-SERVER_IP = "192.168.1.84"
+SERVER_IP = "52.24.157.229"
+#SERVER_IP = "192.168.1.84"
 SERVER_PORT = 9875
 mid=str(uuid.getnode())
-SERVER_TIMEOUT = 5
+SERVER_TIMEOUT = 15
+MAX_OUTSTANDING_ACKS=2
 
 # login
 l=login()
@@ -48,20 +49,7 @@ def trigger_handle(event,data):
 	global mGreen
 	global mBlue
 
-	if(event=="uploading"):
-		#print("Event uploading, q:"+str(len(msg_q)))
-		#avoi overloading
-		if(len(msg_q)<1):
-#		if(len(file_q)<1):
-			if(trigger.STEP_DEBUG):
-				print("[A "+time.strftime("%H:%M:%S")+"] Step 3. handle accepted file "+data[0]+" as there are only "+str(len(file_q))+" files in the file_q")
-			upload_file(data)
-			#file_q.append(data)			
-			return 0
-		else:
-			#print("dequeuing another foto: wait!!")
-			return 1
-	elif(event=="state_change"):
+	if(event=="state_change"):
 		msg={}
 		msg["cmd"]=event
 		msg["state"]=data[0]
@@ -96,16 +84,13 @@ def trigger_handle(event,data):
 		file_str_q.append(data)
 
 #******************************************************#
-def upload_file(data):
-	#print(str(time.time())+" -> this is upload_file with "+path)
+def upload_file(path,td,high_res):
+#	print(str(time.time())+" -> this is upload_file")
 	if(trigger.STEP_DEBUG):
-		print("[A "+time.strftime("%H:%M:%S")+"] Step 5. this is upload_file for "+data[0]+" with "+str(len(msg_q))+" msg in q")
+		print("[A "+time.strftime("%H:%M:%S")+"] Step 5. this is upload_file for "+path+" with "+str(len(msg_q))+" msg in q")
 	if(len(msg_q)>10):
 		print("skip picture, q full")
 		return 1
-
-	path=data[0]
-	td=data[1]
 
 	global logged_in
 	if(logged_in!=1):
@@ -114,17 +99,20 @@ def upload_file(data):
 
 	#cheat, read hardcoded file instead of path info to save copy time
 	#todo, if full frame read other file
-	img = open("/dev/shm/mjpeg/cam_prev.jpg",'rb')
+	if high_res:
+		img = open("/dev/shm/mjpeg/cam_full.jpg",'rb')
+	else:
+		img = open("/dev/shm/mjpeg/cam_prev.jpg",'rb')
 	i=0
 	while True:
 		# should realy read it in once, 10MB buffer
-		if(trigger.TIMING_DEBUG):
-			td.append((time.time(),"start reading"))
+#		if(trigger.TIMING_DEBUG):
+#			td.append((time.time(),"start reading"))
 
 		strng = img.read(MAX_MSG_SIZE-100)
 
-		if(trigger.TIMING_DEBUG):
-			td.append((time.time(),"reading img done"))
+#		if(trigger.TIMING_DEBUG):
+#			td.append((time.time(),"reading img done"))
 
 		if not strng:
 			#print("could not read")
@@ -205,11 +193,12 @@ light.start()
 #std_input.start()
 #std_input.subscribe_callback(helper_output)
 
-comm_wait=0
+comm_wait=[]
 waiter=[]
 hb_out=0
 recv_buffer=""
 last_pic=time.time()
+mq_len=0
 
 while 1:
 	pu_num=0
@@ -253,7 +242,7 @@ while 1:
 				
 		## react on msg in
 		if(len(ready_to_read) > 0):
-			#print("one process is ready")
+			#print("read process is ready")
 			try:
 				data = client_socket.recv(MAX_MSG_SIZE)
 				if(len(data)==0):
@@ -266,9 +255,6 @@ while 1:
 				print('client_socket.recv detected error')
 				break;
 			
-			comm_wait=0
-			print("reset comm")
-			msg_out_ts=0
 			data_dec=recv_buffer+data_dec
 			data_array=data_dec.split('}')
 		
@@ -286,7 +272,15 @@ while 1:
 					last_transfer=time.time()
 					#print("json decoded msg")
 					#print(enc)
-					if(enc.get("cmd")=="prelogin"):
+					# ack ok packets are always send alone, they carry the cmd to acknowledge, but the resonse will be a separate msg
+					if(enc.get("ack_ok",0)==1): 
+						if(len(comm_wait)>0 or 1):
+							first_element=comm_wait[0]
+							comm_wait.remove(first_element)
+							#print("comm wait dec at "+str(time.time())+" -> "+str(len(comm_wait)))
+							msg_out_ts=0
+
+					elif(enc.get("cmd")=="prelogin"):
 						#### login 
 						#print("received challange "+enc.get("challange"))
 						h = hashlib.md5()
@@ -335,13 +329,11 @@ while 1:
 						
 					elif(enc.get("cmd")=="set_interval"):
 						print("setting interval to "+str(enc.get("interval",0)))
-						#trigger.set_interval(enc.get("interval",0))
-						#if(enc.get("interval",0)>0):
-						#	light_dimming_q.append((time.time(),0,100,0,1000)) # 4 sec to dimm to off - in 10 min from now
-						#else:
-						#	light_dimming_q.append((time.time(),-1,-1,-1,1000)) # 4 sec to dimm to off - in 10 min from now
-
-
+						trigger.set_interval(enc.get("interval",0))
+						if(enc.get("interval",0)>0):
+							light_dimming_q.append((time.time(),0,100,0,1000)) # 4 sec to dimm to off - in 10 min from now
+						else:
+							light_dimming_q.append((time.time(),-1,-1,-1,1000)) # 4 sec to dimm to off - in 10 min from now
 					else:
 						print("unsopported command:"+enc.get("cmd"))
 				#end of "if"
@@ -367,11 +359,10 @@ while 1:
 
 		#************* sending start ******************#
 		if(len(msg_q)>5):
-			print("!!!!!!!!!!!!!!!!!!!!!! msg_q is very long: "+str(len(msg_q))+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in))
+			print("!!!!!!!!!!!!!!!!!!!!!! msg_q is very long: "+str(len(msg_q))+", comm wait: "+str(len(comm_wait))+", logged in: "+str(logged_in))
 
-		if(len(msg_q)>0 and (comm_wait==0 or logged_in!=1)):
+		if(len(msg_q)>0 and (len(comm_wait)<MAX_OUTSTANDING_ACKS or not(logged_in))):
 			msg=""
-			#print("We have "+str(len(msg_q))+" waiting...")
 			if(logged_in!=1):
 				for msg_i in msg_q:
 					if(msg_i["cmd"]=="prelogin"):
@@ -415,11 +406,12 @@ while 1:
 				except: 
 					ignore=1
 
-				#print("message send")
 				if(msg.get("ack",0)==-1):
-					print("waiting on response")
-					comm_wait=1
+					comm_wait.append(("wf",time.time()))
 					msg_out_ts=time.time()
+					#print("increased comm_wait to "+str(len(comm_wait))+" entries for cmd "+msg["cmd"])
+
+				#print("message send")
 				if(msg.get("cmd"," ")=="wf"):
 					if(msg.get("eof",0)==1):
 #						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+msg.get("fn")+" done")
@@ -437,8 +429,12 @@ while 1:
 #								
 #								print("[A "+time.strftime("%H:%M:%S")+"] -> event:"+p_state+": "+p_t1+" / "+p_t2+" ms at "+str(a[0]))
 #								old=a[0]
-							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic),end="")
+#							print("[A "+time.strftime("%H:%M:%S")+"] time between photos:"+str(time.time()-last_pic),end="")
 #							print("[A "+time.strftime("%H:%M:%S")+"] delay "+str(time.time()-msg["td"][0][0]))
+							if(time.time()-last_pic>15):
+								pu_start_ts=0
+								print("reset fps")
+
 							last_pic=time.time()
 
 							pu_num=pu_num+1
@@ -446,18 +442,31 @@ while 1:
 								pu_start_ts=time.time()
 								pu_num=0
 							else:
-								print("Uploaded "+str(pu_num)+" Frames in "+str((time.time()-pu_start_ts))+" this is "+str(pu_num*25/(time.time()-pu_start_ts))+"kBps or "+str(pu_num/(time.time()-pu_start_ts))+"fps")
+								print(str(pu_num/(time.time()-pu_start_ts))+"fps")
+#								print("Uploaded "+str(pu_num)+" Frames in "+str((time.time()-pu_start_ts))+" this is "+str(pu_num*25/(time.time()-pu_start_ts))+"kBps or "+str(pu_num/(time.time()-pu_start_ts))+"fps")
+#							print("\r\n\r\n")
 
-
-		elif(comm_wait==1 and logged_in==1):
-			if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
-				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
-				comm_wait=0
 
 		elif(len(msg_q)==0 and logged_in==1):
 			td=[]
 			td.append((time.time(),"start"))
-			upload_file((str("test"+str(time.time()%100)+".jpg"),td))
+			data=trigger.get_photo_state() # (take a picture, target path, high res)
+			if(data[0]>0):
+				upload_file(data[1],td,data[2]) 
+
+#		if(mq_len!=len(msg_q)):
+#			mq_len=len(msg_q)	
+#			print("len msg_q="+str(len(msg_q)))
+#			for a in range(0,len(msg_q)):
+#				print("cmd ist: "+msg_q[a]["cmd"])
+		
+		############## free us if there is a lost packet #####################
+		if(len(comm_wait)>0 and logged_in==1):
+			if(len(msg_q)>0 and msg_out_ts!=0 and msg_out_ts+SERVER_TIMEOUT<time.time()):
+				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
+				comm_wait=[]
+		############## free us if there is a lost packet #####################
+
 
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")		
