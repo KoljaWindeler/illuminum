@@ -377,7 +377,7 @@ while 1:
 
 		#************* sending start ******************#
 		if(len(msg_q)>5):
-			print("!!!!!!!!!!!!!!!!!!!!!! msg_q is very long: "+str(msg_q)+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in))
+			print("!!!!!!!!!!!!!!!!!!!!!! msg_q is very long: "+str(len(msg_q))+", comm wait: "+str(comm_wait)+", logged in: "+str(logged_in)+" msg_out_ts "+str(msg_out_ts)+"+SERVER_TIMEOUT("+str(SERVER_TIMEOUT)+")<"+str(time.time()))
 
 		if(len(msg_q)>0 and (comm_wait==0 or logged_in!=1)):
 			msg=""
