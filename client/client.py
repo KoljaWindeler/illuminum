@@ -63,6 +63,12 @@ def trigger_handle(event,data):
 		msg["detection"]=data[1]
 		my_state=data[0]
 		my_detection=data[1]
+
+		#delete old status msg
+		for m in msg_q:
+			if(msg["cmd"]==m["cmd"]):
+				msg_q.remove(m)
+
 		msg_q.append(msg)
 		
 		# light dimming stuff
