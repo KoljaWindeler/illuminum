@@ -106,7 +106,7 @@ def recv_m2m_msg_dq_handle():
 # this function, called by the dequeue above will handles all
 # incoming messages and generate responses, which will be stored in the msg_q_m2m
 def recv_m2m_msg_handle(data,m2m):
-	global msg_q_m2m, msg_q_ws, rm, db
+	global msg_q_m2m, msg_q_ws, rm, db, upload_dir
 	# decode msg from string to dicc
 	try:
 		enc=json.loads(data)
@@ -325,7 +325,7 @@ def recv_m2m_msg_handle(data,m2m):
 						m2m.fp=""
 				m2m.openfile = enc.get("fn")
 				base_location=str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
-				des_location="../webserver/upload/"+base_location
+				des_location=upload_dir+base_location
 				m2m.fp = open(des_location,'wb')
 				# this is the start of a transmission
 				# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
@@ -394,7 +394,7 @@ def recv_m2m_msg_handle(data,m2m):
 					ts_photo=enc.get("td",0) # td tells us when this photo was taken
 					ts_photo=ts_photo[1][0]
 					t_passed=ts_photo-v.ts+0.1
-					if(t_passed>=v.interval and v.ws.snd_q_len<10 and v.ws.webcam_countdown>=1): # send only if queue is not too full
+					if(t_passed>=v.interval and v.ws.snd_q_len<1 and v.ws.webcam_countdown>=1): # send only if queue is not too full
 						v.ts=ts_photo
 						v.ws.snd_q_len+=1
 						v.ws.webcam_countdown-=1
@@ -537,7 +537,7 @@ def recv_ws_msg_dq_handle():
 #******************************************************#
 # callen by the dequeue above
 def recv_ws_msg_handle(data,ws):
-	global db
+	global db, upload_dir
 	try:
 		enc=json.loads(data)
 	except:
@@ -818,7 +818,7 @@ def recv_ws_msg_handle(data,ws):
 				if(str(db_account)==str(ws.account)):
 					file_lst=[]
 					for f in db_r3:
-						file_lst.append("../webserver/upload/"+f['path'])
+						file_lst.append(upload_dir+f['path'])
 						# TODO
 					#send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")		
 				msg["status"]=1
@@ -847,7 +847,7 @@ def recv_ws_msg_handle(data,ws):
 				msg["width"]=enc.get("width")
 
 				try:
-					img = open("../webserver/upload/"+path,'rb')
+					img = open(upload_dir+path,'rb')
 				except:
 					img = open("../webserver/images/filenotfound.jpg",'rb')
 					
@@ -1243,6 +1243,10 @@ rm = rule_manager()
 # else
 busy=1
 last_rulecheck_ts=0
+
+
+# document root
+upload_dir="/home/ubuntu/python/illumino/uploads/"
 
 #***************************************************************************************#
 #********************************** End of Variables ***********************************#
