@@ -27,11 +27,11 @@ def start():
 	threading.Thread(target = start_listen, args = ()).start()
 
 def start_listen():
-	print_out.append(poe("h","Heartbeats","Shows the Heartbeats of every client",1))
+	print_out.append(poe("h","Heartbeats","Shows the Heartbeats of every client",0))
 	print_out.append(poe("r","Rulemanager","Rulemanager output",0))
 	print_out.append(poe("u","Uploades","Shows every uploaded file",1))
 	print_out.append(poe("l","Login/logout","Shows every login/logout",1))
-	print_out.append(poe("s","State Change","Shows every state change via movement or rule change",1))
+	print_out.append(poe("s","State Change","Shows every state change via movement or rule change",0))
 	print_out.append(poe("d","Debug","Shows errors etc",1))
 	print_out.append(poe("c","Camera","Shows uploads, livestream starts etc",1))
 	print_out.append(poe("a","Alert","Shows alerts, emails etc",1))
