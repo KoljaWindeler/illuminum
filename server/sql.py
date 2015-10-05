@@ -1,4 +1,5 @@
 import pymysql.cursors, time, p, sys
+from sql_login import *
 
 class sql:
 	def __init__(self):
@@ -6,7 +7,7 @@ class sql:
 	#############################################################
 	def connect(self):
 		# Connect to the database
-		self.connection = pymysql.connect(host='localhost',user='root',passwd='EEkiM05$.',db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
+		self.connection = pymysql.connect(host='localhost',user='root',passwd=sql_login,db='alert',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
 	#############################################################
 	def connection_check(self):
 		try:
