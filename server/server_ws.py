@@ -185,7 +185,7 @@ def start_server ():
 	while 1:
 		conn, addr = s_n.accept()
 		try:
-			connstream = ssl.wrap_socket(conn, server_side=True, certfile="cert", keyfile="key")
+			connstream = ssl.wrap_socket(conn, server_side=True, certfile="cert", keyfile="key", ssl_version=ssl.PROTOCOL_TLSv1)
 			# generate new client
 			new_client=ws_clients(connstream)
 			new_client.ws=WebSocket(connstream) 
