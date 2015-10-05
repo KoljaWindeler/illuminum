@@ -78,6 +78,8 @@ def recv_m2m_con_handle(data,m2m):
 			server_m2m.clients.remove(m2m)
 		except:
 			ignore=1
+	elif(data=="connect"):
+		m2m.challange=get_challange()
 #******************************************************#
 ################## M2M CONNECTION #########################
 
@@ -136,7 +138,6 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### pre login challange for M2M
 		elif(enc.get("cmd")=="prelogin"):
-			m2m.challange=get_challange()
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["challange"]=m2m.challange
@@ -513,6 +514,8 @@ def recv_ws_con_handle(data,ws):
 			server_ws.clients.remove(ws)
 		except:
 			ignore=1
+	elif(data=="connect"):
+		ws.challange=get_challange()
 #******************************************************#
 
 #******************************************************#
@@ -553,7 +556,6 @@ def recv_ws_msg_handle(data,ws):
 
 		#### pre login challange, for WS
 		elif(enc.get("cmd")=="prelogin"):
-			ws.challange=get_challange()
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["challange"]=ws.challange
