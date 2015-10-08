@@ -696,11 +696,11 @@ def recv_ws_msg_handle(data,ws):
 			msg["b"]=enc.get("b")
 			for m2m in ws.v2m:
 				if(enc.get("mid")==m2m.mid):
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' change color","v")
 					db.update_color(m2m,int(enc.get("r")),int(enc.get("g")),int(enc.get("b")),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
 					
 					m2m.color_pos=int(enc.get("color_pos"))
 					m2m.brightness_pos=int(enc.get("brightness_pos"))
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' change color","v")
 					msg_q_m2m.append((msg,m2m))
 					break
 
