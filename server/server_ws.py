@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import ssl
+#import ssl
+from OpenSSL import SSL
 import socket, struct,  threading, cgi, time, p, sys
 from clients import ws_clients
 from base64 import b64encode
@@ -170,25 +171,25 @@ def handle (client,addr):
 #************* HANDLE CONNECTION *****************************************#
 	
 def start_server ():
-	#context = SSL.Context(SSL.TLSv1_METHOD)
-	#context.use_privatekey_file('key')
-	#context.use_certificate_file('cert')
+	context = SSL.Context(SSL.TLSv1_METHOD)
+	context.use_privatekey_file('key')
+	context.use_certificate_file('cert')
 	
 	s_n = socket.socket()
 	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	#s = SSL.Connection(context, s_n)
+	s = SSL.Connection(context, s_n)
 
-	s_n.bind(('', PORT))
-	s_n.listen(MAX_CLIENTS) # max clients
+	s.bind(('', PORT))
+	s.listen(MAX_CLIENTS) # max clients
 
 	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] Waiting on wss_clients on Port "+str(PORT),"l")
 	while 1:
-		conn, addr = s_n.accept()
+		conn, addr = s.accept()
 		try:
-			connstream = ssl.wrap_socket(conn, server_side=True, certfile="cert", keyfile="key", ssl_version=ssl.PROTOCOL_TLSv1)
+			#connstream = ssl.wrap_socket(conn, server_side=True, certfile="cert", keyfile="key", ssl_version=ssl.PROTOCOL_TLSv1)
 			# generate new client
-			new_client=ws_clients(connstream)
-			new_client.ws=WebSocket(connstream) 
+			new_client=ws_clients(conn)
+			new_client.ws=WebSocket(conn) 
 			# append it
 			clients.append(new_client)
 			p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Connection from: "+ str(addr[0])+". Serving "+str(len(clients))+" ws_clients now","l")
@@ -484,6 +485,7 @@ class WebSocket(object):
 			try:
 				# i should be able to send a bytearray
 				sent = self.sock.send(buff[already_sent:])
+				p.rint("send "+str(sent)+" bytes","w")
 				if sent == 0:
 					raise RuntimeError("socket connection broken")
 
