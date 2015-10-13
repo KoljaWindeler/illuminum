@@ -67,11 +67,11 @@ public class bg_service extends Service {
         // find closest s_area to our coordinates
         ArrayList<s_area> areas = mWs.get_areas();
         near_by_locations.clear();
-        //mDebug.write_to_file("Starting Check_location with "+String.valueOf(areas.size())+" areas");
+        mDebug.write_to_file("Starting Check_location with "+String.valueOf(areas.size())+" areas");
         if(areas.size()>0) { // just search if we have areas at all
             for (int i = 0; i < areas.size(); i++) {
                 float this_distance = areas.get(i).getCoordinates().distanceTo(location);
-                //mDebug.write_to_file("areas " + String.valueOf(i) + " is " + String.valueOf(this_distance) + " away");
+                mDebug.write_to_file("areas " + String.valueOf(i) + " is " + String.valueOf(this_distance) + " away");
 
                 // debug
                 distance_debug += "Area:" + areas.get(i).getName() + ", " + String.valueOf(this_distance) + "m\n";
@@ -87,16 +87,15 @@ public class bg_service extends Service {
                     }
                     if(!area_in_array) {
                         near_by_locations.add(near_by_locations.size(), areas.get(i).getName());
-                        //mDebug.write_to_file("areas " + String.valueOf(i) + " was not in the critial range, I'll add it");
+                        mDebug.write_to_file("areas " + String.valueOf(i) + " was not in the critial range, I'll add it");
                     }
                 }
             }
-            // mDebug.write_to_file("after loop:" + String.valueOf(closest_area) + " old location was:" + String.valueOf(server_told_location));
 
             // only send an update if we are logged in
             if (mWs.mConnected && mWs.mLoggedIn) {
                 // check if we should update the server
-                //mDebug.write_to_file("checking if server_told_location (size:"+String.valueOf(server_told_locations.size())+") and near_by_location (size:"+String.valueOf(near_by_locations.size())+") are the same");
+                mDebug.write_to_file("checking if server_told_location (size:"+String.valueOf(server_told_locations.size())+") and near_by_location (size:"+String.valueOf(near_by_locations.size())+") are the same");
 
                 if(near_by_locations.size()!=server_told_locations.size()){
                     update_server_location=true;
@@ -134,9 +133,9 @@ public class bg_service extends Service {
                             object.put("loc", locationCSV);
                         }
                         server_told_locations=near_by_locations;
-                        //mDebug.write_to_file("Sending a location update to the server:" + object.toString());
                         //Log.i(getString(R.string.debug_id), object.toString());
                         //console.log(JSON.stringify(cmd_data));
+                        mDebug.write_to_file("Sending a updated location to the server:"+object.toString());
                         mWs.send_msg(object.toString());
 
 
@@ -197,9 +196,11 @@ public class bg_service extends Service {
         if (mDebug == null) {
             mDebug = new s_debug(mContext);
         }
+        mDebug.write_to_file("");
+        mDebug.write_to_file("==== This is on start ====");
 
         // get services
-        mDebug.write_to_file("settings check");
+        //mDebug.write_to_file("settings check");
         if (mSettings == null) {
             mDebug.write_to_file("settings are null, recrating");
             mSettings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, MODE_MULTI_PROCESS);
@@ -209,7 +210,7 @@ public class bg_service extends Service {
                 return 0;
             }
         }
-        mDebug.write_to_file("settings EOF");
+        //mDebug.write_to_file("settings EOF");
 
 
         if (mWakeup == null) {
@@ -221,14 +222,13 @@ public class bg_service extends Service {
             mNofity.setupNotifications((NotificationManager) getSystemService(NOTIFICATION_SERVICE));
         }
 
-        mDebug.write_to_file("==== This is on start ====");
-
         // establish comm interfaces to the APP and the NETWORK
         registerReceiver(network_change_receiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
         registerReceiver(app_receiver, new IntentFilter(bg_service.SENDER));
 
         // Register the listener with the Location Manager to receive location updates
         if (mLocationManager == null) {
+            mDebug.write_to_file("Recreate LocationManager");
             mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
             if (!mLocationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
                 String danger = "Danger Danger, network provier is not on ... but I got no clue what to do!";
@@ -249,13 +249,13 @@ public class bg_service extends Service {
         }
 
         /////// DEBUG //////////////
-        mDebug.write_to_file("bg_service, onstart: check if we should recreate the WS");
+        //mDebug.write_to_file("bg_service, onstart: check if we should recreate the WS");
         if (mWs.mWebSocketClient == null) {
-            mDebug.write_to_file("yes, our mWebSocketClient is set to null");
+            mDebug.write_to_file("recreate conncection, our mWebSocketClient is set to null");
         } else if (!mWs.mWebSocketClient.isConnected()) {
-            mDebug.write_to_file("yes, is not connected");
+            mDebug.write_to_file("recreate conncection, is not connected");
         } else if (!mWs.mConnected) {
-            mDebug.write_to_file("yes, mConnected said so");
+            mDebug.write_to_file("recreate conncection, mConnected said so");
         }
         /////// DEBUG //////////////
 
@@ -270,13 +270,14 @@ public class bg_service extends Service {
         if (intent != null) {
             if (s_wakeup.ACTION_CONNECT.equals(intent.getAction())) { // that tells us that "disconenct" was called before this restart, so we have to reconnet
                 recreate = true;
-                mDebug.write_to_file("yes, this is ACTION CONNECT");
+                mDebug.write_to_file("this is ACTION CONNECT");
             } else if (s_wakeup.ACTION_CHECK_PING.equals(intent.getAction())) { // that tells us that "disconenct" was called before this restart, so we have to reconnet
                 mDebug.write_to_file("This is a ping check");
                 if(mWs.check_ping_received()==false) {
                     recreate = true;
                     mDebug.write_to_file("yes, we haven't received the ping ok from the server");
                 }
+
             }
         }
 
@@ -290,7 +291,7 @@ public class bg_service extends Service {
                 mDebug.write_to_file("exeption on connect:" + ex.toString());
             }
         } else {
-            mDebug.write_to_file("WS connection seams to be fine");
+            //mDebug.write_to_file("WS connection seams to be fine");
             // if we are connected .. or at least we think so .. try to ping if thats why we started
             if (intent!=null && s_wakeup.ACTION_PING.equals(intent.getAction())) {
                 JSONObject object = new JSONObject();
@@ -317,16 +318,19 @@ public class bg_service extends Service {
         // just check if there is a timer, waiting for us or install one if there is none
         if (intent == null || (intent.getAction() == null) || (intent.getAction() != null && !intent.getAction().equals(s_wakeup.ACTION_SHUT_DOWN))) {
             if (!mWakeup.is_pinging(mContext)) {
+                mDebug.write_to_file("bg_service, OnStartCommand: There isn't a ping-timer-intent waiting for us, need to create a new one.");
                 mWakeup.start_pinging(mContext);
-            } else {
-                mDebug.write_to_file("bg_service, OnStartCommand: There is a ping-timer-intent waiting for us, no need to create a new one.");
             }
         }
         ////////////////////////////////////////////////////////////////////////////////////////////
         ////////////////////////////////// WAKE UP /////////////////////////////////////////////////
         ////////////////////////////////////////////////////////////////////////////////////////////
 
+        // run a check with every startup, after all object (websocket, location) have been started
+        check_locations(mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER));
+
         mDebug.write_to_file("==== on start DONE ====");
+        mDebug.write_to_file("");
         wakelock.release();
         return Service.START_STICKY;
     }
@@ -383,6 +387,7 @@ public class bg_service extends Service {
     };
 
     public void onDestroy (){
+        mDebug.write_to_file("==== DESTORYED ====");
         try {
             unregisterReceiver(network_change_receiver);
         }catch (Exception ex){

@@ -219,7 +219,7 @@ public class s_ws implements WebSocketConnectionObserver {
 
                     // assuming we reconnected as a reaction on a server reboot, the server has no idea where we are. we should tell him right away if we know it
                     if ((((bg_service)mContext).get_last_known_location()).isValid()) {
-                        mDebug.write_to_file("i have a valid location");
+                        mDebug.write_to_file("Websocket: Login done, i have a valid location, running location check now");
                         ((bg_service)mContext).check_locations((((bg_service)mContext).get_last_known_location()).getCoordinaes());
                     }
 
@@ -457,9 +457,9 @@ public class s_ws implements WebSocketConnectionObserver {
                 mDebug.write_to_file("problem");
                 return false;
             }
-            mDebug.write_to_file("No problem");
+            //mDebug.write_to_file("No problem");
         }
-        mDebug.write_to_file("No ping send within the last 60 sec");
+        //mDebug.write_to_file("No Missing response from the server");
         return true;
     }
 }
