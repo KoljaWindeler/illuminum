@@ -67,7 +67,7 @@ public class s_notify {
     public void showNotification(String title, String short_text, String long_text) {
         if (last_picture == null) {
             String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
-            String shown_title=login + " @ Glubsch";
+            String shown_title=login + " @ Glubsch 1.1";
 
             // avoid showing old-pre-logout status
             if(login.equals(MainActivity.nongoodlogin)){
