@@ -27,6 +27,7 @@ public class s_notify {
     private SharedPreferences mSettings;
     private String area_of_last_alert = "";
     private String time_of_last_alert = "";
+    private String mVersion = "1.2";
 
     public s_notify(Context serviceContext, SharedPreferences serviceSettings) {
         mContext = serviceContext;
@@ -67,7 +68,7 @@ public class s_notify {
     public void showNotification(String title, String short_text, String long_text) {
         if (last_picture == null) {
             String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
-            String shown_title=login + " @ Glubsch 1.1";
+            String shown_title=login + " @ Glubsch "+mVersion;
 
             // avoid showing old-pre-logout status
             if(login.equals(MainActivity.nongoodlogin)){
