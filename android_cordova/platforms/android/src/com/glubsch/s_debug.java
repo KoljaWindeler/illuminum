@@ -35,7 +35,16 @@ public class s_debug {
             baseFolder = mContext.getFilesDir().getAbsolutePath();
         }
 
-        File file = new File(baseFolder + "bg_service.txt");
+        // delete old files
+        String old_date = new SimpleDateFormat("yyyy_MM_dd").format(new Date(System.currentTimeMillis()-5*24*60*60*1000));
+        File file = new File(baseFolder + "bg_service_"+old_date+".txt");
+        if(file.exists()){
+            file.delete();
+        }
+
+        // create/append new file
+        String date = new SimpleDateFormat("yyyy_MM_dd").format(new Date());
+        file = new File(baseFolder + "bg_service_"+date+".txt");
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(file,true);
@@ -52,6 +61,7 @@ public class s_debug {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         // debug output
         Log.i(mContext.getString(R.string.debug_id), started);
     }
