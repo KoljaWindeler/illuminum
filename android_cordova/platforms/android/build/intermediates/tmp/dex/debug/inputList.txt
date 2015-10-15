@@ -1,5 +1,5 @@
-C:\Users\windkol\Documents\GitHub\illumino\android_cordova\platforms\android\build\intermediates\classes\debug
-C:\Users\windkol\Documents\GitHub\illumino\android_cordova\platforms\android\build\intermediates\pre-dexed\debug\support-annotations-20.0.0-faba285de213e125bade98113818a5dd125e87a9.jar
-C:\Users\windkol\Documents\GitHub\illumino\android_cordova\platforms\android\build\intermediates\pre-dexed\debug\internal_impl-20.0.0-686ecd76d199471ecb1e612d41d230d82f072202.jar
-C:\Users\windkol\Documents\GitHub\illumino\android_cordova\platforms\android\build\intermediates\pre-dexed\debug\classes-8d8d0f98c937e028371d1907f2a375c919dc393a.jar
-C:\Users\windkol\Documents\GitHub\illumino\android_cordova\platforms\android\build\intermediates\pre-dexed\debug\classes-52e1e41086dbb6710b6a721fc75e97ced7f44e28.jar
+/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/classes/debug
+/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/support-annotations-20.0.0-c91fb1ea58e82e8b011df05ccffb75cf023bca1c.jar
+/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/internal_impl-20.0.0-e8936f9792b1314748a50b989663bf932d55c8a8.jar
+/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/classes-3c7f1707e52919e1e247179bf17bb0c53251ef22.jar
+/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/classes-74caa6dd11f910dd586dfb0a2a211330ce44c8f6.jar
