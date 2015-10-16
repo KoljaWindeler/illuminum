@@ -126,7 +126,7 @@ public class s_notify {
                 not += "\n";
             }
 
-            not += ((bg_service)mContext).getDistanceDebug();
+            //not += ((bg_service)mContext).getDistanceDebug(); // add distance debug info
         } else {
             int detection_on = 0;
             //Log.i(getString(R.string.debug_id),"we have "+String.valueOf(areas.size())+" areas");
