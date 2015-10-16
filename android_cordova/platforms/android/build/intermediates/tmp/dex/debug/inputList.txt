@@ -1,5 +1,0 @@
-/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/classes/debug
-/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/support-annotations-20.0.0-c91fb1ea58e82e8b011df05ccffb75cf023bca1c.jar
-/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/internal_impl-20.0.0-e8936f9792b1314748a50b989663bf932d55c8a8.jar
-/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/classes-3c7f1707e52919e1e247179bf17bb0c53251ef22.jar
-/home/kolja/Desk/26-illumino/illumino/android_cordova/platforms/android/build/intermediates/pre-dexed/debug/classes-74caa6dd11f910dd586dfb0a2a211330ce44c8f6.jar
