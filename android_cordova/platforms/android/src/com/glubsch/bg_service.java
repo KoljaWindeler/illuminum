@@ -275,7 +275,11 @@ public class bg_service extends Service {
 
         // sanitary connection Checks
         boolean recreate = false;
-        if (mWs.mWebSocketClient == null || !mWs.mWebSocketClient.isConnected() || !mWs.mConnected) {
+        if (mWs.mWebSocketClient == null){
+            recreate = true;
+        } else if(!mWs.mWebSocketClient.isConnected()){ // has to be separated to avoid calling isConnected on a null object
+            recreate = true;
+        } else if(!mWs.mConnected) {
             recreate = true;
         }
         // are we started with a JOB?

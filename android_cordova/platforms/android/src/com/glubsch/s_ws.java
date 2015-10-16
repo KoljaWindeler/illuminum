@@ -355,7 +355,7 @@ public class s_ws implements WebSocketConnectionObserver {
 
                         if(detection>0 && state>0) {
                             mNofity.set_area(area); // set last alarm area
-                            if (am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
+                            if(am.getRingerMode() != AudioManager.RINGER_MODE_SILENT) {
                                 //v.vibrate(500);
                             }
                         }
@@ -378,30 +378,30 @@ public class s_ws implements WebSocketConnectionObserver {
         }
 
         try {
-            if (mWebSocketClient == null || !mConnected || !mWebSocketClient.isConnected() || (last_ts_in>0 && last_ts_in < last_ts_out)) {
-                String s="";
-                if(mWebSocketClient == null){
-                    s+=" mWebSocketClient is null ";
-                }
+            boolean helper=false;
+            String s="";
 
-                if(!mConnected){
-                    s+=" mConnected is false ";
-                }
+            if (mWebSocketClient == null) {
+                helper=true;
+                s+=" mWebSocketClient is null ";
+            } else if(!mWebSocketClient.isConnected()){ // has to be sepearted to avoid calling isConnected while mWebSocketClient is null
+                helper=true;
+                s+=" mwebsocketclient is not connected ";
+            } else if(!mConnected) {
+                helper=true;
+                s+=" mConnected is false ";
+            } else if(last_ts_in>0 && last_ts_in < last_ts_out){
+                helper=true;
+                s+=String.valueOf(last_ts_in)+"<"+String.valueOf(last_ts_out);
+            }
 
-                if(!mWebSocketClient.isConnected()){
-                    s+=" mwebsocketclient is not connected ";
-                }
 
-                if((last_ts_in>0 && last_ts_in < last_ts_out)){
-                    s+=String.valueOf(last_ts_in)+"<"+String.valueOf(last_ts_out);
-                }
-
-
+            if (helper) {
                 mDebug.write_to_file("Websocket: I don't think we are still connected, as " + s);
                 restart_connection();
             }
         }catch (Exception ex){
-            mDebug.write_to_file("Websocket: Exception on check if client is connected in send_msg!! " + ex.toString());
+            mDebug.write_to_file("Websocket: Exception on check if client is connected in send_msg!! " + ex.toString()+ "msg was "+input);
         }
 
 
