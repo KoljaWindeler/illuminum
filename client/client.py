@@ -101,7 +101,7 @@ def upload_file(data):
 	#print(str(time.time())+" -> this is upload_file with "+path)
 	if(trigger.STEP_DEBUG):
 		print("[A "+time.strftime("%H:%M:%S")+"] Step 5. this is upload_file for "+data[0]+" with "+str(len(msg_q)))
-	if(len(msg_q)>10):
+	if(len(msg_q)>0):
 		print("skip picture, q full")
 		return 1
 
