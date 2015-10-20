@@ -112,7 +112,7 @@ def upload_file(data):
 	if(logged_in!=1):
 		print("We can't upload as we are not logged in")
 		return -1
-	img = open(path,'rb')
+	img = open(trigger.BASE_DIR+path,'rb')
 	i=0
 	while True:
 		strng = img.read(MAX_MSG_SIZE-100)
@@ -428,7 +428,7 @@ while 1:
 				if(json.loads(send_msg).get("cmd"," ")=="wf"):
 					if(json.loads(send_msg).get("eof",0)==1):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> uploading "+json.loads(send_msg).get("fn")+" done")
-						os.remove(json.loads(send_msg).get("fn"))
+						os.remove(trigger.BASE_DIR+json.loads(send_msg).get("fn"))
 						
 						#print("[A "+time.strftime("%H:%M:%S")+"] -> upload took:"+str(time.time()-file_upload_start))
 						if(trigger.TIMING_DEBUG):

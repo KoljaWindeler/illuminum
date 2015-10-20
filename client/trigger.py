@@ -16,6 +16,7 @@ WIDTH=1280
 HEIGHT=720
 TIMING_DEBUG=0
 STEP_DEBUG=0
+BASE_DIR="/tmp/"
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
 det_state = ["off","on,single","on,permanent","error"]
 img_q=[]
@@ -58,7 +59,7 @@ def save_queue():
 			
 			td.append((time.time(),"dequeue to save"))
 			
-			img.save(path,"jpeg",quality=75)
+			img.save(BASE_DIR+path,"jpeg",quality=75)
 
 			# timinig
 			td.append((time.time(),"saving"))
