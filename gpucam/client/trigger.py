@@ -46,7 +46,7 @@ def start_trigger():
 
 		#setup GPIO using Board numbering
 		GPIO.setmode(GPIO.BOARD)
-		GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+		GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
 		global last_webcam_ts
 		global webcam_capture_remaining
