@@ -11,6 +11,8 @@ m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
 det_state = ["off","on,single","on,permanent","error"]
 img_q=[]
 
+sensor_timeout=3
+last_sensor_event=0
 webcam_interval=0
 change_det_event=0
 #change_res_event=0
@@ -80,7 +82,8 @@ def start_trigger():
 				change_det_event=0
 				
 			# react on pin state change
-			if(gpio_state != state):
+			if(gpio_state != state and last_sensor_event<time.time()+sensor_timeout):
+				last_sensor_event=time.time()
 				state=gpio_state
 				busy=1
 				if(state == 1 and detection!=0): #alarm conditions
