@@ -44,6 +44,7 @@ def start():
 #******************************************************#
 def start_trigger():
 	global change_det_event
+	global last_sensor_event
 	while True:
 
 		#setup GPIO using Board numbering
