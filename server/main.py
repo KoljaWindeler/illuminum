@@ -243,7 +243,7 @@ def recv_m2m_msg_handle(data,m2m):
 					db.update_last_seen_m2m(m2m.mid,ip)
 						
 				else:
-					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' log-in: failed","l")
+					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get('mid'))+"' log-in: failed","l")
 					msg["ok"]=-2 # not logged in
 			# send message in any case
 			msg_q_m2m.append((msg,m2m))
@@ -822,7 +822,7 @@ def recv_ws_msg_handle(data,ws):
 					for f in db_r3:
 						file_lst.append(upload_dir+f['path'])
 						# TODO
-					#send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")		
+					send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")		
 				msg["status"]=1
 			else:
 				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Invalid request for alarm: "+str(id)+" to mail "+str(ws.email),"v")
