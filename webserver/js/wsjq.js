@@ -1358,7 +1358,7 @@ function show_liveview(mid){
 
 		view.fadeIn("fast");
 		
-		set_interval(mid,0.01);
+		set_interval(mid,0.5);
 	};
 }
 ///////////////////////// LIVE VIEW //////////////////////////////////
