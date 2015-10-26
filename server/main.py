@@ -6,7 +6,7 @@ import send_mail
 import p
 from rule_manager import *
 from sql import *
-
+from debug import *
 #***************************************************************************************#
 #***************************************** m2m *****************************************#
 #***************************************************************************************#
@@ -358,6 +358,9 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.fp=""
 				m2m.openfile=""	
 
+				#debugging
+				debug_in.update()
+
 				# prepare client message
 				msg={}
 				msg["mid"]=m2m.mid
@@ -370,7 +373,10 @@ def recv_m2m_msg_handle(data,m2m):
 				if(enc.get("sof",0)==1):
 					#send img, assuming this is a at once img
 					msg["img"]=enc.get("data")
-					msg["ts"]=(enc.get("td"))[0][0]
+					try:
+						msg["ts"]=(enc.get("td"),0)[0][0]
+					except:
+						msg["ts"]=0
 				else:
 					#read img and send at once, close this file pointer as it is writing only
 					try:
@@ -420,7 +426,8 @@ def recv_m2m_msg_handle(data,m2m):
 			p.rint("unsupported command: "+str(enc.get("cmd")),"d")
 
 		# send good ack
-		if(enc.get("ack")==-1):
+		if(enc.get("ack",0)!=0):
+#			print("ack request recv")
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["ack_ok"]=1
@@ -896,6 +903,14 @@ def snd_ws_msg_dq_handle():
 		cli.snd_q_len=max(0,cli.snd_q_len-1)
 		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
 			recv_ws_con_handle("disconnect",cli)
+
+		#debugging
+		if(msg.get("cmd",0)=="rf"):
+			debug_out.update()
+			print(debug_in.print())
+			print(debug_out.print())
+
+
 	return ret
 #******************************************************#
 #***************************************************************************************#
@@ -1240,6 +1255,10 @@ db.connect()
 
 # our rule set maanger for all clients. Argument is the callback function
 rm = rule_manager()
+
+# debug timing
+debug_in=debug("in")
+debug_out=debug("out")
 
 
 # else
