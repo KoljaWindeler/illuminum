@@ -6,28 +6,33 @@ from neopixel import *
 
 LED_DEBUG=0
 
-class led: 
+class led:
 	def __init__(self):
 		self.s_r = 0		# start red
 		self.s_g = 0		# start red
 		self.s_b = 0		# start red
 		self.s_t = 0		# start time
 
-		self.c_r = 0		# current red 0-255
-		self.c_g = 0		# current green 0-255
-		self.c_b = 0		# current blue 0-255
+		self.c_r = 0		# current red 0-255, currently send to the pin
+		self.c_g = 0		# current green 0-255, currently send to the pin
+		self.c_b = 0		# current blue 0-255, currently send to the pin
 
 		self.t_r = 0		# target red 0-255 when ever we call dimm_to
 		self.t_g = 0		# target green 0-255 when ever we call dimm_to
 		self.t_b = 0		# target blue 0-255 when ever we call dimm_to
 		self.t_t = 0		# target time
 
-		self.o_rd = 0		# place to save the old red (in 0-100)
-		self.o_gd = 0		# place to save the old green (in 0-100)
-		self.o_bd = 0		# place to save the old blue (in 0-100)
-		self.c_rd = 0		# place to save the old red (in 0-100)
-		self.c_gd = 0		# place to save the old green (in 0-100)
-		self.c_bd = 0		# place to save the old blue (in 0-100)
+		self.o_rd = 0		# place to save the old red (in 0-100), used to run "return_to_old()"
+		self.o_gd = 0		# place to save the old green (in 0-100), used to run "return_to_old()"
+		self.o_bd = 0		# place to save the old blue (in 0-100), used to run "return_to_old()"
+
+		self.c_rd = 0		# place to save the current red (in 0-100),
+		self.c_gd = 0		# place to save the current green (in 0-100)
+		self.c_bd = 0		# place to save the current blue (in 0-100)
+
+		self.d_r = 0		# storage for default red
+		self.d_g = 0		# storage for default green
+		self.d_b = 0		# storage for default blue
 
 		self.ms_step = 0	# wait between two dimms
 		self.state = 0		# not dimming
@@ -41,9 +46,9 @@ LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
 LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
 LED_BRIGHTNESS = 255     # Set to 0 for darkest and 255 for brightest
-LED_INVERT     = False   # True to invert the signal (when using NPN transistor 
+LED_INVERT     = False   # True to invert the signal (when using NPN transistor
 
-
+light_dimming_q=[]
 #******************************************************#
 def start():
 	# start a sub thread, runs the function start_light
@@ -57,8 +62,21 @@ def start_light():
 	strip.begin()
 	strip.show()
 
-	
+
 	while True:											# loop forever
+
+		### ------------ check if we have something to do ------------ ###
+		if(len(light_dimming_q) > 0):
+			for data in light_dimming_q:
+				if(data[0]<=time.time()):
+					light_action=data
+					light_dimming_q.remove(data)
+					if(light_action[1]==-1 and light_action[2]==-1 and light_action[3]==-1):
+						return_to_old(light_action[4])
+					else:
+						dimm_to(light_action[1],light_action[2],light_action[3],light_action[4])
+		### ------------ check if we have something to do ------------ ###
+
 		if(l.state==1):									# state= 1 means dimming is active
 			if(time.time()>=l.last_ts+l.ms_step/1000):	# last_ts holds time of last event, ms_step the time between two dimm steps, if that sum is smaller than NOW - we have work
 				l.last_ts=time.time()					# refresh last_ts to now
@@ -84,8 +102,8 @@ def start_light():
 					l.state=0 							# stop further dimming
 					if(LED_DEBUG):
 						print("LED stop at "+str(time.time())+" "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b))
-	
-				
+
+
 				l.c_r=max(min(255,l.c_r),0)				# avoid that we set a value bigger then 255 or smaller then 0
 				l.c_g=max(min(255,l.c_g),0)
 				l.c_b=max(min(255,l.c_b),0)
@@ -148,3 +166,17 @@ def dimm_to(r,g,b,ms):
 			print("start at "+str(time.time())+" to "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b)+" -> "+str(l.t_r)+"/"+str(l.t_g)+"/"+str(l.t_b)+" within "+str(ms))
 	#else:
 	#	print("no reason")
+
+def clear_q():
+	for l in light_dimming_q:
+		light_dimming_q.remove(l)
+	return 0
+
+def add_q_entry(when,r,g,b,duration_ms):
+	light_dimming_q.append((when,r,g,b,duration_ms))
+	return 0
+
+def set_old_color(r,g,b,):
+	l.o_rd=r
+	l.o_gd=g
+	l.o_bd=b
