@@ -108,21 +108,27 @@ def handle (client,addr):
 		####################### RECEIVE ##########################
 		if(len(rList)>0):
 			busy=1
+			lt=""
 			try:
 				#print(addr,end="")
 				#print("server_ws: rList has "+str(len(rList))+" Elements")
+				lt="start _handleData()"
 				client.ws._handleData()
 				while(client.ws.data_ready==True):
+					lt="Start getMessage()"
 					msg=client.ws.getMessage() # getMessage will unset the data_ready flag if no data left
 					if(client.ws.data_ready==True):
 						#print(msg) # <-- prints the received data
+						lt="Start callb"
 						for callb in callback_msg:
 							callb(msg,client)
 						#client.ws.data_ready=False
 						#client.ws.last_data=""
 			except Exception as n:
 				print("")
-				print("except ",end="")
+				print("except, our status ",end="")
+				print(lt,end="")
+				print(" sys:",end="")
 				print(sys.exc_info()[0])
 				print("")
 
@@ -177,6 +183,7 @@ def start_server ():
 	
 	s_n = socket.socket()
 	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	s_n.setsockopt(socket.SOL_SOCKET, socket.TCP_NODELAY, 1)
 	s = SSL.Connection(context, s_n)
 
 	s.bind(('', PORT))
@@ -388,13 +395,18 @@ class WebSocket(object):
 	def _handleData(self):
 		# do the HTTP header and handshake
 		if self.handshaked is False:
+			lt=""
 			try:
+				lt="recv"
 				data = self.sock.recv(self.headertoread)
 				#print("I've received:",end="")
 				#print(data)
+				lt="decoding"
 				data = data.decode("UTF-8")
 			except Exception as e:
 				print("recv exception in server_ws:'", end="")
+				print(lt,end="")
+				print(" ",end="")
 				print(e,end="")
 				print("'")
 			if not data:
