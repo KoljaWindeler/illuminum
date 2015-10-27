@@ -330,6 +330,17 @@ while 1:
 			if(input[:1]=="q"):
 				print("Quit")
 				os._exit(1)
+			elif(input[:1]=="s"):
+				print("Status:");
+				print("len(con.msg_q):",end="")
+				print(len(con.msg_q))
+
+				print("len(unacknowledged_msg):",end="")
+				print(len(con.unacknowledged_msg))
+				
+				print("con.logged_in:",end="")
+				print(con.logged_in)
+
 			else:
 				print("what do you mean by: "+input)
 		#************* react on keydown ******************#
@@ -436,7 +447,6 @@ while 1:
 				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
 				con.unacknowledged_msg=[]
 		############## free us if there is a lost packet #####################
-
 
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")
