@@ -20,6 +20,7 @@ def start_server ():
 	
 	s_n = socket.socket()
 	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+	s_n.setsockopt(socket.SOL_SOCKET, socket.TCP_NODELAY, 1)
 	s = SSL.Connection(context, s_n)
 
 	s.bind(('', SERVER_PORT))
