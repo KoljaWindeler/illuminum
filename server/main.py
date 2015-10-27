@@ -368,6 +368,7 @@ def recv_m2m_msg_handle(data,m2m):
 				msg["state"]=m2m.state
 				msg["area"]=m2m.area
 				msg["detection"]=m2m.detection
+				msg["up_down_debug"]=debug_in.print()+" || "+debug_out.print()
 
 				# all image data in one packet
 				if(enc.get("sof",0)==1):
@@ -393,6 +394,7 @@ def recv_m2m_msg_handle(data,m2m):
 						if(v.snd_q_len<10 and v.alarm_view==1): # just send it if their queue is not to full AND the clients wants unrequested img
 							msg_q_ws.append((msg,v))
 							v.snd_q_len+=1
+						
 					#if(m2m.detection==1 and m2m.alert.notification_send_ts>0):		# TODO: if this is activated only the first xx file will be saved for detection=1 clients, detection=2 clients will save forever
 					#	os.remove(this_file)
 				# webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
@@ -881,6 +883,13 @@ def recv_ws_msg_handle(data,ws):
 						msg_q_ws.append((msg,v))
 					break
 
+		## subscribe to heartbeats
+		elif(enc.get("cmd")=="hb_fast"):
+			if(enc.get("active",0)==1):
+				debug_loading_assist.subscribe(ws)
+			else:
+				debug_loading_assist.unsubscribe(ws)
+
 		
 
 		## unsupported cmd, for WS
@@ -900,6 +909,7 @@ def snd_ws_msg_dq_handle():
 		cli=data[1]
 		#try to submit the data to the websocket client, if that fails, remove that client.. and maybe tell him
 		msg_q_ws.remove(data)
+
 		cli.snd_q_len=max(0,cli.snd_q_len-1)
 		if(server_ws.send_data(cli,json.dumps(msg).encode("UTF-8"))!=0):
 			recv_ws_con_handle("disconnect",cli)
@@ -1259,7 +1269,7 @@ rm = rule_manager()
 # debug timing
 debug_in=debug("in")
 debug_out=debug("out")
-
+debug_loading_assist=loading_assist()
 
 # else
 busy=1
@@ -1336,6 +1346,9 @@ while 1:
 		if(CPU_DEBUG):
 			task[6]+=1
 		busy=1
+
+	# send a heartbeat to the clients
+	debug_loading_assist.check(msg_q_ws)
 
 	# check the rules
 	if(time.time()>last_rulecheck_ts+60): # this is not a good way .. we should know when we have to call it for a timebased change, not guess it

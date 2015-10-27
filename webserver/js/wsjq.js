@@ -204,6 +204,14 @@ function parse_msg(msg_dec){
 			event.stopPropagation();
 			$.fancybox.close();				
 		}
+	}
+
+	// update menu timestamp if we are part of the fast heartbeat
+	else if(msg_dec["cmd"]=="hb_fast"){
+		var t=$("#HB_fast");
+		if(msg_dec["time"]!=""){
+			t.html("Server:<br>"+msg_dec["time"]);
+		};
 	};
 }
 
@@ -235,6 +243,15 @@ function show_liveview_img(msg_dec){
 	var txt=$("#"+msg_dec["mid"]+"_liveview_txt");
 	if(txt.length){
 		txt.hide();
+	};
+
+	// show debug speed
+	if(msg_dec["up_down_debug"]!=""){
+		txt=$("#"+msg_dec["mid"]+"_liveview_up_down_debug");
+		if(txt.length){
+			txt.show();
+		}
+		txt.text(msg_dec["up_down_debug"]);
 	};
 
 	// display picture
@@ -1117,6 +1134,16 @@ function check_append_m2m(msg_dec){
 		txt.html("Loading liveview<br>");
 		liveview.append(txt);
 
+		// upload download info
+		txt=$("<div></div>");
+		txt.attr("id",mid+"_liveview_up_down_debug");
+		txt.attr("style","padding-top:20px;");
+		txt.html("Loading speed info<br>");
+		txt.addClass("tiny_text");
+		txt.hide();
+		liveview.append(txt);
+		
+
 		// fancybox link around the liveview
 		var rl = $("<a></a>");
 		rl.attr("href","#"+mid+"_liveview_pic");
@@ -1355,6 +1382,10 @@ function show_liveview(mid){
 		});
 		var txt=$("#"+mid+"_liveview_txt");		
 		txt.show();
+
+		// upload speed debug info
+		txt=$("#"+msg_dec["mid"]+"_liveview_up_down_debug");
+		txt.hide();
 
 		view.fadeIn("fast");
 		
@@ -1650,8 +1681,17 @@ function set_interval(mid,interval){
 		return;
 	}
 	var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":interval};
-	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data));
+
+	// active / deactivate fast HB, updates once per second
+	if(interval==0){
+		cmd_data = { "cmd":"hb_fast", "active":0};
+	} else {
+		cmd_data = { "cmd":"hb_fast", "active":1};
+	}
+	con.send(JSON.stringify(cmd_data));
+
+	//console.log(JSON.stringify(cmd_data));
 }
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -1910,7 +1950,14 @@ function add_menu(){
 		}
 	}());
 	list.append(listentry);
-	
+
+	listentry=$("<li></li>");
+	var t=$("<div></div>");
+	t.attr("id","HB_fast");
+	t.text("hb_fast");
+	listentry.append(t);
+	list.append(listentry);
+
 
 	menu.append(list);
 	menu.insertAfter("#clients");
@@ -2015,8 +2062,8 @@ function resize_alert_pic(mid,data){
 		img.attr({
 			"src":"data:image/jpeg;base64,"+msg_dec["img"],
 			"width":(1280*scale),
-			"height":(720*scale),
-			"style":" padding-top: 20px;"
+			"height":(720*scale)
+			//"style":" padding-top: 20px;" deactivated to have debug info nice and close the the image
 		});
 
 	} else {
