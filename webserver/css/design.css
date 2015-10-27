@@ -120,6 +120,10 @@ div.loading {
 .logo_l1{
 	margin-top:20px;
 }
+
+div.tiny_text {
+	font-size:7px;
+}
 /**************************** floating text "welcome to glubsch *********************************/
 /******************************** the box that groups the m2m ***********************************/
 div.area_node {
