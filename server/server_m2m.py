@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from OpenSSL import SSL 
 import socket, struct,  threading, cgi, time, os, p
+from select import select
 from clients import m2m_clients
 from base64 import b64encode
 from hashlib import sha1
@@ -36,27 +37,116 @@ def start_server ():
 		# for what ever that might be good for
 		for callb in callback_con:
 			callb("connect",new_client)
+
+
+def disconnect(client):
+	try:
+		if client.conn:
+			client.conn.close()
+	except:
+		pass
+			
+	try:
+		for callb in callback_con:
+			callb("disconnect",client)
+	except:
+		pass
+
+	try:
+		clients.remove(client)
+	except:
+		pass
+
 	
 #******************************************************#
 def handle (client, addr):
 	lock = threading.Lock()
+	busy=1
 	while 1:
-		res = recv_data(client, MAX_MSG_SIZE)
-		if res<0:
-			#rint("[S_m2m "+time.strftime("%H:%M:%S")+"] recv_data returned:%d"%res)
+		try:
+			rList, wList, xList = select([client.conn], [client.conn], [client.conn], 3)
+		except Exception as n:
+			print(n)
 			break
+
+		if(busy==0):
+			time.sleep(0.03)
+		busy=0
+		######################## SEND ###########################
+		if(len(wList)>0):
+			try:
+				for payload in client.sendq:
+					busy=1
+					client.sendq.remove(payload)
+					
+					msg= bytearray()
+					# add payload
+					for d in bytearray(payload):
+				            msg.append(d)
+					client.conn.send(msg)
+
+			except Exception as n:
+				print("exception!!!")
+				print(n)
+			
+				disconnect(client)
+
+		######################## SEND ###########################
+		####################### RECEIVE ##########################
+		if(len(rList)>0):
+			busy=1
+			lt=""
+			try:
+				#print(addr,end="")
+				#print("server_m2m: rList has "+str(len(rList))+" Elements")
+				lt="start _handleData()"
+				res = recv_data(client, MAX_MSG_SIZE)
+				if(res<0):
+					disconnect(client)
+
+			except Exception as n:
+				print("exception!!!")
+				print(n)
+
+				print("")
+				print("except, our status ",end="")
+				print(lt,end="")
+				print(" sys:",end="")
+				print(sys.exc_info()[0])
+				print("")
+
+				disconnect(client)
+
+		####################### RECEIVE ##########################
+		######################## ERROR ##########################
+		if(len(xList)>0):
+			busy=1
+			try:
+				print("exception!!!")
+				if client.conn:
+					client.conn.close()
+				try:
+					for callb in callback_con:
+						callb("disconnect",client)
+				except:
+					break;
+					pass
+
+				try:
+					clients.remove(client)
+				except:
+					break;
+					pass
+			except:
+				pass
+			break;
+		######################## ERROR ##########################
+		######################## MAINTAINANCE ##########################                
+		if(time.time()-client.debug_ts>1):
+			client.debug_ts=time.time()
+		######################## MAINTAINANCE ##########################
 	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> Client closed:"+str(addr),"l")
 
-	for callb in callback_con:
-		if(callb!=subscribe_callback):
-			callb("disconnect",client)
-
-	
-	lock.acquire()
-	if(client in clients):
-		clients.remove(client)
-	lock.release()
-	client.conn.close()
 	
 #******************************************************#
 def recv_data (client, length):
@@ -68,7 +158,7 @@ def recv_data (client, length):
 		#rint("after recv ",end="")
 		#rint(time.time())
 	except:	
-		p.rint("recv killed","d")
+		#p.rint("recv killed","d")
 		return -1;
 	#rint("[S_m2m] -> Incoming")
 	#rint("[S_m2m] -> recv "+str(len(data))+" bytes")
@@ -121,19 +211,7 @@ def recv_data (client, length):
  
 
 def send_data(client, data):
-	msg= bytearray()
-
-	# add payload
-	#msg.extend(data.encode('utf-8'))
-	for d in bytearray(data):
-            msg.append(d)
-	try:
-		#rint('-s-->'+str(msg))
-		client.conn.send(msg)
-	except:
-		p.rint("m2m send data failed","d")
-		return -1
-
+	client.sendq.append(data)
 	return 0
 
 def send_data_all_clients(data):
