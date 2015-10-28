@@ -60,8 +60,31 @@ def send_data_all_clients(data):
 	lock.release()
 #************* EXPOSED METHODS *****************************************#
 
+#************* DISCONNECT *****************************************#
+def disconnect(client):
+	try:
+		if client.ws.sock:
+			client.ws.sock.close()
+	except:
+		pass
+			
+	try:
+		for callb in callback_con:
+			callb("disconnect",client)
+	except:
+		pass
+
+	try:
+		clients.remove(client)
+	except:
+		pass
+#************* DISCONNECT *****************************************#
+
 #************* HANDLE CONNECTION *****************************************#
 def handle (client,addr):
+	t1=0
+	t2=0
+
 	busy=1
 	#lock = threading.Lock()
 	while 1:
@@ -76,6 +99,7 @@ def handle (client,addr):
 		######################## SEND ###########################
 		if(len(wList)>0):
 			try:
+				t1=time.time()
 				while client.ws.sendq:
 					busy=1
 					opcode, payload = client.ws.sendq.popleft()
@@ -87,23 +111,9 @@ def handle (client,addr):
 						if opcode == CLOSE:
 							for callb in callback_con:
 								callb("disconnect",client)
+				t1=time.time()-t1
 			except Exception as n:
-				for callb in callback_con:
-					callb("disconnect",client)
-					
-				if client.ws.sock:
-					client.ws.sock.close()
-				
-				try:
-					for callb in callback_con:
-						callb("disconnect",client)
-				except:
-					pass
-
-				try:
-					clients.remove(client)
-				except:
-					pass
+				disconnect(client)
 		######################## SEND ###########################
 		####################### RECEIVE ##########################
 		if(len(rList)>0):
@@ -113,6 +123,7 @@ def handle (client,addr):
 				#print(addr,end="")
 				#print("server_ws: rList has "+str(len(rList))+" Elements")
 				lt="start _handleData()"
+				t2=time.time()
 				client.ws._handleData()
 				while(client.ws.data_ready==True):
 					lt="Start getMessage()"
@@ -124,50 +135,31 @@ def handle (client,addr):
 							callb(msg,client)
 						#client.ws.data_ready=False
 						#client.ws.last_data=""
+				t2=time.time()-t2
+
 			except Exception as n:
-				print("")
 				print("except, our status ",end="")
 				print(lt,end="")
 				print(" sys:",end="")
 				print(sys.exc_info()[0])
 				print("")
 
-				if client.ws.sock:
-					client.ws.sock.close()
-				
-				try:
-					for callb in callback_con:
-						callb("disconnect",client)
-				except:
-					pass
-
-				try:
-					clients.remove(client)
-				except:
-					pass
+				disconnect(client)
 		####################### RECEIVE ##########################
 		######################## ERROR ##########################
 		if(len(xList)>0):
 			busy=1
-			try:
-				if client.ws.sock:
-					client.ws.sock.close()
-				try:
-					for callb in callback_con:
-						callb("disconnect",client)
-				except:
-					break;
-					pass
-
-				try:
-					clients.remove(client)
-				except:
-					break;
-					pass
-			except:
-				pass
-			break;
+			disconnect(client)
+			break
 		######################## ERROR ##########################
+		######################## MAINTAINANCE ##########################
+		if(time.time()-client.debug_ts>1):
+			#if(time.time()-client.debug_ts>10):
+			#	print("woohoo its me")
+			#	print(t1)
+			#	print(t2)
+			client.debug_ts=time.time()
+		######################## MAINTAINANCE ##########################
 	# end of while 1
 	p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] -> Client "+str(client.login)+" closed: "+str(client.ip),"l")
 	#lock.acquire()
@@ -229,8 +221,6 @@ def subscribe_callback(fun,method):
 callback_con = [subscribe_callback]
 callback_msg = [subscribe_callback]
 clients = []
-
-
 
 class WebSocket(object):
 
@@ -404,6 +394,8 @@ class WebSocket(object):
 				lt="decoding"
 				data = data.decode("UTF-8")
 			except Exception as e:
+				print("")
+				print("SERVER_WS ")
 				print("recv exception in server_ws:'", end="")
 				print(lt,end="")
 				print(" ",end="")
