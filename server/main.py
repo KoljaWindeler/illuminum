@@ -359,7 +359,7 @@ def recv_m2m_msg_handle(data,m2m):
 				m2m.openfile=""	
 
 				#debugging
-				debug_in.update()
+				debug_in.update(m2m.mid)
 
 				# prepare client message
 				msg={}
@@ -368,7 +368,7 @@ def recv_m2m_msg_handle(data,m2m):
 				msg["state"]=m2m.state
 				msg["area"]=m2m.area
 				msg["detection"]=m2m.detection
-				msg["up_down_debug"]=debug_in.print()+" || "+debug_out.print()
+				msg["up_down_debug"]=debug_in.print(m2m.mid)+" || "+debug_out.print(m2m.mid)
 
 				# all image data in one packet
 				if(enc.get("sof",0)==1):
@@ -936,9 +936,9 @@ def snd_ws_msg_dq_handle():
 
 		#debugging
 		if(msg.get("cmd",0)=="rf"):
-			debug_out.update()
-			print(debug_in.print())
-			print(debug_out.print())
+			debug_out.update(msg.get("mid",0))
+			#rint(debug_in.print(msg.get("mid",0)))
+			#rint(debug_out.print(msg.get("mid",0)))
 
 
 	return ret
@@ -1067,7 +1067,7 @@ def set_webcam_con(mid,interval,ws):
 					# inform the webcam that we are watching
 					msg_q_m2m.append((msg,m2m))
 
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+str(ws.login)+" to webcam stream from "+str(mid),"c")
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+str(ws.login)+" to webcam stream from '"+str(m2m.alias)+"' "+str(mid),"c")
 					
 			# this clients switched off 
 			else:
@@ -1093,7 +1093,7 @@ def set_webcam_con(mid,interval,ws):
 							msg["interval"]=sm_interval
 
 						msg_q_m2m.append((msg,m2m))
-						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+str(ws.login)+" from webcam stream of "+str(m2m.mid)+" ("+str(clients_remaining)+" ws left)","c")
+						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+str(ws.login)+" from webcam stream of '"+str(m2m.alias)+"' "+str(m2m.mid)+" ("+str(clients_remaining)+" ws left)","c")
 #******************************************************#
 
 #******************************************************#
@@ -1289,7 +1289,7 @@ rm = rule_manager()
 # debug timing
 debug_in=debug("in")
 debug_out=debug("out")
-debug_loading_assist=loading_assist()
+debug_loading_assist=loading_assist(server_ws,server_m2m)
 
 # else
 busy=1
