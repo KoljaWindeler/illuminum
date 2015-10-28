@@ -209,8 +209,8 @@ function parse_msg(msg_dec){
 	// update menu timestamp if we are part of the fast heartbeat
 	else if(msg_dec["cmd"]=="hb_fast"){
 		var t=$("#HB_fast");
-		if(msg_dec["time"]!=""){
-			t.html("Server:<br>"+msg_dec["time"]);
+		if(msg_dec["time"]!="" && msg_dec["tasks"]!=""){
+			t.html("Server:<br>"+msg_dec["time"]+"<br>"+msg_dec["tasks"]);
 		};
 	};
 }
@@ -1384,7 +1384,7 @@ function show_liveview(mid){
 		txt.show();
 
 		// upload speed debug info
-		txt=$("#"+msg_dec["mid"]+"_liveview_up_down_debug");
+		txt=$("#"+mid+"_liveview_up_down_debug");
 		txt.hide();
 
 		view.fadeIn("fast");
