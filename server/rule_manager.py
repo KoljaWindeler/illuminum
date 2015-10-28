@@ -149,7 +149,7 @@ class rule_manager:
 		for a in self.data:
 			if(a.account==account):
 				return a
-		return -1	
+		return 0	
 
 #*************************************#
 # this is our account class. the second highest animal
