@@ -212,7 +212,7 @@ def recv_m2m_msg_handle(data,m2m):
 						#rint("### rm debug ###")
 						#rint("checking for this account")
 						acc=rm.get_account(m2m.account)
-						if(acc!=-1):
+						if(acc!=0):
 							for b in acc.areas:
 								detection_state=b.check_rules(1) 	# get the state, check and use db
 								db.update_det("m2m",m2m.account,m2m.area,detection_state)
@@ -720,6 +720,10 @@ def recv_ws_msg_handle(data,ws):
 			duration=int(enc.get("duration"))
 			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' sets a override '"+str(rule)+"' for area '"+str(area)+"'","v")
 			
+			# prepare msg
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+
 			r=rm.get_account(ws.account)
 			if(r!=0):
 				rule_area=r.get_area(area)
@@ -729,17 +733,33 @@ def recv_ws_msg_handle(data,ws):
 						rule_area.rm_override("/")
 					elif(rule=="/" and rule_area.has_override_detection_on):
 						rule_area.rm_override("*")
-					else:	
+					else: # add new override as no one was in place to remove
 						if(duration>0): # duration can be a time in sec or -1 = forever
 							duration=int(time.time()+duration)
 						rule_area.append_rule(rule,duration,0)	
+				
+					msg["status"]="running rule check"
+					msg["ok"]=0
+				else:
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Can't find area '"+str(area)+"' on this account, camera online?","r")
+					msg["status"]="area not found"
+					msg["ok"]=0
+
 				
 				# update next timestamp (the override could be timelimited) and run a rulecheck as the szenario has most certainly changed		
 				rm.get_account(ws.account).update_next_ts()
 				rm_check_rules(ws.account,ws.login,1)
 			else:
-				#todo return bad ack
-				ignore=1
+				#return bad ack
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] can't find account '"+str(ws.account)+"' on rulemanager, camera online?","r")
+
+				msg["ok"]=0
+				msg["status"]="account not found"
+
+	
+			# send an update that the server has received the request
+			msg_q_ws.append((msg,ws))
+
 			
 		## webcam interval -> sign in or out to webcam, for WS
 		elif(enc.get("cmd")=="set_interval"):
@@ -1149,7 +1169,7 @@ def rm_check_rules(account,login,use_db):
 
 	# get account from rulemanager
 	acc=rm.get_account(account)
-	if(acc!=-1):
+	if(acc!=0):
 		# run the rule check for every area in this account
 		#rint("running rule check on every area of this account")
 		for b in acc.areas:
@@ -1166,7 +1186,7 @@ def rm_check_rules(account,login,use_db):
 			#rint("updateing to db that detection of area "+str(b.area)+" should be")
 			#rint(detection_state)
 
-		# send an update to every box in this account ## TODO: only the boxes which changed the status?
+		# send an update to every box in this account which has to change the status?
 		#rint("now we have to check for every box what there detection status shall be and send it to them")
 		for m2m in server_m2m.clients:
 			if(m2m.account==account):
