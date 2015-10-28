@@ -344,7 +344,7 @@ while 1:
 	con.sock=connect(con)
 
 	while(con.sock!=""):
-		debug.set_con(con.logged_in,len(con.unacknowledged_msg),len(con.msg_q))
+		debug.set_con(con.logged_in,len(con.unacknowledged_msg),len(con.msg_q),con.ack_request_ts)
 
 		#************* receiving start ******************#
 		try:
