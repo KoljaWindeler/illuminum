@@ -6,14 +6,16 @@ con=[]
 con.append(0)
 con.append(0)
 con.append(0)
+con.append(0)
 
 last_action=[]
 last_action.append("")
 
-def set_con(log,unack,msg_q):
+def set_con(log,unack,msg_q,ack_req_ts):
 	con[0]=log
 	con[1]=unack
 	con[2]=msg_q
+	con[3]=ack_req_ts
 
 def set_last_action(action):
 	global last_action
@@ -43,6 +45,10 @@ def start_debug():
 				print(con[1])
 				print("con.logged_in:",end="")
 				print(con[0])
+				print("con.ack_req_ts:",end="")
+				print(con[3],end="")
+				print(" vs time:",end="")
+				print(time.time())
 			elif(input[:1]=="a"):
 				print("Last submitted action: ",end="")
 				print(last_action[0])	

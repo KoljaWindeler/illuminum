@@ -24,6 +24,7 @@ class WebSocketConnection:
 		self.last_transfer=0
 		self.logged_in=0			# avoiding that we send stuff without being logged in
 		self.hb_out = 0
+		self.hb_out_ts = 0
 		self.msg_q=[]
 		self.unacknowledged_msg=[]
 		self.ack_request_ts=0		# used to save the time when the last message, requesting a ACK was send
@@ -233,10 +234,16 @@ def parse_incoming_msg(con):
 			if(enc.get("ack_ok",0)==1):
 				#rint("this is an ack ok package "+str(len(con.unacknowledged_msg)))
 				if(len(con.unacknowledged_msg)>0):
-					first_element=con.unacknowledged_msg[0]
-					con.unacknowledged_msg.remove(first_element)
+					for ele in con.unacknowledged_msg:
+						if(ele[0]==enc.get("cmd",0)): # find the right entry
+							con.unacknowledged_msg.remove(ele)
+							break
 					#rint("comm wait dec at "+str(time.time())+" -> "+str(len(con.unacknowledged_msg)))
-					con.ack_request_ts=0
+				# recalc timestamp
+				if(len(con.unacknowledged_msg)==0):
+					con.ack_request_ts=0					# clear ts
+				else:
+					con.ack_request_ts=con.unacknowledged_msg[0][1]		# move to latest ts
 
 			elif(enc.get("cmd")=="prelogin"):
 				#### send login
@@ -344,7 +351,7 @@ while 1:
 	con.sock=connect(con)
 
 	while(con.sock!=""):
-		debug.set_con(con.logged_in,len(con.unacknowledged_msg),len(con.msg_q))
+		debug.set_con(con.logged_in,len(con.unacknowledged_msg),len(con.msg_q),con.ack_request_ts)
 
 		#************* receiving start ******************#
 		try:
@@ -369,6 +376,7 @@ while 1:
 			msg["cmd"]="m2m_hb"
 			con.msg_q.append(msg)
 			con.hb_out=1
+			con.hb_out_ts=time.time()
 		#************* timeout check end ******************#
 
 		#************* sending start ******************#
@@ -414,7 +422,7 @@ while 1:
 
 
 				if(msg.get("ack",0)==1): # we want an ack!
-					con.unacknowledged_msg.append(("wf",time.time()))
+					con.unacknowledged_msg.append((msg.get("cmd"),time.time()))
 					con.ack_request_ts=time.time()
 					#rint("increased con.unacknowledged_msg to "+str(len(con.unacknowledged_msg))+" entries for cmd "+msg["cmd"])
 
@@ -453,6 +461,13 @@ while 1:
 				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
 				con.unacknowledged_msg=[]
 		############## free us if there is a lost packet #####################
+
+		############## reconnect us if there is no response #####################
+		if(con.hb_out==1 and con.hb_out_ts+con.SERVER_TIMEOUT<time.time()):
+			print("[A "+time.strftime("%H:%M:%S")+"] -> server did not respond to ack,reconnecting")
+			con.hb_out=0
+			break
+		############## reconnect us if there is no response #####################
 
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")
