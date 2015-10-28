@@ -7,3 +7,4 @@ android_cordova/platforms/android/gradlew/*
 android_cordova/platforms/android/gradlew.bat
 android_cordova/platforms/android/.gradle/*
 android_cordova/platforms/android/.idea/*
+*.save
