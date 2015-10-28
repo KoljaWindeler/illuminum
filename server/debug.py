@@ -1,14 +1,15 @@
 import time
 
-class debug:
-	def __init__(self,_alias):
+class debug_client:
+	def __init__(self,_mid,_alias):
 		self.last_img_recv_ts=0
 		self.first_img_recv_ts=0
 		self.num_img_recv=0
 		self.last_five_times=[]
 		self.max_times=5
 		self.alias=_alias
-		self.p=""
+		self.p=""	
+		self.mid=_mid
 
 	def update(self):
 		o=""
@@ -49,22 +50,67 @@ class debug:
 	def print(self):
 		return self.p
 
+class debug:
+	def __init__(self,_alias):
+		self.clients=[]
+		self.alias=_alias
+
+	def update(self,mid):
+		for client in self.clients:
+			if(client.mid==mid):
+				client.update()
+				return 0
+
+		# not found, add new
+		client=debug_client(mid,self.alias)
+		self.clients.append(client)
+		self.update(mid)
+
+	def print(self,mid):
+		for client in self.clients:
+			if(client.mid==mid):
+				return client.print()
+
+		# not found, add new
+		client=debug_client(mid,self.alias)
+		self.clients.append(client)
+		return self.print(mid)
+				
+			
+
 
 class loading_assist:
-	def __init__(self):
+	def __init__(self,server_ws,server_m2m):
 		self.last_checked=0
 		self.clients=[]
 		self.interval=1
-	
+		self.ws=server_ws
+		self.m2m=server_m2m
+
 	def check(self,msg_q_ws):
 		if(time.time()>self.last_checked+self.interval):
 			self.last_checked=time.time()
+
+			# collect the debug_ts from all clients in the server_WS and server_M2M
+			# as long as those tasks are running the time shall be <1, if one hangs
+			# time will rise
+			o="WS:"
+			for cli in self.ws.clients:
+				o=o+str(round(time.time()-cli.debug_ts,1))+" "
+
+			o=o+" | m2m:"
+			for cli in self.m2m.clients:
+				o=o+str(round(time.time()-cli.debug_ts,1))+" "
+
 		
 			for cli in self.clients:
 				msg={}
 				msg["cmd"]="hb_fast"
 				msg["time"]=str(round((time.time()*100)%10000,0)/100)
+				msg["tasks"]=o
 				msg_q_ws.append((msg,cli))
+
+
 	
 	def subscribe(self,_cli):
 		self.clients.append(_cli)
