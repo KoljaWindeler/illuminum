@@ -24,6 +24,7 @@ class WebSocketConnection:
 		self.last_transfer=0
 		self.logged_in=0			# avoiding that we send stuff without being logged in
 		self.hb_out = 0
+		self.hb_out_ts = 0
 		self.msg_q=[]
 		self.unacknowledged_msg=[]
 		self.ack_request_ts=0		# used to save the time when the last message, requesting a ACK was send
@@ -375,6 +376,7 @@ while 1:
 			msg["cmd"]="m2m_hb"
 			con.msg_q.append(msg)
 			con.hb_out=1
+			con.hb_out_ts=time.time()
 		#************* timeout check end ******************#
 
 		#************* sending start ******************#
@@ -459,6 +461,12 @@ while 1:
 				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
 				con.unacknowledged_msg=[]
 		############## free us if there is a lost packet #####################
+
+		############## reconnect us if there is no response #####################
+		if(con.hb_out==1 and con.hb_out_ts+con.SERVER_TIMEOUT<time.time()):
+			print("[A "+time.strftime("%H:%M:%S")+"] -> server did not respond to ack,reconnecting")
+			break
+		############## reconnect us if there is no response #####################
 
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")
