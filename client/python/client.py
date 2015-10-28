@@ -233,11 +233,14 @@ def parse_incoming_msg(con):
 			if(enc.get("ack_ok",0)==1):
 				#rint("this is an ack ok package "+str(len(con.unacknowledged_msg)))
 				if(len(con.unacknowledged_msg)>0):
-					first_element=con.unacknowledged_msg[0]
-					con.unacknowledged_msg.remove(first_element)
+					for ele in con.unacknowledged_msg:
+						if(ele[0]==enc.get("cmd",0)): # find the right entry
+							con.unacknowledged_msg.remove(ele)
 					#rint("comm wait dec at "+str(time.time())+" -> "+str(len(con.unacknowledged_msg)))
 				if(len(con.unacknowledged_msg)==0):
-					con.ack_request_ts=0
+					con.ack_request_ts=0					# clear ts
+				else:
+					con.ack_request_ts=con.unacknowledged_msg[0][1]		# move to latest ts
 
 			elif(enc.get("cmd")=="prelogin"):
 				#### send login
@@ -415,7 +418,7 @@ while 1:
 
 
 				if(msg.get("ack",0)==1): # we want an ack!
-					con.unacknowledged_msg.append(("wf",time.time()))
+					con.unacknowledged_msg.append((msg.get("cmd"),time.time()))
 					con.ack_request_ts=time.time()
 					#rint("increased con.unacknowledged_msg to "+str(len(con.unacknowledged_msg))+" entries for cmd "+msg["cmd"])
 
