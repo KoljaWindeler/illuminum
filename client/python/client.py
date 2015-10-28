@@ -236,7 +236,9 @@ def parse_incoming_msg(con):
 					for ele in con.unacknowledged_msg:
 						if(ele[0]==enc.get("cmd",0)): # find the right entry
 							con.unacknowledged_msg.remove(ele)
+							break
 					#rint("comm wait dec at "+str(time.time())+" -> "+str(len(con.unacknowledged_msg)))
+				# recalc timestamp
 				if(len(con.unacknowledged_msg)==0):
 					con.ack_request_ts=0					# clear ts
 				else:
