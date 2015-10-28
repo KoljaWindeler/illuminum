@@ -276,7 +276,7 @@ def parse_incoming_msg(con):
 				print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
 			elif(enc.get("cmd")=="set_detection"):
 				print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("state")))
-				trigger.set_detection(enc.get("state"))
+				trigger.s.set_detection(enc.get("state"))
 			elif(enc.get("cmd")=="wf"):
 				ignore=1
 			elif(enc.get("cmd")=="set_color"):
