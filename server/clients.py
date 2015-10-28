@@ -28,6 +28,8 @@ class m2m_clients:
 		self.detection_on_mode=1			# can be 1 or 2 and will be copied to detection on "switch on". Should come from database. it is the same for all boxes in the same area on the same account
 		self.brightness_pos = 0				# position for the brightness slider for the ws
 		self.color_pos = 0					# position for the color slider for the ws
+		self.debug_ts=0						# each process has to update this ts to show that he is alive
+		self.sendq = []						# the messages to be send
 
 # dies ist der WEBSOCKET client
 class ws_clients:
@@ -48,6 +50,7 @@ class ws_clients:
 		self.webcam_countdown=99				# remaining webcam frames
 		self.alarm_view=0					# if we should send the client alarm view without request (used in the service)
 		self.email=""						# email adresse for evidence pictures
+		self.debug_ts=0						# each process has to update this ts to show that he is alive
 
 class webcam_viewer:
 	def __init__(self,cli):
