@@ -200,6 +200,7 @@ def show_status():
 		if(i%2==0):
 			print(p_out+p_out2)
 			p_out2=""
+			p_out=""
 		else:
 			p_out=p_out2+" | "
 	if(p_out!=""):
