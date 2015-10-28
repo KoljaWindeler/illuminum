@@ -465,6 +465,7 @@ while 1:
 		############## reconnect us if there is no response #####################
 		if(con.hb_out==1 and con.hb_out_ts+con.SERVER_TIMEOUT<time.time()):
 			print("[A "+time.strftime("%H:%M:%S")+"] -> server did not respond to ack,reconnecting")
+			con.hb_out=0
 			break
 		############## reconnect us if there is no response #####################
 
