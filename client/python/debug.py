@@ -6,6 +6,7 @@ con=[]
 con.append(0)
 con.append(0)
 con.append(0)
+con.append(0)
 
 last_action=[]
 last_action.append("")
