@@ -236,6 +236,7 @@ def parse_incoming_msg(con):
 					first_element=con.unacknowledged_msg[0]
 					con.unacknowledged_msg.remove(first_element)
 					#rint("comm wait dec at "+str(time.time())+" -> "+str(len(con.unacknowledged_msg)))
+				if(len(con.unacknowledged_msg)==0):
 					con.ack_request_ts=0
 
 			elif(enc.get("cmd")=="prelogin"):
