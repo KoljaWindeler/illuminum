@@ -1,7 +1,7 @@
 import OpenSSL
 import socket,os,time,json,base64, datetime
 import hashlib,select,trigger,uuid
-import sys,light,debug
+import sys,light,p
 from binascii import unhexlify, hexlify
 from login import *
 from math import *
@@ -119,7 +119,7 @@ def upload_picture(con,high_res):
 		print("skip picture, q full")
 		return 1
 
-	debug.set_last_action("loading img")
+	p.set_last_action("loading img")
 	#if full frame read other file
 	if high_res:
 		img = open("/dev/shm/mjpeg/cam_full.jpg",'rb')
@@ -154,7 +154,7 @@ def upload_picture(con,high_res):
 			print("[A "+time.strftime("%H:%M:%S")+"] Step 6  upload appended message for "+path)
 		i=i+1
 
-	debug.set_last_action("loading img done")
+	p.set_last_action("loading img done")
 
 	#print(str(time.time())+' all messages for '+path+' are in buffer.. i guess')
 	img.close()
@@ -165,7 +165,7 @@ def upload_picture(con,high_res):
 #******************************************************#
 def connect(con):
 	print("[A "+time.strftime("%H:%M:%S")+"] -> connecting ...")
-	debug.set_last_action("connecting")
+	p.set_last_action("connecting")
 
 	context = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -179,7 +179,7 @@ def connect(con):
 		return -1
 
 	print("[A "+time.strftime("%H:%M:%S")+"] -> connected. Loggin in...")
-	debug.set_last_action("connecting done")
+	p.set_last_action("connecting done")
 
 	#### prelogin
 	msg={}
@@ -193,24 +193,25 @@ def connect(con):
 # Parse the incoming msg and do something with it
 #******************************************************#
 def parse_incoming_msg(con):
-	debug.set_last_action("start recv")
+	p.set_last_action("start recv")
 	try:
 		data = con.sock.recv(con.MAX_MSG_SIZE)
 		if(len(data)==0):
 			print("disconnect")
 			client_socket=""
-			debug.set_last_action("disconnected")	
+			p.set_last_action("disconnected")	
 
 			return -1
 	
-		debug.set_last_action("decoding")
+		p.rint("received "+str(len(data))+" byte","v")
+		p.set_last_action("decoding")
 		data_dec = data.decode("UTF-8")
 		#print("Data received:"+str(data))
 	except:
 		print('client_socket.recv detected error')
 		return -1
 
-	debug.set_last_action("start parse")
+	p.set_last_action("start parse")
 
 	data_dec=con.recv_buffer+data_dec
 	data_array=data_dec.split('}')	# might have multiple JSON messages in the buffer or just "{blab}_"
@@ -222,7 +223,7 @@ def parse_incoming_msg(con):
 			enc=json.loads(data_array[a])
 		except:
 			print("json decode failed on:"+data_array[a])
-			debug.set_last_action("decoding bad")
+			p.set_last_action("decoding bad")
 
 			return -2 # bad message, reconnect
 
@@ -318,7 +319,7 @@ def parse_incoming_msg(con):
 		con.recv_buffer=data_array[len(data_array)-1]
 		#print("using buffer!")
 
-	debug.set_last_action("recv done")
+	p.set_last_action("recv done")
 	return 0
 #********************************************************#
 
@@ -338,7 +339,7 @@ trigger.s.subscribe_callback(trigger_handle)
 
 light.start()
 
-debug.start()
+p.start()
 # Main programm
 #******************************************************#
 
@@ -351,7 +352,7 @@ while 1:
 	con.sock=connect(con)
 
 	while(con.sock!=""):
-		debug.set_con(con.logged_in,len(con.unacknowledged_msg),len(con.msg_q),con.ack_request_ts)
+		p.set_con(con.logged_in,len(con.unacknowledged_msg),len(con.msg_q),con.ack_request_ts)
 
 		#************* receiving start ******************#
 		try:
@@ -403,7 +404,7 @@ while 1:
 
 			if(msg!=""):
 				#print("A message is ready to send")
-				debug.set_last_action("json / encode / sendall")
+				p.set_last_action("json / encode / sendall")
 
 				send_msg=json.dumps(msg)
 				send_msg_enc=send_msg.encode("UTF-8")
@@ -418,7 +419,7 @@ while 1:
 					print("init reconnect")
 					break
 			
-				debug.set_last_action("send all done")
+				p.set_last_action("send all done")
 
 
 				if(msg.get("ack",0)==1): # we want an ack!
@@ -471,7 +472,7 @@ while 1:
 
 		#************* sending end ******************#
 	print("connection destroyed, reconnecting")
-	debug.set_last_action("connection destroyed")
+	p.set_last_action("connection destroyed")
 
 	cam.webview_active=0 # switch off the webstream, we wouldn't have ws beeing connected to us anyway after resign on
 	cam.alarm_pictures_remaining=0
