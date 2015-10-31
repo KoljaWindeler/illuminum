@@ -14,6 +14,7 @@ class m2m_clients:
 		self.mid=-1							# the Machine ID (unique identifier per camera device)
 		self.logged_in=0					# 1 if log-in OK
 		self.last_comm=0					# timestamp of the last incoming msg
+		self.comm_timeout=11*60					# max time with incoming msg
 		self.m2v=[]							# list of all active viewer subscribers. those will get a message for e.g. idle -> motion detected
 		self.area=" "						# a location like "in front of the main entrace"
 		self.account=" "					# the accout the device belongs to .. something like JKW even if there are two logins (kolja,caro) to the ACCOUNT
