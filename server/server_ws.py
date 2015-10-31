@@ -17,7 +17,8 @@ import codecs
 from collections import deque
 from select import select
 
-PORT=9879
+PORT=9879	
+
 MAX_CLIENTS=5
 
 _VALID_STATUS_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011, 3000, 3999, 4000, 4999]
@@ -120,11 +121,11 @@ def handle (client,addr):
 			busy=1
 			lt=""
 			try:
-				#print(addr,end="")
-				#print("server_ws: rList has "+str(len(rList))+" Elements")
 				lt="start _handleData()"
 				t2=time.time()
-				client.ws._handleData()
+				if(client.ws._handleData()==-1):
+					disconnect(client)
+					
 				while(client.ws.data_ready==True):
 					lt="Start getMessage()"
 					msg=client.ws.getMessage() # getMessage will unset the data_ready flag if no data left
@@ -138,7 +139,7 @@ def handle (client,addr):
 				t2=time.time()-t2
 
 			except Exception as n:
-				print("except, our status ",end="")
+				print("except while read in server_ws, our status ",end="")
 				print(lt,end="")
 				print(" sys:",end="")
 				print(sys.exc_info()[0])
@@ -388,9 +389,12 @@ class WebSocket(object):
 			lt=""
 			try:
 				lt="recv"
+				time.sleep(0.01)
 				data = self.sock.recv(self.headertoread)
-				#print("I've received:",end="")
-				#print(data)
+				if not data:
+					return -1
+#				print("I've received:",end="")
+#				print(len(data))
 				lt="decoding"
 				data = data.decode("UTF-8")
 			except Exception as e:
@@ -449,13 +453,16 @@ class WebSocket(object):
 
 		# else do normal data		
 		else:
+			lt="recv handshake done"
+			time.sleep(0.01)
 			data = self.sock.recv(8192)
 			#print(data)
 			if not data:
-				raise Exception("remote socket closed")
-			
+				return -1
+#				raise Exception("remote socket closed")			
 			for d in data:
 				self._parseMessage(d)
+			return 0
 
 	def close(self, status = 1000, reason = ''):
 		"""

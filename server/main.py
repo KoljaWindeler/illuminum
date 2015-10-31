@@ -368,7 +368,7 @@ def recv_m2m_msg_handle(data,m2m):
 				msg["state"]=m2m.state
 				msg["area"]=m2m.area
 				msg["detection"]=m2m.detection
-				msg["up_down_debug"]=debug_in.print(m2m.mid)+" || "+debug_out.print(m2m.mid)
+				msg["up_down_debug"]=debug_in.get(m2m.mid)+" || "+debug_out.get(m2m.mid)
 
 				# all image data in one packet
 				if(enc.get("sof",0)==1):
@@ -558,13 +558,16 @@ def recv_ws_msg_handle(data,ws):
 
 		#rint("ws:"+str(ws.port)+"/"+str(ws.ip))
 	if(type(enc) is dict):
+		ws.last_comm=time.time()
+
 		if(enc.get("debug",0)==1):
 			p.rint("websocket_msg","d")
 			for key, value in enc.items() :
 				p.rint("-d-->Key:'"+key+"' / Value:'"+str(value)+"'","d")
 
+
 		#### pre login challange, for WS
-		elif(enc.get("cmd")=="prelogin"):
+		if(enc.get("cmd")=="prelogin"):
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["challange"]=ws.challange
@@ -616,7 +619,6 @@ def recv_ws_msg_handle(data,ws):
 					ws.logged_in=1
 					ws.account=db_r["account"]
 					ws.email=db_r["email"]
-					ws.last_comm=time.time()
 					ws.uuid=enc.get("uuid","")
 					ws.alarm_view=enc.get("alarm_view",0) #1,0 depending on service or app
 				
@@ -692,7 +694,6 @@ def recv_ws_msg_handle(data,ws):
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
 			msg_q_ws.append((msg,ws))
-			ws.last_comm=time.time()
 
 
 		#### set a color 
@@ -1388,6 +1389,10 @@ while 1:
 				acc.update_next_ts()
 		debug_ts=time.time()-last_rulecheck_ts
 		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(debug_ts),"r")
+
+		# sneak in the "client still there"-check
+		server_m2m.check_clients()
+		
 
 			
 #***************************************************************************************#
