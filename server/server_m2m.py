@@ -66,6 +66,7 @@ def handle (client, addr):
 		try:
 			rList, wList, xList = select([client.conn], [client.conn], [client.conn], 3)
 		except Exception as n:
+			print("Select() return an exception:")
 			print(n)
 			break
 
@@ -75,8 +76,9 @@ def handle (client, addr):
 		######################## SEND ###########################
 		if(len(wList)>0):
 			try:
-				for payload in client.sendq:
+				if(len(client.sendq)>0):
 					busy=1
+					payload=client.sendq[0]
 					client.sendq.remove(payload)
 					
 					msg= bytearray()
@@ -84,6 +86,7 @@ def handle (client, addr):
 					for d in bytearray(payload):
 				            msg.append(d)
 					client.conn.send(msg)
+					p.rint("m2m send "+str(len(msg))+" bytes","w")
 
 			except Exception as n:
 				print("exception!!!")
@@ -244,11 +247,16 @@ def subscribe_callback(fun,method):
 			callback_con[0]=fun
 		else:
 			callback_con.append(fun)
+
+def check_clients():
+	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> checking clients","r")
+	for cli in clients:
+		if(cli.last_comm>0 and cli.last_comm+cli.comm_timeout<time.time()):
+			p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] disconnecting client as last comm is older than timeout","r")
+			disconnect(cli)
+	p.rint("[S_m2m "+time.strftime("%H:%M:%S")+"] -> checking clients done","r")
 #******************************************************#
 
 callback_con = [subscribe_callback]
 callback_msg = [subscribe_callback]
 clients = []
-
-
-
