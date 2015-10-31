@@ -351,7 +351,13 @@ while 1:
 	con.logged_in=0
 	con.sock=connect(con)
 
+	busy=1
+
 	while(con.sock!=""):
+		if(busy==0):
+			time.sleep(0.05)
+		busy=0
+
 		p.set_con(con.logged_in,len(con.unacknowledged_msg),len(con.msg_q),con.ack_request_ts)
 
 		#************* receiving start ******************#
@@ -365,6 +371,7 @@ while 1:
 
 			## react on msg in
 		if(len(ready_to_read) > 0):
+			busy=1
 			#print("read process is ready")
 			if(parse_incoming_msg(con)<0):
 				break
@@ -372,6 +379,7 @@ while 1:
 
 		#************* timeout check start ******************#
 		if(time.time()-con.last_transfer>60*5 and con.hb_out==0):
+			busy=1
 			print("[A "+time.strftime("%H:%M:%S")+"] -> checking connection")
 			msg={}
 			msg["cmd"]="m2m_hb"
@@ -386,6 +394,7 @@ while 1:
 
 		# we have a message waiting and either we have an empty unacknowledged_msg_queue or we are not logged in, or both!
 		if(len(con.msg_q)>0 and (len(con.unacknowledged_msg)<con.MAX_OUTSTANDING_ACKS or not(con.logged_in))):
+			busy=1
 			msg=""
 			if(con.logged_in!=1):	 	# check if we have a login msg in the q
 				for msg_i in con.msg_q:
@@ -451,13 +460,16 @@ while 1:
 		if(len(con.msg_q)==0 and con.logged_in==1):
 			if(cam.webview_active==1 and cam.last_picture_taken_ts+cam.interval<time.time()):
 				upload_picture(con,0) #highres?
+				busy=1
 			elif(cam.alarm_pictures_remaining>0 and cam.last_picture_taken_ts+cam.alarm_interval<time.time()):
 				cam.alarm_pictures_remaining=max(0,cam.alarm_pictures_remaining-1)
 				upload_picture(con,0) #highres?
+				busy=1
 		############## at this point we consider to upload a picture #####################
 
 		############## free us if there is a lost packet #####################
 		if(len(con.unacknowledged_msg)>0 and con.logged_in==1):
+			busy=1
 			if(len(con.msg_q)>0 and con.ack_request_ts!=0 and con.ack_request_ts+con.SERVER_TIMEOUT<time.time()):
 				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
 				con.unacknowledged_msg=[]
@@ -465,6 +477,7 @@ while 1:
 
 		############## reconnect us if there is no response #####################
 		if(con.hb_out==1 and con.hb_out_ts+con.SERVER_TIMEOUT<time.time()):
+			busy=1
 			print("[A "+time.strftime("%H:%M:%S")+"] -> server did not respond to ack,reconnecting")
 			con.hb_out=0
 			break
