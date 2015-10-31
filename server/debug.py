@@ -47,7 +47,7 @@ class debug_client:
 			o=o[1:]+" / "
 		self.p="("+self.alias+") "+o
 
-	def print(self):
+	def get(self):
 		return self.p
 
 class debug:
@@ -66,15 +66,15 @@ class debug:
 		self.clients.append(client)
 		self.update(mid)
 
-	def print(self,mid):
+	def get(self,mid):
 		for client in self.clients:
 			if(client.mid==mid):
-				return client.print()
+				return client.get()
 
 		# not found, add new
 		client=debug_client(mid,self.alias)
 		self.clients.append(client)
-		return self.print(mid)
+		return self.get(mid)
 				
 			
 
@@ -96,11 +96,16 @@ class loading_assist:
 			# time will rise
 			o="WS:"
 			for cli in self.ws.clients:
-				o=o+str(round(time.time()-cli.debug_ts,1))+" "
+				o=o+str(cli.login)+": "
+				o=o+"Thread time "+str(round(time.time()-cli.debug_ts,1))+" "
+				o=o+"Last recv "+str(round(time.time()-cli.last_comm,1))+" "
 
 			o=o+" | m2m:"
 			for cli in self.m2m.clients:
-				o=o+str(round(time.time()-cli.debug_ts,1))+" "
+				o=o+str(cli.alias)+": "
+				o=o+"Thread time "+str(round(time.time()-cli.debug_ts,1))+" "
+				o=o+"Last recv "+str(round(time.time()-cli.last_comm,1))+" "
+				
 
 		
 			for cli in self.clients:
