@@ -143,6 +143,8 @@ def handle (client,addr):
 				print(lt,end="")
 				print(" sys:",end="")
 				print(sys.exc_info()[0])
+				print(sys.exc_info()[1])
+				print(sys.exc_info()[2])
 				print("")
 
 				disconnect(client)
@@ -400,11 +402,12 @@ class WebSocket(object):
 			except Exception as e:
 				print("")
 				print("SERVER_WS ")
-				print("recv exception in server_ws:'", end="")
+				print("recv exception in handshaking:'", end="")
 				print(lt,end="")
 				print(" ",end="")
 				print(e,end="")
 				print("'")
+				raise Exception("remote socket closed")
 			if not data:
 				#print("empty data received, eventhough headertoread was "+str(self.headertoread))
 				raise Exception("remote socket closed")
