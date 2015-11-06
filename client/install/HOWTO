@@ -1,4 +1,0 @@
-git clone git@github.com:jgarff/rpi_ws281x.git -b rpi2 
-scons
-cd python
-sudo python3 setup.py install
