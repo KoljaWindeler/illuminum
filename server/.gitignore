@@ -1,0 +1,7 @@
+*.jpg
+*.pyc
+*project
+log.txt
+cert
+key
+sql_login.py
