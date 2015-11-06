@@ -1,0 +1,11 @@
+uploads/*
+android_cordova/platforms/android/CordovaLib/build/
+# Non-project-specific build files:
+android_cordova/platforms/android/build.xml
+android_cordova/platforms/android/local.properties
+android_cordova/platforms/android/gradlew/*
+android_cordova/platforms/android/gradlew.bat
+android_cordova/platforms/android/.gradle/*
+android_cordova/platforms/android/.idea/*
+*.save
+*log.txt
