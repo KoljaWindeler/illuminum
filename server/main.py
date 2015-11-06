@@ -181,6 +181,7 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.latitude=db_r["latitude"]
 					m2m.brightness_pos=db_r["brightness_pos"]
 					m2m.color_pos=db_r["color_pos"]
+					m2m.alarm_ws=db_r["alarm_ws"]
 					
 					msg["alias"]=m2m.alias		# this goes to the m2m
 					msg["mRed"]=db_r["mRed"]
@@ -298,6 +299,7 @@ def recv_m2m_msg_handle(data,m2m):
 			
 			msg["mid"]=m2m.mid
 			msg["cmd"]=enc.get("cmd")
+			msg["alarm_ws"]=m2m.alarm_ws
 			msg["state"]=m2m.state
 			msg["area"]=m2m.area
 			msg["account"]=m2m.account
@@ -389,12 +391,12 @@ def recv_m2m_msg_handle(data,m2m):
 					
 				# select the ws to send to
 				if(m2m.state==1 and m2m.detection>=1): # alert -> inform everyone
-					# the m2v list has all viewer
-					for v in m2m.m2v:
-						if(v.snd_q_len<10 and v.alarm_view==1): # just send it if their queue is not to full AND the clients wants unrequested img
-							msg_q_ws.append((msg,v))
-							v.snd_q_len+=1
-						
+					if(m2m.alarm_ws == 1): # only forward the image to the ws whenever this camera has alarm_ws set
+						# the m2v list has all viewer
+						for v in m2m.m2v:
+							if(v.snd_q_len<10 and v.alarm_view==1): # just send it if their queue is not to full AND the clients wants unrequested img
+								msg_q_ws.append((msg,v))
+								v.snd_q_len+=1	
 					#if(m2m.detection==1 and m2m.alert.notification_send_ts>0):		# TODO: if this is activated only the first xx file will be saved for detection=1 clients, detection=2 clients will save forever
 					#	os.remove(this_file)
 				# webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
@@ -413,8 +415,9 @@ def recv_m2m_msg_handle(data,m2m):
 						set_webcam_con(m2m.mid,0,v.ws) # disconnect the webcam from us						
 					else:
 						p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
-#				if(m2m.detection==0):
-					#  delete the picture from our memory, as it can not be a alert picture
+
+				#  delete the picture from our memory, as it can not be a alert picture
+				if(m2m.detection==0):
 					os.remove(this_file)
 
 				tmp_loc=this_file.split('/')
@@ -977,6 +980,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["latitude"]=m2m.latitude
 		msg_ws2["state"]=m2m.state
 		msg_ws2["detection"]=m2m.detection
+		msg_ws2["alarm_ws"]=m2m.alarm_ws
 		msg_ws2["account"]=m2m.account
 		msg_ws2["alias"]=m2m.alias
 		msg_ws2["last_seen"]=m2m.last_comm
