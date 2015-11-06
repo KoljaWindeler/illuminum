@@ -31,6 +31,7 @@ class m2m_clients:
 		self.color_pos = 0					# position for the color slider for the ws
 		self.debug_ts=0						# each process has to update this ts to show that he is alive
 		self.sendq = []						# the messages to be send
+		self.alarm_ws = 1					# shall the photos of this m2m be forwarded to the connected WS in case of an alert
 
 # dies ist der WEBSOCKET client
 class ws_clients:
