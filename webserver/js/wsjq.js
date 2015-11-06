@@ -36,7 +36,7 @@ function open_ws() {
 	console.log("connecting to the server");
 	con = new WebSocket('wss://52.24.157.229:9879/');
 	con.onopen = function(){
-		if($("#rl_msg").length){
+		while($("#rl_msg").length){
 			$.fancybox.close();							
 			$("#rl_msg").remove();
 		};
@@ -53,6 +53,11 @@ function open_ws() {
 	};
 	con.onclose = function(){
 		console.log("onClose");
+		// removed old existing entries
+		while($("#rl_msg").length){
+			$.fancybox.close();							
+			$("#rl_msg").remove();
+		};
 		// show fancybox
 		var rl_msg = $("<div></div>").text("reconnecting..");
 		rl_msg.attr({
@@ -114,7 +119,7 @@ function parse_msg(msg_dec){
 		// check if m2m is already visible, if not append it. Then update the state and timestamp
 		check_append_m2m(msg_dec);
 		update_hb(mid,msg_dec["last_seen"]);
-		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"]);
 		// do it again here, to update a m2m that was existing (reconnect situation)
 		set_alert_button_state($("#"+mid+"_alarm_counter"),$("#"+mid+"_toggle_alarms"),$("#"+mid+"_toggle_alarms_text"),msg_dec["open_alarms"]);
 
@@ -141,7 +146,7 @@ function parse_msg(msg_dec){
 
 	// update the state, we only receive that if a box changes its state. E.g. to alarm or to disarm
 	else if(msg_dec["cmd"]=="state_change"){
-		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"]);
+		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"]);
 	}
 
 	// show a picture, we'll receive this because we requested it. Alarm will not send us pictures directly
@@ -152,7 +157,7 @@ function parse_msg(msg_dec){
 
 	// an m2m unit disconnects
 	else if(msg_dec["cmd"]=="disconnect"){
-		update_state(msg_dec["account"],msg_dec["area"],mid,-1,msg_dec["detection"],"");
+		update_state(msg_dec["account"],msg_dec["area"],mid,-1,msg_dec["detection"],"",0);
 	}
 
 	// we'll request the alerts by sending "get_alert_ids" and the server will responde with this dataset below
@@ -1797,10 +1802,10 @@ function update_hb(mid,ts){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function update_state(account,area,mid,state,detection,rm){
+function update_state(account,area,mid,state,detection,rm,alarm_ws){
 	//console.log("running update state on "+mid+"/"+state+"/"+rm);
 
-	// set the rulemanager text explainaition
+	// set the rulemanager text explainaition for the complete area
 	if(state>=0){
 		$("#"+account+"_"+area+"_status").click(function(){
 			var rm_int=rm;
@@ -1815,6 +1820,9 @@ function update_state(account,area,mid,state,detection,rm){
 	var e=$("#"+mid+"_state");
 	if(e.length){
 		e.text(state2str(state,detection));
+		if(alarm_ws==0){ // if alarm_ws is == 1, we'll send images to the WS on an alert and the site show show an popup (created below)
+			e.text(e.text()+", silent mode");
+		};
 	}
 	// text state of the m2m
 
@@ -1861,12 +1869,12 @@ function update_state(account,area,mid,state,detection,rm){
 	// glow icon state of the m2m
 	
 	// POP UP
-	if(detection>0 && state>0){
+	if(detection>0 && state>0 && alarm_ws>0){
 	 	// if we change to alert-state, show popup with shortcut to the liveview
 		show_alert_fb(mid);
 	} else {
 		// if we change to non-alert-state and there is still the alert popup, show the old_alert popup
-		if($("#"+mid+"_liveview_alert_fb").length){
+		if($("#"+mid+"_liveview_alert_fb").length && alarm_ws>0){
 			show_old_alert_fb(mid,-1);
 		};
 	}
