@@ -69,7 +69,9 @@ class sql:
 				req = "DELETE FROM `rules` WHERE `id` ='"+str(id)+"'"
 				#print(req)
 				cursor.execute(req)
-				result =0
+
+			self.connection.commit()
+			result =0
 		except:
 			result =-2
 		self.close()
