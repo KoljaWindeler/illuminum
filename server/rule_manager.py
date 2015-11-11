@@ -487,16 +487,15 @@ class area:
 		del_list=[]
 		if(override=="*"):
 			self.has_override_detection_on=0
-			for r in self.rules:
-				if(r.conn=="*"):
-					del_list.append(r)
 		elif(override=="/"):
 			self.has_override_detection_off=0
-			for r in self.rules:
-				if(r.conn=="/"):
-					del_list.append(r)
+
+		for r in self.rules:
+			if(r.conn==override):
+				del_list.append(r)
 
 		for r in del_list:
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Remove rule " + str(r.id) + "","r")
 			self.rm_rule(r.id)
 	#############################################################
 	def rm_rule(self, id):
@@ -512,6 +511,9 @@ class area:
 				if(r.id==id):
 					self.sub_rules.remove(r)
 					break;
+		# delete from db
+		self.db.rm_rule(id)
+
 				
 		if(not(self.db.rm_rule(id)==0)):
 			p.rint("Delete rule "+str(id)+" failed","r")
