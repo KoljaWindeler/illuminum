@@ -68,6 +68,7 @@ def handle (client, addr):
 		except Exception as n:
 			print("Select() return an exception:")
 			print(n)
+			disconnect(client)
 			break
 
 		if(busy==0):
