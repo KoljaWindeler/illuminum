@@ -533,7 +533,7 @@ div.hamb_l {
 		/*font-size:30px;*/
 	}
 
-	.live_sym,.color_sym,.alarm_sym,.alarm_sym_open_alerts{
+	.live_sym,.color_sym,.alarm_sym,.alarm_sym_open_alerts, .button_deactivated{
 		margin-right: 20px;
 		margin-left: 20px;
 	}
