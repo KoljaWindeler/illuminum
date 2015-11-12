@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #import ssl
 from OpenSSL import SSL
-import socket, struct,  threading, cgi, time, p, sys
+import socket, struct,  threading, cgi, time, p, sys, traceback
 from clients import ws_clients
 from base64 import b64encode
 from hashlib import sha1
@@ -140,11 +140,11 @@ def handle (client,addr):
 
 			except Exception as n:
 				print("except while read in server_ws, our status ",end="")
-				print(lt,end="")
-				print(" sys:",end="")
+				print(lt)
+				print("sys:",end="")
 				print(sys.exc_info()[0])
 				print(sys.exc_info()[1])
-				print(sys.exc_info()[2])
+				print(repr(traceback.format_tb(sys.exc_info()[2])))
 				print("")
 
 				disconnect(client)
@@ -666,7 +666,7 @@ class WebSocket(object):
 				raise Exception('short length exceeded allowable size')
 
 			if len(self.lengtharray) == 2:
-				self.length = struct.unpack_from('!H', str(self.lengtharray))[0]
+				self.length = struct.unpack_from('!H', self.lengtharray)[0]
 				
 				if self.hasmask is True:
 					self.maskarray = bytearray()
@@ -694,7 +694,7 @@ class WebSocket(object):
 				raise Exception('long length exceeded allowable size')
 
 			if len(self.lengtharray) == 8:
-				self.length = struct.unpack_from('!Q', str(self.lengtharray))[0]
+				self.length = struct.unpack_from('!Q', self.lengtharray)[0]
 
 				if self.hasmask is True:
 					self.maskarray = bytearray()
