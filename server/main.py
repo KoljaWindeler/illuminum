@@ -734,8 +734,10 @@ def recv_ws_msg_handle(data,ws):
 				if(rule_area!=0):
 					# check if opposit rule existed and remove up front
 					if(rule=="*" and rule_area.has_override_detection_off):
+						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] RM, remove / rule","r")
 						rule_area.rm_override("/")
 					elif(rule=="/" and rule_area.has_override_detection_on):
+						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] RM, remove * rule","r")
 						rule_area.rm_override("*")
 					else: # add new override as no one was in place to remove
 						if(duration>0): # duration can be a time in sec or -1 = forever
@@ -1210,15 +1212,21 @@ def rm_check_rules(account,login,use_db):
 						msg_q_m2m.append((msg,m2m))
 						# step 9 tell the watching ws that it went sharp		
 						affected_ws_clients=0
-						for ws in m2m.m2v:
-							msg2={}
-							msg2["cmd"]="detection_changed"	
-							msg2["area"]=m2m.area
-							msg2["detection"]=m2m.detection
-							msg_q_ws.append((msg2,ws))
-							affected_ws_clients+=1
-						p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+str(m2m.mid)+"' in area "+str(m2m.area)+" to '"+str(det_state[int(db_r2["state"])])+"' (-> "+str(affected_ws_clients)+" ws clients)","a")
+						p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+str(m2m.mid)+"' in area "+str(m2m.area)+" to '"+str(det_state[int(db_r2["state"])])+"'","a")
 						#break DO NOT! MIGHT HAVE MULTIPLE BOXES
+
+				# step 9: even if the detection might have not changed, the rm might have. 
+				# send an updated state to all ws clients of this m2m box
+				for ws in m2m.m2v:
+					msg2={}
+					msg2["cmd"]="state_change"
+					msg2["account"]=m2m.account	
+					msg2["area"]=m2m.area
+					msg2["state"]=m2m.state
+					msg2["detection"]=m2m.detection
+					msg2["alarm_ws"]=m2m.alarm_ws
+					msg2["rm"]=acc.get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
+					msg_q_ws.append((msg2,ws))
 
 #******************************************************#
 
