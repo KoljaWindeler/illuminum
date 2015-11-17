@@ -74,6 +74,8 @@ public class bg_service extends Service {
             for (int i = 0; i < areas.size(); i++) {
                 float this_distance = areas.get(i).getCoordinates().distanceTo(location);
                 mDebug.write_to_file("areas " + String.valueOf(i) + " is " + String.valueOf(this_distance) + " away");
+                this_distance=Math.min(0,this_distance-location.getAccuracy());
+                mDebug.write_to_file("after accuracy (" + String.valueOf(location.getAccuracy()) + ") subtraction " + String.valueOf(i) + " is " + String.valueOf(this_distance) + " away");
 
                 // debug
                 distance_debug += "Area:" + areas.get(i).getName() + ", " + String.valueOf(this_distance) + "m\n";
