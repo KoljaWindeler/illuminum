@@ -74,7 +74,7 @@ public class bg_service extends Service {
             for (int i = 0; i < areas.size(); i++) {
                 float this_distance = areas.get(i).getCoordinates().distanceTo(location);
                 mDebug.write_to_file("areas " + String.valueOf(i) + " is " + String.valueOf(this_distance) + " away");
-                this_distance=Math.min(0,this_distance-location.getAccuracy());
+                this_distance=Math.max(0,this_distance-location.getAccuracy());
                 mDebug.write_to_file("after accuracy (" + String.valueOf(location.getAccuracy()) + ") subtraction " + String.valueOf(i) + " is " + String.valueOf(this_distance) + " away");
 
                 // debug
@@ -218,7 +218,7 @@ public class bg_service extends Service {
         // get services
         //mDebug.write_to_file("settings check");
         if (mSettings == null) {
-            mDebug.write_to_file("settings are null, recrating");
+            mDebug.write_to_file("settings are null, recrating!");
             mSettings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, MODE_MULTI_PROCESS);
             mDebug.write_to_file("settings pw is: "+mSettings.getString("PW","backup"));
             if(mSettings.getString("PW",MainActivity.nongoodlogin).equals(MainActivity.nongoodlogin)){
