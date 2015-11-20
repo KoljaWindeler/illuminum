@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 
 import org.apache.cordova.plugin.GetLogin;
 
@@ -27,7 +28,9 @@ public class s_notify {
     private SharedPreferences mSettings;
     private String area_of_last_alert = "";
     private String time_of_last_alert = "";
-    private String mVersion = "1.2";
+    private String mVersion = "1.31";
+    private String lastTitle="";
+    private String lastAreaText="";
 
     public s_notify(Context serviceContext, SharedPreferences serviceSettings) {
         mContext = serviceContext;
@@ -65,14 +68,15 @@ public class s_notify {
                 .setOngoing(true);
     }
 
+
     public void showNotification(String title, String short_text, String long_text) {
         if (last_picture == null) {
             String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
-            String shown_title=login + " @ Glubsch "+mVersion;
+            String shown_title = login + " @ "+mContext.getString(R.string.app_name)+" " + mVersion;
 
             // avoid showing old-pre-logout status
             if(login.equals(MainActivity.nongoodlogin)){
-                shown_title="glubsch";
+                shown_title=mContext.getString(R.string.app_name);
                 short_text="Log-in to activate your protection";
                 long_text=short_text;
             }
@@ -91,6 +95,7 @@ public class s_notify {
     }
 
     public void showNotification(String title, String short_text, Bitmap picture) {
+        lastTitle=title;
         mNotificationBuilder
                 .setAutoCancel(true)
                 //.setVibrate(new long[]{1000, 1000, 1000, 1000, 1000, 1000})
@@ -109,19 +114,28 @@ public class s_notify {
 
     public String Notification_text_builder(boolean l_t, ArrayList<s_area> areas) {
         String not = "";
+        String p= "Protected";
+        String m= "Movement";
         if (l_t) {
             for (int i = 0; i < areas.size(); i++) {
                 not += areas.get(i).getName() + ": ";
-                if(areas.get(i).getDetection() >= 1) {
-                    not += "Protected";
+
+                if(areas.get(i).getAlarmSum()>0){
+                not += String.valueOf(areas.get(i).getAlarmSum())+ " Alarms!";
+                    p="P.";
+                    m="M.";
+                }
+
+                if (areas.get(i).getDetection() >= 1) {
+                    not += " "+p;
                 } else {
-                    not += "NOT protected";
+                    not += "NOT "+p;
                 }
 
                 if (areas.get(i).getState() >= 1) {
-                    not += " / Movement";
+                    not += " / "+m;
                 } else {
-                    not += " / No Movement";
+                    not += " / No "+m;
                 }
                 not += "\n";
             }
@@ -129,18 +143,38 @@ public class s_notify {
             //not += ((bg_service)mContext).getDistanceDebug(); // add distance debug info
         } else {
             int detection_on = 0;
+            int alarms = 0;
             //Log.i(getString(R.string.debug_id),"we have "+String.valueOf(areas.size())+" areas");
             for (int i = 0; i < areas.size(); i++) {
                 if (areas.get(i).getDetection() >= 1) {
                     detection_on++;
                 }
+                alarms+=areas.get(i).getAlarmSum();
             }
-            not = String.valueOf(detection_on) + "/" + String.valueOf(areas.size()) + " Areas protected";
+            if(alarms>0){
+                not += String.valueOf(alarms) + " Alarm";
+                if(alarms>1){
+                    not+="s";
+                }
+                not +="! ";
+            }
+            not += String.valueOf(detection_on) + "/" + String.valueOf(areas.size()) + " Areas protected";
+            lastAreaText=not;
         }
+
         return not;
     }
 
+
     public void clear_image() {
+        //Log.e(mContext.getString(R.string.debug_id), "CLEARING IMAGE");
         set_image(null);
     }
+
+    /*
+    public void restore(){
+        Log.e(mContext.getString(R.string.debug_id), "RESTORE it to "+lastTitle+" and "+lastAreaText);
+        showNotification(lastTitle, lastAreaText,"");
+    }
+    */
 }
