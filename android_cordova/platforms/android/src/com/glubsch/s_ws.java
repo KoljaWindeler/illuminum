@@ -171,7 +171,7 @@ public class s_ws implements WebSocketConnectionObserver {
                     TelephonyManager tManager = (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
                     String uuid = tManager.getDeviceId();
 
-                    mDebug.write_to_file("s_ws: read from sharedPrefereces");
+                    //mDebug.write_to_file("s_ws: read from sharedPrefereces");
                     login = settings.getString("LOGIN", MainActivity.nongoodlogin);
                     String pw = settings.getString("PW", MainActivity.nongoodlogin);
                     //mDebug.write_to_file("s_ws: result " + pw);
@@ -190,7 +190,7 @@ public class s_ws implements WebSocketConnectionObserver {
                     digest = convertToHex(digester.digest());
 
                     //mDebug.write_to_file("together we have "+sec+" as hash is "+digest);
-                    mDebug.write_to_file("Websocket: send login:" + login+ "/"+digest);
+                    //mDebug.write_to_file("Websocket: send login:" + login+ "/"+digest);
                     o_snd.put("cmd", "login");
                     o_snd.put("login", login);
                     o_snd.put("uuid", uuid);
@@ -203,9 +203,9 @@ public class s_ws implements WebSocketConnectionObserver {
                 //console.log(JSON.stringify(cmd_data));
                 if(!login.equals(MainActivity.nongoodlogin)) {
                     send_msg(o_snd.toString());
-                    mDebug.write_to_file("Websocket: received prelogin, sending " + o_snd.toString());
+                    //mDebug.write_to_file("Websocket: received prelogin, sending " + o_snd.toString());
                 } else {
-                    mNofity.showNotification("Not logged in","","");
+                    //mNofity.showNotification("Not logged in","","");
                 }
             }
 
@@ -219,7 +219,7 @@ public class s_ws implements WebSocketConnectionObserver {
 
                     // assuming we reconnected as a reaction on a server reboot, the server has no idea where we are. we should tell him right away if we know it
                     if ((((bg_service)mContext).get_last_known_location()).isValid()) {
-                        mDebug.write_to_file("Websocket: Login done, i have a valid location, running location check now");
+                        //mDebug.write_to_file("Websocket: Login done, i have a valid location, running location check now");
                         ((bg_service)mContext).check_locations((((bg_service)mContext).get_last_known_location()).getCoordinaes());
                     }
 
@@ -236,18 +236,19 @@ public class s_ws implements WebSocketConnectionObserver {
             // update our list of areas
             else if (cmd.equals("m2v_login") || cmd.equals("detection_changed") || cmd.equals("state_change")) {
                 mDebug.write_to_file("Websocket: Received: " + message);
-                int found = 0;
+                int found = -1;
+
                 //mDebug.write_to_file("search for area in array, size:"+String.valueOf(areas.size()));
                 for (int i = 0; i < areas.size(); i++) {
                     if (areas.get(i).getName().equals(o_recv.getString("area"))) {
-                        found = 1;
+                        found = i;
                         update_state_detection(o_recv);
                         break;
                     }
                 }
 
                 // first sign up .. add to list
-                if (found == 0) {
+                if (found == -1) {
                     String name = o_recv.getString("area");
                     Integer det = o_recv.getInt("detection");
                     Location new_loc = new Location("new");
@@ -267,13 +268,30 @@ public class s_ws implements WebSocketConnectionObserver {
 
                     // add it to the structure
                     //mDebug.write_to_file("creating new area");
-                    areas.add(new s_area(name, det, new_loc, 500, state, mid));
+                    areas.add(new s_area(name, det, new_loc, 500, state, mid,Integer.parseInt(o_recv.getString("open_alarms"))));
                     //mDebug.write_to_file("Done");
                     ((bg_service) mContext).resetLocation();
                     ((bg_service) mContext).check_locations(((bg_service) mContext).get_last_known_location().getCoordinaes());
                 }
 
                 // show notification
+
+                mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
+            }
+
+            //////////////////////////////////////////////////////////////////////////////////////
+            // update our total alarms
+            else if (cmd.equals("update_open_alerts")) {
+                mDebug.write_to_file("Websocket: Received: " + message);
+
+                for (int i = 0; i < areas.size(); i++) {
+                    if(areas.get(i).hasClient(o_recv.getString("mid"))>-1){
+                        areas.get(i).setAlarms(areas.get(i).hasClient(o_recv.getString("mid")),Integer.parseInt(o_recv.getString("open_alarms")));
+                        break;
+                    }
+                }
+
+                mNofity.clear_image();
                 mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
             }
 
@@ -303,6 +321,13 @@ public class s_ws implements WebSocketConnectionObserver {
                 // last_ts_in will be set by EVERY message
                 mDebug.write_to_file("HB_return");
             }
+            //////////////////////////////////////////////////////////////////////////////////////
+            // receive a m2m hb
+            else if (cmd.equals("m2m_hb")){
+                // this is just an update, more for the server then for us
+                mDebug.write_to_file("m2m_hb");
+            }
+
 //            else if (cmd.equals("shb")) {
 //                mDebug.write_to_file("Websocket: Received: " + message);
 //                try {
