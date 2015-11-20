@@ -18,6 +18,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.util.Log;
 import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -220,7 +221,7 @@ public class bg_service extends Service {
         if (mSettings == null) {
             mDebug.write_to_file("settings are null, recrating!");
             mSettings = (SharedPreferences) getSharedPreferences(MainActivity.PREFS_NAME, MODE_MULTI_PROCESS);
-            mDebug.write_to_file("settings pw is: "+mSettings.getString("PW","backup"));
+            //mDebug.write_to_file("settings pw is: "+mSettings.getString("PW","backup"));
             if(mSettings.getString("PW",MainActivity.nongoodlogin).equals(MainActivity.nongoodlogin)){
                 // we do not have valid data, wait until they will be set
                 return 0;
@@ -396,7 +397,6 @@ public class bg_service extends Service {
         public void onReceive(Context context, Intent intent) {
             try{
                 if(intent!=null && intent.getExtras() != null){
-                    Bundle bundle=intent.getExtras();
                     mNofity.last_picture=null;
                     mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,mWs.areas), mNofity.Notification_text_builder(true, mWs.areas));
                 }
