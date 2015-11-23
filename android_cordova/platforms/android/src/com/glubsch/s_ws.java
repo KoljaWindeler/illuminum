@@ -286,12 +286,15 @@ public class s_ws implements WebSocketConnectionObserver {
 
                 for (int i = 0; i < areas.size(); i++) {
                     if(areas.get(i).hasClient(o_recv.getString("mid"))>-1){
+                        if(areas.get(i).getAlarms(areas.get(i).hasClient(o_recv.getString("mid")))>Integer.parseInt(o_recv.getString("open_alarms"))){
+                            mNofity.clear_image(); // clear the picture in the notification when alarms are being acknowledged
+                        }
+
+                        // update number of alarms
                         areas.get(i).setAlarms(areas.get(i).hasClient(o_recv.getString("mid")),Integer.parseInt(o_recv.getString("open_alarms")));
                         break;
                     }
                 }
-
-                mNofity.clear_image();
                 mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
             }
 
