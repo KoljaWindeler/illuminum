@@ -16,8 +16,9 @@ def start():
 #******************************************************#
 def start_server ():
 	context = SSL.Context(SSL.TLSv1_METHOD)
-	context.use_privatekey_file('key')
-	context.use_certificate_file('cert')
+#	context = SSL.Context(SSL.TLSv1_2_METHOD)
+	context.use_privatekey_file('startssl.key')
+	context.use_certificate_file('startssl.cert')
 	
 	s_n = socket.socket()
 	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
