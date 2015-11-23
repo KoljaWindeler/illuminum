@@ -1,6 +1,8 @@
 // connection
 var con = null;
-var host="https://52.24.157.229/illumino/";
+//var IP="52.24.157.229";
+var IP="illumino.speedoino.de";
+var host="https://"+IP+"/illumino/";
 var prelogin="";
 var fast_reconnect=0;
 
@@ -34,7 +36,7 @@ $(function(){
 // triggered by the ondocument_ready
 function open_ws() {
 	console.log("connecting to the server");
-	con = new WebSocket('wss://52.24.157.229:9879/');
+	con = new WebSocket('wss://'+IP+':9879/');
 	con.onopen = function(){
 		while($("#rl_msg").length){
 			$.fancybox.close();							
@@ -460,7 +462,7 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 		}
 
 		
-		for(j=0; j<mod_front.length; j++){
+		for(j=mod_front.length - 1; j>= 0; j--){
 			if(mod_front[j]>0){
 				// insert a helper to reroute the anchor for 'add_alert()'
 				var alert_helper=$("<div></div>");
@@ -476,7 +478,7 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 			};
 		};
 
-		for(j=0; j<mod_back.length; j++){
+		for(j=mod_back.length - 1; j>= 0; j--){
 			if(mod_back[j]>0){
 				add_alert(mod_back[j],mid,disp[i]);
 			};				
