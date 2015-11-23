@@ -493,7 +493,7 @@ public class WebSocketConnection implements WebSocket {
 				}
 				
 				SocketFactory factory = null;
-				if (mWebSocketURI.getScheme().equalsIgnoreCase(WSS_URI_SCHEME)) {
+				/*if (mWebSocketURI.getScheme().equalsIgnoreCase(WSS_URI_SCHEME)) {
 					// HERE FIND ME TODO
 					try {
 						CertificateFactory cf = CertificateFactory.getInstance("X.509");
@@ -550,8 +550,9 @@ public class WebSocketConnection implements WebSocket {
 					}
 				} else {
 					factory = SocketFactory.getDefault();
-				}
+				}*/
 
+                factory = SocketFactory.getDefault();
 				// Do not replace host string with InetAddress or you lose automatic host name verification
                 Log.d(TAG, "Create socket.");
 				this.mSocket = factory.createSocket(host, port);
