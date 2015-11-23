@@ -187,6 +187,7 @@ def recv_m2m_msg_handle(data,m2m):
 					msg["mRed"]=db_r["mRed"]
 					msg["mGreen"]=db_r["mGreen"]
 					msg["mBlue"]=db_r["mBlue"]
+					msg["alarm_while_streaming"]=db_r["alarm_while_streaming"]
 					
 
 					# add rules to the rule manager for this area if it wasn there before
