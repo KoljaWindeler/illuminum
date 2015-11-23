@@ -23,6 +23,7 @@ class WebCam:
 		self.alarm_interval = 0.34 # 3fps
 		self.alarm_pictures_remaining = 0
 		self.alarm_in_alarm_state = 0
+		self.alarm_while_streaming = 0
 
 class WebSocketConnection:
 	def __init__(self):
@@ -67,7 +68,10 @@ def trigger_handle(event, data):
 		for m in con.msg_q:
 			if(msg["cmd"] == m["cmd"]):
 				con.msg_q.remove(m)
-		con.msg_q.append(msg)
+
+		# avoid message on alarm while streaming and alarm_while_streaming=0
+		if(not(cam.interval>0 and _state>0 and _detection>0 and cam.alarm_while_streaming==0)):
+			con.msg_q.append(msg)
 		##### delete ALL old status msg, and place the current status in the queue #########
 
 		##### light dimming #########
@@ -128,10 +132,14 @@ def upload_picture(_con, high_res):
 
 	p.set_last_action("loading img")
 	#if full frame read other file
-	if high_res:
-		img = open("/dev/shm/mjpeg/cam_full.jpg", 'rb')
-	else:
-		img = open("/dev/shm/mjpeg/cam_prev.jpg", 'rb')
+	try:
+		if high_res:
+			img = open("/dev/shm/mjpeg/cam_full.jpg", 'rb')
+		else:
+			img = open("/dev/shm/mjpeg/cam_prev.jpg", 'rb')
+	except:
+		img=open("ic_camera_black_48dp.png", 'rb')
+
 	i = 0
 	while True:
 		# should realy read it in once, 10MB buffer
@@ -276,9 +284,11 @@ def parse_incoming_msg(con):
 				if(enc.get("ok") == 1):
 					con.logged_in = 1
 
-					light.l.d_r = enc.get("mRed")
-					light.l.d_g = enc.get("mGreen")
-					light.l.d_b = enc.get("mBlue")
+					light.l.d_r = enc.get("mRed",0)
+					light.l.d_g = enc.get("mGreen",0)
+					light.l.d_b = enc.get("mBlue",0)
+
+					cam.alarm_while_streaming = enc.get("alarm_while_streaming",1)
 
 					print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
 					print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("detection")))
