@@ -121,7 +121,7 @@ public class s_notify {
                 not += areas.get(i).getName() + ": ";
 
                 if(areas.get(i).getAlarmSum()>0){
-                not += String.valueOf(areas.get(i).getAlarmSum())+ " Alarms!";
+                not += String.valueOf(areas.get(i).getAlarmSum())+ " Alarms! ";
                     p="P.";
                     m="M.";
                 }
