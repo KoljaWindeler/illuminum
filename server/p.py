@@ -114,7 +114,8 @@ def rint(input,sc):
 def m2m_login(m2m,viewer):
 	p_alias=(m2m.alias+"          ")[0:12]
 	p_account=(m2m.account+"          ")[0:10]
-	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(m2m.detection)])+"' (->"+str(viewer)+" ws_clients)","l")
+	p_mid=(m2m.mid+"                ")[0:14]
+	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+p_mid+"' / '"+p_alias+"' @ '"+p_account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(m2m.detection)])+"' (->"+str(viewer)+" ws_clients)","l")
 
 def ws_login(ws):
 	p_account=(ws.account+"          ")[0:10]
@@ -165,10 +166,10 @@ def show_m2m(id,l,m2m):
 		print("M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Coordinates")
 		show_m2m(1,l,m2m)
 	elif(id==0):
-		p_alias=(m2m.alias+"               ")[0:15]
-		p_account=(m2m.account+"               ")[0:10]
-		p_ip=(str(m2m.ip)+"                  ")[0:14]
-		p_area=(str(m2m.area)+"                  ")[0:15]
+		p_alias=(m2m.alias+"                        ")[0:15]
+		p_account=(m2m.account+"                    ")[0:10]
+		p_ip=(str(m2m.ip)+"                         ")[0:14]
+		p_area=(str(m2m.area)+"                     ")[0:15]
 		p_last_seen=(datetime.datetime.fromtimestamp(int(m2m.last_comm)).strftime('%H:%M:%S')+"                         ")[0:10]
 		if(m2m.detection>=0):
 			p_detection=(det_state[m2m.detection]+"           ")[0:9]
