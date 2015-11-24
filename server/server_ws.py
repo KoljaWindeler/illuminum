@@ -174,8 +174,10 @@ def handle (client,addr):
 def start_server ():
 #	context = SSL.Context(SSL.TLSv1_2_METHOD)
 	context = SSL.Context(SSL.TLSv1_METHOD)
+	
 	context.use_privatekey_file('startssl.key')
 	context.use_certificate_file('startssl.cert')
+	context.use_certificate_chain_file('startssl.cert')
 	
 	s_n = socket.socket()
 	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
