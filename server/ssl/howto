@@ -1,0 +1,2 @@
+cat my interm root > ../startssl.cert
+openssl s_client -connect illuminum.speedoino.de:9879 -CApath /etc/ssl/certs
