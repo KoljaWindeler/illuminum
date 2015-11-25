@@ -66,7 +66,8 @@ public class s_ws implements WebSocketConnectionObserver {
 
     public void createWebSocket() {
 
-        final String wsuri = "wss://52.24.157.229:9879";
+        final String wsuri = "wss://illuminum.speedoino.de:9879";
+
         try {
 
             last_ts_in=0;
