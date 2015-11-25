@@ -2,7 +2,7 @@
 <html lang="en-us">
   <head>
     <meta charset="UTF-8">
-    <title>Illumino by KoljaWindeler</title>
+    <title>illuminum by KoljaWindeler</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
     <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
@@ -11,20 +11,18 @@
   </head>
   <body>
     <section class="page-header">
-      <h1 class="project-name">Glubsch!</h1>
+      <h1 class="project-name">illuminum</h1>
       <h2 class="project-tagline"></h2>
-      <a href="https://github.com/KoljaWindeler/illumino" class="btn">View on GitHub</a>
-      <a href="https://github.com/KoljaWindeler/illumino/zipball/master" class="btn">Download .zip</a>
-      <a href="https://github.com/KoljaWindeler/illumino/tarball/master" class="btn">Download .tar.gz</a>
+      <a href="https://github.com/KoljaWindeler/illuminum" class="btn">View on GitHub</a>
+      <a href="https://github.com/KoljaWindeler/illuminum/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/KoljaWindeler/illuminum/tarball/master" class="btn">Download .tar.gz</a>
     </section>
 
     <section class="main-content">
 
-<h3><a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to GitHub Page of Glubsch!</h3>
+<h3><a id="welcome-to-github-pages" class="anchor" href="#welcome-to-github-pages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to GitHub Page of illuminum</h3>
 
 <p> This project is about my home surveillance system that I've build to familiarize myself more with python3 and the server client architecture in general.
-<br>
-<br><i>Glubsch is an old german word and might be translated as "watching with big eyes" which is what is does ;)</i>
 <br>
 <br>The purpose of this system is to monitor my apartment constantly and report suspicious activities like below back to my phone while I'm not at home. 
 (It turned out that those guys are only the roach guys - I forgot that we've asked them to come).
@@ -52,17 +50,17 @@ This project is divided in three core components.
 <img src="images/1.png" width="150" class="img_right">
 
 <ul style=""><li>First the server: holding the connections and sending messages between the clients.
-I've used a Amazon EC2 Micro server to run my from-scratch-written python server that you can find <a href="https://github.com/KoljaWindeler/illumino/tree/master/server">here</a>. There is also a nice GUI running on the same server as cross-plattform webapp that you can find <a href="https://github.com/KoljaWindeler/illumino/tree/master/webserver">here</a>.</li>
+I've used a Amazon EC2 Micro server to run my from-scratch-written python server that you can find <a href="https://github.com/KoljaWindeler/illuminum/tree/master/server">here</a>. There is also a nice GUI running on the same server as cross-plattform webapp that you can find <a href="https://github.com/KoljaWindeler/illuminum/tree/master/webserver">here</a>.</li>
 
 <br><li>Second the cameras: Theses are raspberry pi's equipped with a camera running my python client. Those PIs are connected to a camera, 
 6 rgb LEDs and a motion sensor. My first attempted was to use the program called "motion" for image recognition but that fail because we see a 
 lot of reflection from our neighbors windows, e.g. when they open the windows we have fancy light moving through our apartment or at night, 
 cars driving by always triggered the alarm <br>So i decided to use very small motion sensor, they even work in complete darkness - neat! The Code
-for my clients is available <a href="https://github.com/KoljaWindeler/illumino/tree/master/client">here</a>.</li>
+for my clients is available <a href="https://github.com/KoljaWindeler/illuminum/tree/master/client">here</a>.</li>
 
 <br><li>
 Last: My (our) android phones. Nothing fancy here, just a service running in the background and a cordova version of the webapp as shown on the picture on the right.
-The code for the cordova client is available <a href="https://github.com/KoljaWindeler/illumino/tree/master/android_cordova">right here</a>.
+The code for the cordova client is available <a href="https://github.com/KoljaWindeler/illuminum/tree/master/android_cordova">right here</a>.
 </li></ul>
 
 
@@ -89,7 +87,7 @@ Especially since I can change the color on my smartphone. Depending on the mood 
 
 <div style="inline-block">
       <footer class="site-footer">
-        <span class="site-footer-owner"><a href="https://github.com/KoljaWindeler/illumino">Illumino</a> is maintained by <a href="https://github.com/KoljaWindeler">KoljaWindeler</a>.</span>
+        <span class="site-footer-owner"><a href="https://github.com/KoljaWindeler/illuminum">illuminum</a> is maintained by <a href="https://github.com/KoljaWindeler">KoljaWindeler</a>.</span>
 
         <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
       </footer>
