@@ -493,11 +493,12 @@ public class WebSocketConnection implements WebSocket {
 				}
 				
 				SocketFactory factory = null;
-				/*if (mWebSocketURI.getScheme().equalsIgnoreCase(WSS_URI_SCHEME)) {
-					// HERE FIND ME TODO
+				if (mWebSocketURI.getScheme().equalsIgnoreCase(WSS_URI_SCHEME)) {
+				/*	// HERE FIND ME TODO
 					try {
 						CertificateFactory cf = CertificateFactory.getInstance("X.509");
 						// From https://www.washington.edu/itconnect/security/ca/load-der.crt
+						// https://github.com/jsebrien/Autobahn-SW/blob/master/src/de/tavendo/autobahn/secure
 						String cert = "" +
 								"-----BEGIN CERTIFICATE-----\n" +
 								"MIIDaTCCAlGgAwIBAgIJAKllPSHSsRZ1MA0GCSqGSIb3DQEBBQUAMEsxCzAJBgNV\n" +
@@ -548,11 +549,11 @@ public class WebSocketConnection implements WebSocket {
 					} catch (Exception e){
 						Log.i("websocket",e.toString());
 					}
+					*/
+					factory = SSLCertificateSocketFactory.getDefault();
 				} else {
 					factory = SocketFactory.getDefault();
-				}*/
-
-                factory = SocketFactory.getDefault();
+				}
 				// Do not replace host string with InetAddress or you lose automatic host name verification
                 Log.d(TAG, "Create socket.");
 				this.mSocket = factory.createSocket(host, port);
