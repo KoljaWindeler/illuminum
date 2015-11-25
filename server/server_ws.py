@@ -138,6 +138,9 @@ def handle (client,addr):
 						#client.ws.last_data=""
 				t2=time.time()-t2
 
+			except (SSL.ZeroReturnError):
+				# regular good SSL disconnect
+				disconnect(client)
 			except Exception as n:
 				print("except while read in server_ws, our status ",end="")
 				print(lt)
