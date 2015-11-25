@@ -138,6 +138,9 @@ def handle (client,addr):
 						#client.ws.last_data=""
 				t2=time.time()-t2
 
+			except (SSL.ZeroReturnError):
+				# regular good SSL disconnect
+				disconnect(client)
 			except Exception as n:
 				print("except while read in server_ws, our status ",end="")
 				print(lt)
@@ -172,9 +175,12 @@ def handle (client,addr):
 #************* HANDLE CONNECTION *****************************************#
 	
 def start_server ():
+#	context = SSL.Context(SSL.TLSv1_2_METHOD)
 	context = SSL.Context(SSL.TLSv1_METHOD)
-	context.use_privatekey_file('key')
-	context.use_certificate_file('cert')
+	
+	context.use_privatekey_file('startssl.key')
+	context.use_certificate_file('startssl.cert')
+	context.use_certificate_chain_file('startssl.cert')
 	
 	s_n = socket.socket()
 	s_n.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

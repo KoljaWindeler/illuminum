@@ -28,7 +28,7 @@ public class s_notify {
     private SharedPreferences mSettings;
     private String area_of_last_alert = "";
     private String time_of_last_alert = "";
-    private String mVersion = "1.31";
+    private String mVersion = "1.42";
     private String lastTitle="";
     private String lastAreaText="";
 

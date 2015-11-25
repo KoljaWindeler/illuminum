@@ -4,7 +4,7 @@ if($_GET['useas']=="dummy"){
 	exit(0);
 };
 ///////////////// server status ///////////////////////////
-$body='<div class="logo_l1">welcome to </div><div class="logo_l2">glubsch</div>';
+$body='<div class="logo_l1">welcome to </div><div class="logo_l2">illuminum</div>';
 unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
 if(!empty($output[0])){	// python serer is running add everything
