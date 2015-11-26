@@ -117,6 +117,7 @@ div.loading {
 	margin-bottom:20px;
 }
 
+
 .logo_l1{
 	margin-top:20px;
 }
@@ -386,6 +387,15 @@ img.alert_preview{
 }
 /**************************************** m2m alert navigation *****************************************/
 /**************************************** m2m light scroller *****************************************/
+select.light_controll_scroller{
+	width: 85%;
+	margin: 0 auto;  /* setzt den block mittig */
+	height: 30px;
+	clear: both;
+	margin-top: 15px;
+	display: block;
+}
+
 div.light_controll_scroller{
 	width: 85%;
 	margin: 0 auto;  /* setzt den block mittig */
@@ -491,7 +501,7 @@ div.hamb_l {
 	}
 
 	.logo_l2{
-		font-size:60px;
+		font-size:50px;
 		letter-spacing: 4px;
 		margin-bottom:10px;
 	}

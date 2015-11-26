@@ -1235,6 +1235,40 @@ function check_append_m2m(msg_dec){
 			}()});
 		lightcontrol.append(scroller);
 
+		// add fps dropdown
+		var fps_select=$("<select></select>");
+		fps_select.attr({
+			"id": mid+"_fps_select",
+			"class":"light_controll_scroller"
+		});
+		// load from message
+		var default_t=parseFloat(msg_dec["frame_dist"]);
+		if(!$.isNumeric(default_t)){
+			default_t=1/2;
+		};
+		// create field
+		var t=1/16;
+		var fps_text;
+		for(var i=0; i<12; i++) {
+			if(1/t >= 1){
+				fps_text = 1/t+" fps (a frame every "+Math.round(t*100)/100+" sec)";
+			} else {
+				fps_text = "1/"+t+" fps (a frame every "+t+" sec)";
+			};
+			// set selected option for the 2fps option
+			if(t==default_t){
+				fps_select.append($('<option></option>').val(t).html(fps_text).prop('selected', true));
+			} else {
+				fps_select.append($('<option></option>').val(t).html(fps_text));
+			};
+			// calc the next framerate
+			if(t<1){
+				t*=2;
+			} else {
+				t+=1;
+			}
+		};
+		lightcontrol.append(fps_select);
 		////////////////// COLOR SLIDER ////////////////////////////
 
 		////////////////// ALARM MANAGER ////////////////////////////
@@ -1395,8 +1429,16 @@ function show_liveview(mid){
 		txt.hide();
 
 		view.fadeIn("fast");
-		
-		set_interval(mid,0.5);
+
+		// load fps from input
+		var fps=0.5;
+		var fps_sel=$("#"+mid+"_fps_select");
+		if(fps_sel.length){
+			fps=fps_sel.val();
+		};
+
+		// send request
+		set_interval(mid,fps);
 	};
 }
 ///////////////////////// LIVE VIEW //////////////////////////////////

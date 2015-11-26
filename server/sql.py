@@ -120,7 +120,7 @@ class sql:
 				#print(result)
 				#print(result)
 				if(result["COUNT(*)"]==1):
-					req = "SELECT  pw, area, account, alias, longitude, latitude, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming FROM m2m WHERE mid="+str(mid)
+					req = "SELECT  pw, area, account, alias, longitude, latitude, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist  FROM m2m WHERE mid="+str(mid)
 					#print(req)
 					cursor.execute(req)
 					#print("setting result to ")

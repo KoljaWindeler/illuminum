@@ -182,6 +182,7 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.brightness_pos=db_r["brightness_pos"]
 					m2m.color_pos=db_r["color_pos"]
 					m2m.alarm_ws=db_r["alarm_ws"]
+					m2m.frame_dist=db_r["frame_dist"]
 					
 					msg["alias"]=m2m.alias		# this goes to the m2m
 					msg["mRed"]=db_r["mRed"]
@@ -770,7 +771,7 @@ def recv_ws_msg_handle(data,ws):
 			
 		## webcam interval -> sign in or out to webcam, for WS
 		elif(enc.get("cmd")=="set_interval"):
-			set_webcam_con(enc.get("mid"),enc.get("interval",0),ws)
+			set_webcam_con(enc.get("mid"),float(enc.get("interval",0)),ws)
 
 		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
 		elif(enc.get("cmd")=="update_location"):
@@ -993,6 +994,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["rm_override_on"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_on
 		msg_ws2["rm_override_off"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_off
 		msg_ws2["open_alarms"]=db.get_open_alert_count(m2m.account,m2m.mid)
+		msg_ws2["frame_dist"]=m2m.frame_dist
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# 1. get all boxed with the same account
