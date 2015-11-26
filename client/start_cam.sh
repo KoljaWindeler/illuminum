@@ -1,3 +1,6 @@
-mkdir /dev/shm/mjpeg/
-killall raspimjpeg
-/home/pi/python/illumino/client/gpucam/raspimjpeg -v --config /home/pi/python/illumino/client/gpucam/raspimjpeg.config
+
+mkdir /dev/shm/mjpeg/ 2>/dev/null
+killall raspimjpeg 2>/dev/null
+
+locationOfScript=$(dirname "$(readlink -e "$0")")
+$locationOfScript/gpucam/raspimjpeg -v --config $locationOfScript/gpucam/raspimjpeg.config
