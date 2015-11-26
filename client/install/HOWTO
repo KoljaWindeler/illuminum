@@ -1,4 +1,4 @@
-aptitude install screen scons swig git
+aptitude install screen build-essential python3-dev git scons swig
 git clone git@github.com:jgarff/rpi_ws281x.git -b rpi2 
 cd rpi_ws281x
 scons
