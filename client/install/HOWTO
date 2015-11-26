@@ -8,3 +8,6 @@ python3 setup.py install
 cd -
 cd client/gpucam/
 ./generate_config.sh
+
+
+# /home/pi/python/illumino/client/run.sh -> /etc/rc.local
