@@ -116,6 +116,7 @@ def recv_m2m_msg_handle(data,m2m):
 		enc=""
 		p.rint("-d--> json decoding failed on:" + data,"d")
 
+	#rint(enc)
 	#rint("m2m:"+str(m2m.port)+"/"+str(m2m.ip))
 	if(type(enc) is dict):
 		# if the message would like to be debugged
@@ -128,7 +129,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#********* msg handling **************#
 		# assuming that we could decode the message from json to dicc: we have to distingush between the commands:
-		if(m2m.logged_in==0 and enc.get("cmd")!="login" and enc.get("cmd")!="prelogin"):
+		if(m2m.logged_in==0 and enc.get("cmd")!="login" and enc.get("cmd")!="prelogin" and enc.get("cmd")!="register"):
 			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] A client tried to interact without beeing logged in","l")
 			# send bad ack
 			msg={}
@@ -424,8 +425,44 @@ def recv_m2m_msg_handle(data,m2m):
 
 				tmp_loc=this_file.split('/')
 				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
-
 			m2m.paket_count_per_file+=1
+
+		#### register a new m2m device ####
+		elif(enc.get("cmd")=="register"):
+			#rint("register request received")
+			db_r=db.get_ws_data(enc.get("login",""))
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+
+			if(type(db_r) is int): #user not found results in return -1 or so
+				#rint("db error")
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("login","no_login"))+"' not found in DB, log-in: failed","l")
+				msg["ok"]=-3 # not logged in
+			else:
+				# generate hash for DB passwort and challange, client will generate hash_of(hash_of(passwort) + challange)
+				# this enables us to save only the hash_of(password) instead of clear text password in the db!
+				h = hashlib.md5()
+				hashme=(str(db_r["pw"])+m2m.challange).encode("UTF-8")
+				h.update(hashme)
+				#rint("check pw")
+				#rint("for secure login we have: pw="+str(db_r["pw"])+" challange="+str(m2m.challange)+" together="+str(hashme)+" hash="+str(h.hexdigest())+" vs received="+enc.get("password"))
+
+				# check parameter
+				if(h.hexdigest()==enc.get("password") and db_r["account"]!=""):
+					#rint("pw ok, run db insert")
+					db_r2=db.register_m2m(enc.get("mid"),enc.get("m2m_pw"),db_r["account"])
+					#rint("db respond is "+str(db_r2))
+					# complete message
+					if(db_r2==0):
+						msg["ok"]=1 # logged in
+					else:
+						msg["ok"]=-1 # db error
+				else:
+					msg["ok"]=-2 # wrong pw
+
+			# respode
+			msg_q_m2m.append((msg,m2m))
+
 
 
 		#### unsupported command, for M2M
@@ -434,14 +471,14 @@ def recv_m2m_msg_handle(data,m2m):
 
 		# send good ack
 		if(enc.get("ack",0)!=0):
-#			print("ack request recv")
+			#rint("ack request recv")
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["ack_ok"]=1
 			msg_q_m2m.append((msg,m2m))
 #			for a in range(0,5):
 #				time.sleep(1)
-#				print(str(a))
+#				#rint(str(a))
 
 
 		#********* msg handling **************#
@@ -465,7 +502,7 @@ def snd_m2m_msg_dq_handle():
 		#rint(str(time.time())+' fire in the hole')
 		data=msg_q_m2m[0]
 		msg_q_m2m.remove(data)
-		#print(data)
+		#rint(data)
 
 		msg=data[0]
 		m2m=data[1]
@@ -611,9 +648,6 @@ def recv_ws_msg_handle(data,ws):
 				h.update(hashme)
 				#rint("for secure login we have: pw="+str(db_r["pw"])+" challange="+str(ws.challange)+" together="+str(hashme)+" hash="+str(h.hexdigest())+" vs received="+enc.get("client_pw"))
 				
-				if(enc.get("client_pw")=="hui"):
-					print("Warning old style login found")
-
 				# check parameter
 				if(h.hexdigest()==enc.get("client_pw") and db_r["account"]!=""):
 					# complete message
@@ -627,7 +661,7 @@ def recv_ws_msg_handle(data,ws):
 					ws.uuid=enc.get("uuid","")
 					ws.alarm_view=enc.get("alarm_view",0) #1,0 depending on service or app
 				
-					# print and update db, as this fails when the client already disconnected, surrond with try catch
+					# rint and update db, as this fails when the client already disconnected, surrond with try catch
 					p.ws_login(ws)
 					try:
 						ip=ws.conn.getpeername()[0]
