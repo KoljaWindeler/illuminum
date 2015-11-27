@@ -497,3 +497,19 @@ class sql:
 		return result
 
 	
+	#############################################################
+	def register_m2m(self,mid,m2m_pw,account):
+		ret=-1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "DELETE FROM  `alert`.`m2m`  WHERE  `mid`='"+str(mid)+"'";
+				cursor.execute(req)
+				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`, `latitude`, `longitude`) VALUES ('"+str(mid)+"', '"+str(m2m_pw)+"', 'home', '"+str(account)+"', 'SecretCam','0.0','0.0');"
+				cursor.execute(req)
+			self.connection.commit()
+			ret=0
+		except:
+			ret=-1
+
+		return ret
