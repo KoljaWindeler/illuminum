@@ -23,13 +23,13 @@ class poe:
 #******************************************************#
 
 
-def start():
-	threading.Thread(target = start_listen, args = ()).start()
+def start(alive):
+	threading.Thread(target = start_listen, args = (alive,)).start()
 
-def start_listen():
+def start_listen(alive):
 	print_out.append(poe("v","Verbose","Shows a lot output, like requests etc",0))
 
-	while(1):
+	while(alive):
 		input=sys.stdin.readline()
 		input=input[0:len(input)-1] # strip newline
 		if(len(input)==0):
