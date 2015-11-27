@@ -70,5 +70,5 @@ fi
 
 echo "If you want your cam to start after bootup please add this"
 echo "/home/pi/python/illuminum/client/run.sh to /etc/rc.local"
-echo "before the line 'exit 0'"
+echo "before the line ->exit 0<-"
 echo "Peace out"
