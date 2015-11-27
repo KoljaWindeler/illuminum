@@ -53,6 +53,7 @@ class ws_clients:
 		self.alarm_view=0					# if we should send the client alarm view without request (used in the service)
 		self.email=""						# email adresse for evidence pictures
 		self.debug_ts=0						# each process has to update this ts to show that he is alive
+		self.alive=1						# set to 0 to end session
 
 class webcam_viewer:
 	def __init__(self,cli):

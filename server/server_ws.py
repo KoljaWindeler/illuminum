@@ -79,6 +79,7 @@ def disconnect(client):
 		clients.remove(client)
 	except:
 		pass
+	client.alive = 0
 #************* DISCONNECT *****************************************#
 
 #************* HANDLE CONNECTION *****************************************#
@@ -88,7 +89,7 @@ def handle (client,addr):
 
 	busy=1
 	#lock = threading.Lock()
-	while 1:
+	while client.alive:
 		try:
 			rList, wList, xList = select([client.ws.sock], [client.ws.sock], [client.ws.sock], 3)
 		except:
@@ -156,7 +157,6 @@ def handle (client,addr):
 		if(len(xList)>0):
 			busy=1
 			disconnect(client)
-			break
 		######################## ERROR ##########################
 		######################## MAINTAINANCE ##########################
 		if(time.time()-client.debug_ts>1):
