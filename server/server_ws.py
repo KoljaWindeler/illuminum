@@ -139,7 +139,7 @@ def handle (client,addr):
 						#client.ws.last_data=""
 				t2=time.time()-t2
 
-			except (SSL.ZeroReturnError):
+			except (SSL.ZeroReturnError, SSL.SysCallError):
 				# regular good SSL disconnect
 				disconnect(client)
 			except Exception as n:
