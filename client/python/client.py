@@ -1,8 +1,19 @@
 import OpenSSL
-import socket, time, json, base64, datetime
-import hashlib, select, trigger, uuid
+import socket, time, json, base64, datetime, string, random
+import hashlib, select, trigger, uuid, os, sys
 import light, p
-from login import *
+
+register_mode=0
+
+if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"))):
+	from login import *
+	l = login()					# login
+	m2m_pw=l.pw
+
+else:
+	register_mode=1
+	print("register mode")
+
 
 class CPUsaver:
 	def __init__(self):
@@ -93,7 +104,7 @@ def trigger_handle(event, data):
 				light.add_q_entry(time.time()+delay_off, 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
 			else:
 				light.set_old_color(0, 0, 0) # set the color to which we return as soon as the webfeed is closed
-			print("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+delay_off)))).strftime('%y_%m_%d %H:%M:%S')))
+			#print("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+delay_off)))).strftime('%y_%m_%d %H:%M:%S')))
 		elif(_detection == 1 and _state == 1): # alarm, go red, now
 			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
 				light.add_q_entry(time.time(), 100, 0, 0, 4000)
@@ -179,6 +190,7 @@ def upload_picture(_con, high_res):
 
 #******************************************************#
 def connect(con):
+	global register_mode
 	print("[A "+time.strftime("%H:%M:%S")+"] -> connecting ...")
 	p.set_last_action("connecting")
 
@@ -193,7 +205,11 @@ def connect(con):
 		time.sleep(3)
 		return -1
 
-	print("[A "+time.strftime("%H:%M:%S")+"] -> connected. Loggin in...")
+	print("[A "+time.strftime("%H:%M:%S")+"] -> connected. ",end="")
+	if(register_mode==0):
+		print("Loggin in...")
+	else:
+		print("Begin register process...")
 	p.set_last_action("connecting done")
 
 	#### prelogin
@@ -205,9 +221,16 @@ def connect(con):
 
 	return c_socket
 
+
+# generate a random password
+#******************************************************#
+def get_pw(size=8, chars=string.ascii_uppercase + string.digits):
+	return ''.join(random.choice(chars) for _ in range(size))
+
 # Parse the incoming msg and do something with it
 #******************************************************#
 def parse_incoming_msg(con):
+	global register_mode, m2m_pw
 	p.set_last_action("start recv")
 	try:
 		data = con.sock.recv(con.max_msg_size)
@@ -261,12 +284,13 @@ def parse_incoming_msg(con):
 				else:
 					con.ack_request_ts = con.unacknowledged_msg[0][1]		# move to latest ts
 
-			elif(enc.get("cmd") == "prelogin"):
+			elif(enc.get("cmd") == "prelogin" and register_mode==0):
 				#### send login
 				#print("received challange "+enc.get("challange"))
 				h = hashlib.md5()
-				l = login()					# login
-				h.update(str(l.pw+enc.get("challange")).encode("UTF-8"))
+
+				# hash the login with the challange
+				h.update(str(m2m_pw+enc.get("challange")).encode("UTF-8"))
 				#print("total to code="+str(pw+enc.get("challange")))
 				pw_c = h.hexdigest()
 				#print("result="+pw_c)
@@ -280,6 +304,39 @@ def parse_incoming_msg(con):
 				msg["ts"] = time.strftime("%d.%m.%Y || %H:%M:%S")
 				msg["ack"] = 1
 				con.msg_q.append(msg)
+
+			elif(enc.get("cmd") == "prelogin" and register_mode==1):
+
+				# first time connection, create a password and send it to the server
+				m2m_pw=str(get_pw())
+				f_content='class login:\r\n	def __init__(self):\r\n		self.pw="'+m2m_pw+'"\n'
+
+				file=open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"),"w")
+				file.write(f_content)
+				file.close()
+
+				ws_login = input("Please enter your username: ")
+				ws_pw = input("Hi "+ws_login+", please enter your userpassword: ")
+
+				# encrypt the user pw just because we can ... i know we have a https connection but  hey .. 
+				h = hashlib.md5()
+				h.update(str(ws_pw).encode("UTF-8"))
+				ws_pw_enc = h.hexdigest()
+
+				h = hashlib.md5()
+				h.update(str(ws_pw_enc+enc.get("challange")).encode("UTF-8"))
+				ws_pw_ch_enc = h.hexdigest()
+
+				msg = {}
+				msg["mid"] = mid
+				msg["login"] = ws_login
+				msg["password"] = ws_pw_ch_enc
+				msg["m2m_pw"]=m2m_pw
+				msg["cmd"] = "register"
+				con.msg_q.append(msg)
+
+				#rint(msg)
+
 			elif(enc.get("cmd") == "login"):
 				if(enc.get("ok") == 1):
 					con.logged_in = 1
@@ -323,8 +380,22 @@ def parse_incoming_msg(con):
 #						else:
 #							light.add_q_entry(time.time(),-1,-1,-1,1000) # 4 sec to dimm to off - in 10 min from now
 ######### SPY MODE #########
+			elif(enc.get("cmd") == "register"):
+				if(enc.get("ok",0) == 1):
+					print("[A "+time.strftime("%H:%M:%S")+"] -> successful registered, sending sign in")
+					register_mode=0
+				else:
+					print("registration was not successful, status: "+str(enc.get("ok"))+". Starting over")
+
+				msg = {}
+				msg["mid"] = mid
+				msg["cmd"] = "prelogin"
+				con.msg_q.append(msg)
+
 			else:
 				print("unsopported command:"+enc.get("cmd"))
+
+
 		#end of "if"
 	# end of "for"
 
@@ -357,7 +428,8 @@ trigger.s.subscribe_callback(trigger_handle)
 
 light.start()
 
-p.start()
+#only start listening to keyboard input if we are not in register mode
+p.start(not(register_mode))
 # Main programm
 #******************************************************#
 
@@ -414,6 +486,10 @@ while 1:
 				for msg_i in con.msg_q:
 					if(msg_i["cmd"] == "prelogin"):
 						print("[A "+time.strftime("%H:%M:%S")+"] -> requesting challange")
+						msg = msg_i
+						con.msg_q.remove(msg_i)
+					if(msg_i["cmd"] == "register"):
+						print("[A "+time.strftime("%H:%M:%S")+"] -> requesting registration")
 						msg = msg_i
 						con.msg_q.remove(msg_i)
 					if(msg_i["cmd"] == "login"):
