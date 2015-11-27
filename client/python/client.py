@@ -314,6 +314,15 @@ def parse_incoming_msg(con):
 				file=open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"),"w")
 				file.write(f_content)
 				file.close()
+				# try to get cam name from raspimjpeg config file
+				alias="SecretCam"
+				if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"../gpucam/annotation.config"))):
+					file=open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"../gpucam/annotation.config"),"r")
+					file_c=file.readlines()
+					for line in file_c:
+						if(line.find("annotation")==0 and line.find("%04d.%02d.%02d_%02d:%02d:%02d")>0):
+							alias=line[len("annotation")+1:line.find("%04d.%02d.%02d_%02d:%02d:%02d")-1]
+							break
 
 				ws_login = input("Please enter your username: ")
 				ws_pw = input("Hi "+ws_login+", please enter your userpassword: ")
@@ -333,9 +342,10 @@ def parse_incoming_msg(con):
 				msg["password"] = ws_pw_ch_enc
 				msg["m2m_pw"]=m2m_pw
 				msg["cmd"] = "register"
+				msg["alias"] = alias
 				con.msg_q.append(msg)
 
-				#rint(msg)
+				#print(msg)
 
 			elif(enc.get("cmd") == "login"):
 				if(enc.get("ok") == 1):
