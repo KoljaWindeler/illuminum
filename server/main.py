@@ -450,7 +450,7 @@ def recv_m2m_msg_handle(data,m2m):
 				# check parameter
 				if(h.hexdigest()==enc.get("password") and db_r["account"]!=""):
 					#rint("pw ok, run db insert")
-					db_r2=db.register_m2m(enc.get("mid"),enc.get("m2m_pw"),db_r["account"])
+					db_r2=db.register_m2m(enc.get("mid"),enc.get("m2m_pw"),db_r["account"],enc.get("alias","SecretCam"))
 					#rint("db respond is "+str(db_r2))
 					# complete message
 					if(db_r2==0):
