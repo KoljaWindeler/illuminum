@@ -6,20 +6,20 @@ popd > /dev/null
 echo "====================================================="
 echo "=============== 1. Updating ========================="
 echo "====================================================="
-#aptitude update
+aptitude update
 
 
 echo "====================================================="
 echo "========= 2. Installing required packages ==========="
 echo "====================================================="
-#aptitude install screen build-essential python3-dev git scons swig python3-openssl
+aptitude install screen build-essential python3-dev git scons swig python3-openssl
 
 
 echo "====================================================="
 echo "========= 3. Clone required lib for leds ============"
 echo "====================================================="
 cd /tmp/
-#git clone https://github.com/jgarff/rpi_ws281x.git -b rpi2
+git clone https://github.com/jgarff/rpi_ws281x.git -b rpi2
 
 
 
@@ -27,14 +27,14 @@ echo "====================================================="
 echo "============== 4. Building lib ======================"
 echo "====================================================="
 cd rpi_ws281x
-#scons
+scons
 
 
 echo "====================================================="
 echo "=============== 5. Installing lib ==================="
 echo "====================================================="
 cd python
-#python3 setup.py install
+python3 setup.py install
 
 
 echo "====================================================="
