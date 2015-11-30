@@ -512,23 +512,27 @@ class sql:
 	#############################################################
 	def register_m2m(self,mid,m2m_pw,account,alias):
 		ret=-1
-		try:
+		if(1):
 			self.connect()
 			with self.connection.cursor() as cursor:
-				req = "DELETE FROM  `alert`.`m2m`  WHERE  `mid`='"+str(mid)+"'";
+				req = "DELETE FROM  `alert`.`m2m`  WHERE  `mid`='"+str(mid)+"'"
 				cursor.execute(req)
-				req = "SELECT `latitude`, `longitude` FROM `alert`.`m2m` WHERE `account`="+account+" AND `area`='home'"
+				req = "SELECT `latitude`, `longitude` FROM `alert`.`m2m` WHERE `account`='"+account+"' AND `area`='home'"
 				cursor.execute(req)				
 				if(cursor.rowcount==0):
-					result['latitude']="0.0"
-					result['logitude']="0.0"
+					latitude="0.0"
+					longitude="0.0"
 				else:
 					result = cursor.fetchone()
-				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`, `latitude`, `longitude`) VALUES ('"+str(mid)+"', '"+str(m2m_pw)+"', 'home', '"+str(account)+"', '"+str(alias)+"',"+result['latitude']+","+result['logitude']+");"
+					longitude=result['longitude']
+					latitude=result['latitude']
+
+				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`, `latitude`, `longitude`) VALUES ('"+str(mid)+"', '"+str(m2m_pw)+"', 'home', '"+str(account)+"', '"+str(alias)+"','"+latitude+"','"+longitude+"');"
 				cursor.execute(req)
 			self.connection.commit()
 			ret=0
-		except:
+		#except:
+		else:
 			ret=-1
 
 		return ret
