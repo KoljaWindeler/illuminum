@@ -318,14 +318,14 @@ img.area_sym_not_protected{
 a.live_sym_not_available{ 		content:url("../images/ic_camera_gray_48dp.png");	}
 a.live_sym{ 				content:url("../images/ic_camera_black_48dp.png"); }
 a.live_sym_active{ 			content:url("../images/ic_camera_red_48dp.png");	}
-div.toggle_liveview_text::after {	content:'glubsch!';	}
+div.toggle_liveview_text::after {	content:'live';	}
 div.toggle_liveview_text_active {	color:#d80000;		}
 
 a.color_sym_not_available{		content:url("../images/ic_flare_gray_48dp.png");	}
 a.color_sym{				content:url("../images/ic_flare_black_48dp.png");	}
 a.color_sym_active{			content:url("../images/ic_flare_red_48dp.png");	}
-div.toggle_lightcontrol_text::after {	content:'color';	}
-div.toggle_lightcontrol_text_active {	color:#d80000;		}
+div.toggle_setupcontrol_text::after {	content:'settings';	}
+div.toggle_setupcontrol_text_active {	color:#d80000;		}
 
 a.alarm_sym{				content:url("../images/ic_notifications_black_48dp.png");	}
 a.alarm_sym_open_alerts{		content:url("../images/ic_notifications_red_48dp.png");	}
@@ -397,8 +397,8 @@ img.alert_preview{
 	padding-top:10px;
 }
 /**************************************** m2m alert navigation *****************************************/
-/**************************************** m2m light scroller *****************************************/
-select.light_controll_scroller{
+/**************************************** m2m setup scroller *****************************************/
+select.setup_controll_scroller{
 	width: 85%;
 	margin: 0 auto;  /* setzt den block mittig */
 	height: 30px;
@@ -407,21 +407,21 @@ select.light_controll_scroller{
 	display: block;
 }
 
-div.light_controll_scroller{
+div.setup_controll_scroller{
 	width: 85%;
 	margin: 0 auto;  /* setzt den block mittig */
 	clear: both;
 	height: 20px;
 }
 
-div.light_controll_color{
+div.setup_controll_color{
 	width: 85%;
 	margin: 0 auto;  /* setzt den block mittig */
 	height: 30px;
 	clear: both;
 	margin-top: 15px;
 }
-/**************************************** m2m light scroller *****************************************/
+/**************************************** m2m setup scroller *****************************************/
 /******************************************** MENU ***************************************************/
 div.menu{
 	position:fixed;
@@ -574,11 +574,11 @@ div.hamb_l {
 		height: 84px;
 	}
 
-	div.light_controll_scroller{
+	div.setup_controll_scroller{
 		margin-bottom: 10px;
 	}
 
-	div.light_controll_color{
+	div.setup_controll_color{
 		height: 50px;
 		margin-top:30px;
 		margin-bottom: 0px;

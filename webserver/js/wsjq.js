@@ -1023,7 +1023,7 @@ function check_append_m2m(msg_dec){
 		button.attr({
 			"id": msg_dec["mid"]+"_toggle_liveview",
 		});
-		button.text("glubsch!");
+		button.text("set_via_css");
 		button.addClass("live_sym");
 		button.click(function(){
 			var msg_int=msg_dec;
@@ -1042,31 +1042,31 @@ function check_append_m2m(msg_dec){
 		//m2m_header_button.append(button);
 		//////////// live view button /////////////
 		
-		//////////// light controll button /////////////
+		//////////// setup controll button /////////////
 		wb=$("<div></div>");
 		wb.addClass("inline_block");
 		button=$("<a></a>");
 		button.attr({
-			"id": msg_dec["mid"]+"_toggle_lightcontrol",
+			"id": msg_dec["mid"]+"_toggle_setupcontrol",
 		});
 		button.addClass("color_sym");
 		button.click(function(){
 			var msg_int=msg_dec;
 			return function(){
-				toggle_lightcontrol(msg_int["mid"]);
+				toggle_setupcontrol(msg_int["mid"]);
 			};
 		}());
-		button.text("color");
+		button.text("set_via_css");
 		set_button_state(button,msg_dec["state"]);
 		wb.append(button);
 		wl=$("<div></div>");
-		wl.attr("id",mid+"_toggle_lightcontrol_text");
-		wl.addClass("toggle_lightcontrol_text");
+		wl.attr("id",mid+"_toggle_setupcontrol_text");
+		wl.addClass("toggle_setupcontrol_text");
 		wl.addClass("toggle_text");
 		wb.append(wl);
 		m2m_header_button.append(wb);
 		//m2m_header_button.append(button);
-		//////////// light controll button /////////////
+		//////////// setup controll button /////////////
 
 		//////////// alert button /////////////
 		wb=$("<div></div>");
@@ -1164,22 +1164,22 @@ function check_append_m2m(msg_dec){
 		////////////////// LIVE VIEW ////////////////////////////
 
 		////////////////// COLOR SLIDER ////////////////////////////
-		lightcontrol=$("<div></div>");
-		lightcontrol.attr({
-			"id" : mid+"_lightcontrol",
+		setupcontrol=$("<div></div>");
+		setupcontrol.attr({
+			"id" : mid+"_setupcontrol",
 		});
-		lightcontrol.hide();
-		node.append(lightcontrol);
+		setupcontrol.hide();
+		node.append(setupcontrol);
 
 		var scroller=$("<div></div>");
 		scroller.append(createRainbowDiv(100));
-		scroller.addClass("light_controll_color");
-		lightcontrol.append(scroller);
+		scroller.addClass("setup_controll_color");
+		setupcontrol.append(scroller);
 
 		scroller=$("<div></div>");
 		scroller.attr({
 			"id":"colorslider_"+mid,
-			"class":"light_controll_scroller"
+			"class":"setup_controll_scroller"
 		});
 		scroller.slider({min:0, max:255, value:msg_dec["color_pos"], 
 			slide:function(){
@@ -1194,17 +1194,17 @@ function check_append_m2m(msg_dec){
 					send_color(msg_int["mid"]);
 				};
 			}()});
-		lightcontrol.append(scroller);
+		setupcontrol.append(scroller);
 
 		scroller=$("<div></div>");
 		scroller.append(createRainbowDiv(0));
-		scroller.addClass("light_controll_color");
-		lightcontrol.append(scroller);
+		scroller.addClass("setup_controll_color");
+		setupcontrol.append(scroller);
 
 		scroller=$("<div></div>");
 		scroller.attr({
 			"id":"brightnessslider_"+mid,
-			"class":"light_controll_scroller"
+			"class":"setup_controll_scroller"
 		});
 		scroller.slider({min:0, max:255, value:msg_dec["brightness_pos"], 
 			slide:function(){
@@ -1219,13 +1219,13 @@ function check_append_m2m(msg_dec){
 					send_color(msg_int["mid"]);
 				};
 			}()});
-		lightcontrol.append(scroller);
+		setupcontrol.append(scroller);
 
 		// add fps dropdown
 		var fps_select=$("<select></select>");
 		fps_select.attr({
 			"id": mid+"_fps_select",
-			"class":"light_controll_scroller"
+			"class":"setup_controll_scroller"
 		});
 		// load from message
 		var default_t=parseFloat(msg_dec["frame_dist"]);
@@ -1254,17 +1254,17 @@ function check_append_m2m(msg_dec){
 				t+=1;
 			}
 		};
-		lightcontrol.append(fps_select);
+		setupcontrol.append(fps_select);
 
 		// quality selector
 		var qual_select=$("<select></select>");
 		qual_select.attr({
 			"id": mid+"_qual_select",
-			"class":"light_controll_scroller"
+			"class":"setup_controll_scroller"
 		});
 		qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', true));
 		qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast"));
-		lightcontrol.append(qual_select);
+		setupcontrol.append(qual_select);
 
 		////////////////// COLOR SLIDER ////////////////////////////
 
@@ -1403,7 +1403,7 @@ function hide_liveview(mid,animation){
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function show_liveview(mid){
-	hide_lightcontrol(mid);
+	hide_setupcontrol(mid);
 	hide_alarms(mid);
 	// set button active
 	$("#"+mid+"_toggle_liveview").addClass("live_sym_active");
@@ -1452,16 +1452,16 @@ function show_liveview(mid){
 // what it does: 
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
-function toggle_lightcontrol(mid){
-	if(is_button_active("#"+mid+"_toggle_lightcontrol")){
+function toggle_setupcontrol(mid){
+	if(is_button_active("#"+mid+"_toggle_setupcontrol")){
 		return;
 	};
 
-	var view = $("#"+mid+"_lightcontrol");
+	var view = $("#"+mid+"_setupcontrol");
 	if(view.is(":visible")){
-		hide_lightcontrol(mid);
+		hide_setupcontrol(mid);
 	} else {
-		show_lightcontrol(mid);
+		show_setupcontrol(mid);
 	};
 };
 
@@ -1472,10 +1472,10 @@ function toggle_lightcontrol(mid){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function hide_lightcontrol(mid){
-	var view = $("#"+mid+"_lightcontrol");
-	$("#"+mid+"_toggle_lightcontrol").removeClass("color_sym_active");
-	$("#"+mid+"_toggle_lightcontrol_text").removeClass("toggle_lightcontrol_text_active");
+function hide_setupcontrol(mid){
+	var view = $("#"+mid+"_setupcontrol");
+	$("#"+mid+"_toggle_setupcontrol").removeClass("color_sym_active");
+	$("#"+mid+"_toggle_setupcontrol_text").removeClass("toggle_setupcontrol_text_active");
 	if(view.is(":visible")){
 		view.fadeOut("fast");
 	}
@@ -1488,13 +1488,13 @@ function hide_lightcontrol(mid){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function show_lightcontrol(mid){
+function show_setupcontrol(mid){
 	hide_liveview(mid,true);
 	hide_alarms(mid);
 	send_color(mid);
-	$("#"+mid+"_toggle_lightcontrol").addClass("color_sym_active");
-	$("#"+mid+"_toggle_lightcontrol_text").addClass("toggle_lightcontrol_text_active");
-	var view = $("#"+mid+"_lightcontrol");
+	$("#"+mid+"_toggle_setupcontrol").addClass("color_sym_active");
+	$("#"+mid+"_toggle_setupcontrol_text").addClass("toggle_setupcontrol_text_active");
+	var view = $("#"+mid+"_setupcontrol");
 	if(!view.is(":visible")){
 		view.fadeIn("fast");
 	};
@@ -1562,7 +1562,7 @@ function hide_alarms(mid){
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function show_alarms(mid){
-	hide_lightcontrol(mid);
+	hide_setupcontrol(mid);
 	hide_liveview(mid,true);
 	$("#"+mid+"_toggle_alarms").addClass("alarm_sym_active");
 	$("#"+mid+"_toggle_alarms_text").addClass("toggle_alarms_text_active");
@@ -1928,10 +1928,10 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws){
 	
 	// make buttons available/unavailable
 	var lv=$("#"+mid+"_toggle_liveview");
-	var cv=$("#"+mid+"_toggle_lightcontrol");
+	var cv=$("#"+mid+"_toggle_setupcontrol");
 	var av=$("#"+mid+"_toggle_alarms");
 	var lt=$("#"+mid+"_toggle_liveview_text");
-	var ct=$("#"+mid+"_toggle_lightcontrol_text");
+	var ct=$("#"+mid+"_toggle_setupcontrol_text");
 	var at=$("#"+mid+"_toggle_alarms_text");
 	if(state<0){
 		lv.addClass("button_deactivated"); // avoids clickability
@@ -1946,10 +1946,10 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws){
 		cv.removeClass("color_sym");
 
 		ct.addClass("sym_text_not_available");
-		ct.removeClass("toggle_lightcontrol_text_active");
+		ct.removeClass("toggle_setupcontrol_text_active");
 
 		hide_liveview(mid,true);
-		hide_lightcontrol(mid);
+		hide_setupcontrol(mid);
 	} else {
 		lv.removeClass("button_deactivated");
 		lv.removeClass("live_sym_not_available");
@@ -2226,7 +2226,7 @@ function show_alert_fb(mid){
 	var text=$("<div></div>").text("there is a camera in alert state!");
 	disp.append(text);
 	var button=$("<a></a>");
-	button.text("glubsch!");
+	button.text("stream");
 	button.addClass("button");
 	button.click(function(){
 		return function(){
@@ -2261,7 +2261,7 @@ function show_old_alert_fb(mid,open_alerts){
 
 	// generate text and a link to the alertview and display it as fancybox
 	var nickname=$("#"+mid+"_name").text();
-	var msg="Your safety is the top priority of glubsch! <br><br>";
+	var msg="Your safety is the top priority of illuminum <br><br>";
 	msg+="The camera '"+nickname+"' has "+open_alerts+" unacknowledge alerts!<br>";
 	msg+="Please confirm those alerts by clicking the acknowledge Button";
 
@@ -2491,7 +2491,7 @@ function c_freeze(){
 function c_unfreeze(){
 		$("#l10n_title").text("unfreeeze");
 		if(c_freeze_state==1){
-			// c_freeze_state=0; this will be done in the m2v_login method as we have to restore the camera glubsch
+			// c_freeze_state=0; this will be done in the m2v_login method as we have to restore the camera 
 			open_ws();
 		};
 }
