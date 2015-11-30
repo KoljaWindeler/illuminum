@@ -60,22 +60,15 @@ function open_ws() {
 			$.fancybox.close();							
 			$("#rl_msg").remove();
 		};
+
+		// remove register box .. sorry
+		while($("#register_input_box").length){
+			$.fancybox.close();
+                        $("#register_input_box").remove();
+                };
+
 		// show fancybox
-		var rl_msg = $("<div></div>").text("reconnecting..");
-		rl_msg.attr({
-			"id":"rl_msg",
-		});
-		var rl = $("<a></a>");
-		rl.attr("href","#rl_msg");
-		$(document.body).append(rl_msg);
-		rl.fancybox({
-			openEffect: 'none',
-			closeEffect: 'none',
-			helpers: {	overlay : {closeClick: false}	},
-			closeBtn: false,   
-			closeClick: false
-		}).trigger('click');
-		
+		show_fancybox("reconnecting...","rl_msg");
 
 		if(c_freeze_state!=1){
 			console.log("running reconnect in 2 sec");
@@ -112,6 +105,8 @@ function parse_msg(msg_dec){
 			add_login("login failed");
 		};
 		c_set_login(g_user,g_pw);
+		setTimeout("$('#wli').addClass('loginok')",1000);
+		setTimeout("$('#wli').html('Login accepted, all your cameras will show up.<br>You can also register new cameras now.')",1000);
 	}
 
 	// server has established a connection between m2m and WS, this should be received after a login
@@ -219,6 +214,11 @@ function parse_msg(msg_dec){
 		if(msg_dec["time"]!="" && msg_dec["tasks"]!=""){
 			t.html("Server:<br>"+msg_dec["time"]+"<br>"+msg_dec["tasks"]);
 		};
+	}
+
+	// received callback from register
+	else if(msg_dec["cmd"]=="new_register"){
+		callback_register(msg_dec["status"]);
 	};
 }
 
@@ -232,20 +232,6 @@ function parse_msg(msg_dec){
 /////////////////////////7///////////////// SHOW LIVEVIEW IMAGES //////////////////////////////////////////
 
 function show_liveview_img(msg_dec){
-	// debug calc delay
-		/*
-		var delay=parseInt(Date.now()-(1000*parseFloat(msg_dec["ts"])));
-		if(delay>999){
-			delay=999;
-		};
-		c_t=c_t+1;
-		if(f_t==0){
-			f_t=Date.now();
-		}
-		var fps=Math.floor((c_t/((Date.now()-f_t)/1000)*100))/100;
-		$("#"+msg_dec["mid"]+"_hb").innerHTML="Foto age "+delay+" ms, fps: "+fps;
-		*/
-
 	// hide loading dialog, if there is one
 	var txt=$("#"+msg_dec["mid"]+"_liveview_txt");
 	if(txt.length){
@@ -2320,9 +2306,15 @@ function add_login(msg){
 	form.attr("methode","post");
 	form.attr("target","dummy");
 	form.attr("action"," ");
+	form.attr("id","login_form");
+	
 	form.submit(function(){
 		return function(){
-			send_login($("#login").val(),$("#pw").val());
+			if($("#login_form").context.activeElement.value=="register"){
+				show_register();				
+			} else {
+				send_login($("#login").val(),$("#pw").val());
+			};
 		}
 	}());		
 	node.append(form);
@@ -2347,7 +2339,12 @@ function add_login(msg){
 
 	// needed to catch the ENTER-key
 	var submit=$("<input></input>");
-	submit.attr("type","submit").attr("value","Log-in");
+	submit.attr("type","submit").attr("value","login");
+	form.append(submit);
+	
+	// and new register button
+	submit=$("<input></input>");
+	submit.attr("type","submit").attr("value","register");
 	form.append(submit);
 	
 	var message=$("<div></div>");
@@ -2407,19 +2404,14 @@ function request_pre_login(){
 };
 
 function check_login_data(try_cordova){
-console.log("check_login_data with try:"+try_cordova);
 	if(g_user=="nongoodlogin" || g_pw=="nongoodlogin" || g_user=="" || g_pw==""){
-console.log("global data are non good");
 		if($("#login_node").length==0){
-console.log("login form not visible, will add it");
 			add_login("");
 		};
 		if(try_cordova){
-console.log("will ask cordova");
 			c_autologin();
 		};
 	} else {
-console.log("sending login "+g_user+"/"+g_pw);
 		send_login(g_user,g_pw);
 	};
 }
@@ -2488,4 +2480,149 @@ function c_unfreeze(){
 		};
 }
 	
+/////////////////////////////////////////// SHOW FANCEBOX  //////////////////////////////////////////
+// triggered by: show some messages
+// arguemnts:	 content=html text, id=to be able to erase it
+// why: 	 user interaction
+/////////////////////////////////////////// SHOW FANCEBOX  //////////////////////////////////////////
+function show_fancybox(content, id){
+	// show fancybox
+	var rl_msg = $("<div></div>").html(content);
+	rl_msg.attr({
+		"id":id,
+	});
+	var rl = $("<a></a>");
+	rl.attr("href","#"+id);
+	$(document.body).append(rl_msg);
+	rl.fancybox({
+		openEffect: 'none',
+		closeEffect: 'none',
+		helpers: {	overlay : {closeClick: false}	},
+		closeBtn: false,   
+		closeClick: false
+	}).trigger('click');
+}
+
+/////////////////////////////////////////// show register  //////////////////////////////////////////
+// triggered by: show some messages
+// arguemnts:	 content=html text, id=to be able to erase it
+// why: 	 user interaction
+/////////////////////////////////////////// show register  //////////////////////////////////////////
+function show_register(){
+	// hier neues pw confirmen
+	var text=$("<div></div>");
+	var input=$("<input></input>");
+
+	var form=$("<form></form>");
+	form.attr("methode","post");
+	form.attr("target","dummy");
+	form.attr("action"," ");
+	form.attr("id","register_form");
+
+	form.submit(function(){
+		return function(){
+			var l_name=$("#l_name").val();
+			var l_email=$("#l_email").val();
+			var l_pw=$("#l_pw").val();
+			var l_pw_conf=$("#l_pw_conf").val();
+			var ok=1;
+			var msg="Request send...";
+		
+			if(l_name==""){
+				ok=0;
+				msg="You have to enter a username";
+			} else if(l_email==""){
+				ok=0;
+				msg="You have to enter a eMail adress, otherwise I can't send you evidence";
+			} else if(l_pw=="" || l_pw_conf==""){
+				ok=0;
+				msg="You have to supply a password and confirm it";
+			} else if(l_pw!=l_pw_conf){
+				ok=0;
+				msg="Your password don't match";
+			}
+
+			var hash_pw = CryptoJS.MD5(l_pw).toString(CryptoJS.enc.Hex);
+
+
+			if(ok==1){
+				var cmd_data = { "cmd":"new_register", "user":l_name, "email":l_email, "pw":hash_pw };
+				con.send(JSON.stringify(cmd_data));
+			};
+			
+			$("#register_msg").text(msg);
+			event.preventDefault();
+		}
+	}());		
+
+
+	text=$("<div></div>");
+	text.html("Username:<br>");
+	input=$("<input></input>");
+	input.attr("id","l_name");
+	input.val($("#login").val());
+	form.append(text);				
+	form.append(input);
+
+	text=$("<div></div>");
+	text.html("eMail:<br>");
+	input=$("<input></input>");
+	input.attr("id","l_email");
+	form.append(text);				
+	form.append(input);
+
+	text=$("<div></div>");
+	text.html("Password:<br>");
+	input=$("<input></input>");
+	input.val($("#pw").val());
+	input.attr("id","l_pw");
+	input.attr("type","password");
+	form.append(text);				
+	form.append(input);
+
+	text=$("<div></div>");
+	text.html("Confirm password:<br>");
+	input=$("<input></input>");
+	input.attr("id","l_pw_conf");
+	input.attr("type","password");
+	form.append(text);				
+	form.append(input);
+
+	var submit=$("<input></input>");
+	submit.attr("type","submit").attr("value","register");
+	text=$("<div></div>");
+	text.attr("id","register_msg");
+	text.html("");
+	form.append(submit);
+	form.append(text);
+				
+	show_fancybox(form,"register_input_box");
+}
+
+/////////////////////////////////////////// callback register  //////////////////////////////////////////
+// triggered by: incoming msg from the websocket
+// arguemnts:	 value = status for the SQL query, 0=good, -2=user exists already, -1=exception in sql 
+// why: 	 
+/////////////////////////////////////////// callback register  //////////////////////////////////////////
+function callback_register(value){
+	var msg="Registration successful, logging you in in 3 sec"
+	var ok=1;
+	if(value==-2){
+		msg="Sorry that name is taken";
+		ok=0;
+	} else if(value!=0){
+		msg="Unknown return value "+value;
+		ok=0;
+	}
+	$("#register_msg").text(msg);
+
+	if(ok==1){
+		var login=$("#l_name").val();
+		var pw=$("#l_pw").val();
+		setTimeout(function() { $("#register_input_box").remove();}, 3000);
+		setTimeout("$.fancybox.close()",3000);
+		console.log("send:"+login+","+pw);
+		setTimeout(send_login,3000,login,pw);		
+	};
+};
 
