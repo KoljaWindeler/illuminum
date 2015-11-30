@@ -117,20 +117,27 @@ public class s_notify {
 
     public String Notification_text_builder(boolean l_t, ArrayList<s_area> areas) {
         String not = "";
-        String p= "Protected";
-        String m= "Movement";
+        String p="";
+        String m="";
         if (l_t) {
             for (int i = 0; i < areas.size(); i++) {
                 not += areas.get(i).getName() + ": ";
 
                 if(areas.get(i).getAlarmSum()>0){
-                not += String.valueOf(areas.get(i).getAlarmSum())+ " Alarms! ";
+                    not += String.valueOf(areas.get(i).getAlarmSum())+ " Alarm";
+                    if(areas.get(i).getAlarmSum()>1){
+                        not+= "s";
+                    }
+                    not += "! ";
                     p="P.";
                     m="M.";
+                } else {
+                    p= "Protected";
+                    m= "Movement";
                 }
 
                 if (areas.get(i).getDetection() >= 1) {
-                    not += " "+p;
+                    not += p;
                 } else {
                     not += "NOT "+p;
                 }
