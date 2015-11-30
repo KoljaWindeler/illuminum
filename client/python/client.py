@@ -81,8 +81,14 @@ def trigger_handle(event, data):
 			if(msg["cmd"] == m["cmd"]):
 				con.msg_q.remove(m)
 
-		# avoid message on alarm while streaming and alarm_while_streaming=0
-		if(not(cam.interval>0 and _state>0 and _detection>0 and cam.alarm_while_streaming==0)):
+		# avoid message on alarm if alarm_while_streaming=0 at various conditions
+		send_msg=1
+		if(_state>0 and _detection>0 and cam.alarm_while_streaming==0): 
+			if(cam.interval>0):				# no alarm while streaming
+				send_msg=0
+			else if(time.time()-last_picture_taken_ts<5):	# dead - time after streaming, 5 sec
+				send_msg=0
+		if(send_msg):
 			con.msg_q.append(msg)
 		##### delete ALL old status msg, and place the current status in the queue #########
 
