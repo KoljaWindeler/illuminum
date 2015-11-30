@@ -952,7 +952,15 @@ def recv_ws_msg_handle(data,ws):
 			else:
 				debug_loading_assist.unsubscribe(ws)
 
-		
+
+		## register new ws login
+		elif(enc.get("cmd")=="new_register"):
+			res=db.register_ws(enc.get("user"),enc.get("pw"),enc.get("email"))		
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["status"]=res
+			msg_q_ws.append((msg,ws))
+
 
 		## unsupported cmd, for WS
 		else:
