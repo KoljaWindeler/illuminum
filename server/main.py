@@ -439,6 +439,7 @@ def recv_m2m_msg_handle(data,m2m):
 				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("login","no_login"))+"' not found in DB, log-in: failed","l")
 				msg["ok"]=-3 # not logged in
 			else:
+				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("login","no_login"))+"' logged in, registering a new device","l")
 				# generate hash for DB passwort and challange, client will generate hash_of(hash_of(passwort) + challange)
 				# this enables us to save only the hash_of(password) instead of clear text password in the db!
 				h = hashlib.md5()
