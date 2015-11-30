@@ -2,9 +2,18 @@ import subprocess
 import threading
 import time
 import RPi.GPIO as GPIO
-from neopixel import *
+import importlib
 
 LED_DEBUG=0
+
+# import neopixel if posible
+try:
+	from neopixel import *
+	with_neo=1
+except:
+	with_neo=0
+	print("running without neopixel support")
+
 
 class led:
 	def __init__(self):
@@ -57,10 +66,11 @@ def start():
 def start_light():
 	global l # use the object from above
 	# Create NeoPixel object with appropriate configuration.
-	strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
-	# Intialize the library (must be called once before other functions).
-	strip.begin()
-	strip.show()
+	if(with_neo):
+		strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
+		# Intialize the library (must be called once before other functions).
+		strip.begin()
+		strip.show()
 
 
 	while True:											# loop forever
@@ -114,9 +124,10 @@ def start_light():
 				#strip.setPixelColor(1,Color(0,255,0))		# set value
 				#strip.setPixelColor(2,Color(0,0,255))		# set value
 				#strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
-				for i in range(0,LED_COUNT):
-					strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
-				strip.show()
+				if(with_neo):
+					for i in range(0,LED_COUNT):
+						strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
+					strip.show()
 				time.sleep(0.8*l.ms_step/1000) # we can wait here a little while because we know that nothing will happen for us earlier than that anyway
 
 		else:
