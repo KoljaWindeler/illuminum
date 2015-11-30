@@ -199,6 +199,18 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
+				req = "SELECT COUNT(*) FROM area_state WHERE `account` = '"+str(account)+"' AND `area`='"+str(area)+"'"
+				cursor.execute(req)
+				result = cursor.fetchone()
+				#print(result)
+				if(result["COUNT(*)"]==0):
+					req = "INSERT INTO  `area_state` (`id` ,`area` ,`account` ,`state` ,`updated` ,`login`) VALUES (NULL,'"+str(area)+"','"+str(account)+"','0','"+str(int(time.time()))+"','create');"
+					#print(req)
+					cursor.execute(req, )
+					self.connection.commit()
+					result=0
+
+				# Create a new record
 				req = "SELECT `updated`,`state` FROM  `area_state` WHERE  `account` = '"+str(account)+"' and `area`= '"+str(area)+"'"
 				cursor.execute(req)
 				result = cursor.fetchone()
