@@ -11,7 +11,7 @@ if(!empty($output[0])){	// python serer is running add everything
 	$extra_header='
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 		<script src="js/md5.js"></script>
-		<script src="js/wsjq.js"></script>
+		<script src="js/wsjq_exp.js"></script>
 		<script src="js/jquery-ui.js"></script>
 		<script src="js/jquery.ui.touch-punch.min.js"></script>
 		<script src="js/fancyBox/jquery.fancybox.pack.js"></script>
