@@ -70,6 +70,7 @@ public class s_notify {
 
 
     public void showNotification(String title, String short_text, String long_text) {
+        //Log.e("Not","running showNotifcation");
         if (last_picture == null) {
             String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
             String shown_title = login + " @ "+mContext.getString(R.string.app_name)+" " + mVersion;
@@ -107,7 +108,9 @@ public class s_notify {
     }
 
     public void displayNotification() {
+        //,"display showNotifcation");
         if (mNotificationManager != null) {
+            //Log.e("Not","running notificationmanager...");
             mNotificationManager.notify(1, mNotificationBuilder.build());
         }
     }
