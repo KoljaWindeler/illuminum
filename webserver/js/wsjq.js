@@ -2605,7 +2605,7 @@ function show_register(){
 // why: 	 
 /////////////////////////////////////////// callback register  //////////////////////////////////////////
 function callback_register(value){
-	var msg="Registration successful, logging you in in 3 sec"
+	var msg="Registration successful, login in 3 sec"
 	var ok=1;
 	if(value==-2){
 		msg="Sorry that name is taken";
