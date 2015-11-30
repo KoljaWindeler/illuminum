@@ -61,6 +61,17 @@ a.button_deactivated{
 	color:rgba(150,150,150,0.72)!important;
 }
 
+div.loginok{
+	background-color:rgba(0,0,0,0.7);
+	padding-bottom: 1%; 
+	padding-top: 0.5%; /*over the "home" */
+	margin-bottom: 1%;
+
+	vertical-align: top;
+	text-align:center;
+	color:#EFEFEF;
+}
+
 a.button_active{
 	background: #9B2424;
 }
