@@ -29,6 +29,7 @@ class CPUsaver:
 class WebCam:
 	def __init__(self):
 		self.interval = 0
+		self.quality = 1 # 1= high, 0 low
 		self.last_picture_taken_ts = 0
 		self.webview_active = 0
 		self.alarm_interval = 0.34 # 3fps
@@ -559,11 +560,11 @@ while 1:
 		############## at this point we consider to upload a picture #####################
 		if(len(con.msg_q) == 0 and con.logged_in == 1):
 			if(cam.webview_active == 1 and cam.last_picture_taken_ts+cam.interval < time.time()):
-				upload_picture(con, 1) #highres?
+				upload_picture(con, cam.quality) #highres?
 				b.set()
 			elif(cam.alarm_pictures_remaining > 0 and cam.last_picture_taken_ts+cam.alarm_interval < time.time()):
 				cam.alarm_pictures_remaining = max(0, cam.alarm_pictures_remaining-1)
-				upload_picture(con, 1) #highres?
+				upload_picture(con, cam.quality) #highres?
 				b.set()
 		############## at this point we consider to upload a picture #####################
 
