@@ -248,35 +248,42 @@ public class s_ws implements WebSocketConnectionObserver {
                     }
                 }
 
-                // first sign up .. add to list
-                if (found == -1) {
-                    String name = o_recv.getString("area");
-                    Integer det = o_recv.getInt("detection");
-                    Location new_loc = new Location("new");
-                    String mid= o_recv.getString("mid");
-                    if (!o_recv.getString("latitude").equals("") && !o_recv.getString("longitude").equals("")) {
-                        new_loc.setLatitude(Float.parseFloat(o_recv.getString("latitude")));
-                        new_loc.setLongitude(Float.parseFloat(o_recv.getString("longitude")));
+
+                if(cmd.equals("m2v_login")) {
+                    // first sign up or this area .. add this area to list
+                    if (found == -1) {
+                        String name = o_recv.getString("area");
+                        Integer det = o_recv.getInt("detection");
+                        Location new_loc = new Location("new");
+                        String mid = o_recv.getString("mid");
+                        if (!o_recv.getString("latitude").equals("") && !o_recv.getString("longitude").equals("")) {
+                            new_loc.setLatitude(Float.parseFloat(o_recv.getString("latitude")));
+                            new_loc.setLongitude(Float.parseFloat(o_recv.getString("longitude")));
+                        } else {
+                            new_loc.setLatitude(0.0);
+                            new_loc.setLongitude(0.0);
+                        }
+
+                        int state = -1;
+                        if (o_recv.has("state")) {
+                            state = o_recv.getInt("state");
+                        }
+
+                        // add it to the structure
+                        //mDebug.write_to_file("creating new area");
+                        areas.add(new s_area(name, det, new_loc, 500, state, mid, Integer.parseInt(o_recv.getString("open_alarms"))));
+                        //mDebug.write_to_file("Done");
+                        ((bg_service) mContext).resetLocation();
+                        ((bg_service) mContext).check_locations(((bg_service) mContext).get_last_known_location().getCoordinaes());
                     } else {
-                        new_loc.setLatitude(0.0);
-                        new_loc.setLongitude(0.0);
+                        // just add this mid to the list to have the alarms per cell, area was known before
+                        if(areas.get(found).hasClient(o_recv.getString("mid"))==-1) {
+                            areas.get(found).addClient(o_recv.getString("mid"), Integer.parseInt(o_recv.getString("open_alarms")));
+                        }
                     }
-
-                    int state = -1;
-                    if (o_recv.has("state")) {
-                        state = o_recv.getInt("state");
-                    }
-
-                    // add it to the structure
-                    //mDebug.write_to_file("creating new area");
-                    areas.add(new s_area(name, det, new_loc, 500, state, mid,Integer.parseInt(o_recv.getString("open_alarms"))));
-                    //mDebug.write_to_file("Done");
-                    ((bg_service) mContext).resetLocation();
-                    ((bg_service) mContext).check_locations(((bg_service) mContext).get_last_known_location().getCoordinaes());
                 }
 
                 // show notification
-
                 mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
             }
 
@@ -286,12 +293,20 @@ public class s_ws implements WebSocketConnectionObserver {
                 mDebug.write_to_file("Websocket: Received: " + message);
 
                 for (int i = 0; i < areas.size(); i++) {
+                    /*
+                    mDebug.write_to_file("This area:"+areas.get(i).getName()+" has "+String.valueOf(areas.get(i).clients.size())+" clients");
+                    for(int ii=0; ii<areas.get(i).clients.size(); ii++){
+                        mDebug.write_to_file(areas.get(i).clients.get(ii));
+                    }
+                    mDebug.write_to_file("We are looking for "+o_recv.getString("mid"));
+                    */
                     if(areas.get(i).hasClient(o_recv.getString("mid"))>-1){
                         if(areas.get(i).getAlarms(areas.get(i).hasClient(o_recv.getString("mid")))>Integer.parseInt(o_recv.getString("open_alarms"))){
                             mNofity.clear_image(); // clear the picture in the notification when alarms are being acknowledged
                         }
 
                         // update number of alarms
+                        //mDebug.write_to_file("Setting alarm of id:" + String.valueOf(areas.get(i).hasClient(o_recv.getString("mid"))) + " to: "+o_recv.getString("open_alarms"));
                         areas.get(i).setAlarms(areas.get(i).hasClient(o_recv.getString("mid")),Integer.parseInt(o_recv.getString("open_alarms")));
                         break;
                     }
