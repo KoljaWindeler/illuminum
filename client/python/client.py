@@ -29,7 +29,7 @@ class CPUsaver:
 class WebCam:
 	def __init__(self):
 		self.interval = 0
-		self.quality = 1 # 1= high, 0 low
+		self.quality = "HD" # 1= high, 0 low
 		self.last_picture_taken_ts = 0
 		self.webview_active = 0
 		self.alarm_interval = 0.34 # 3fps
@@ -134,7 +134,7 @@ def get_time():
 
 
 #******************************************************#
-def upload_picture(_con, high_res):
+def upload_picture(_con, res):
 #	rint(str(time.time())+" -> this is upload_file")
 	if(STEP_DEBUG):
 		print("[A "+time.strftime("%H:%M:%S")+"] Step 5. this is upload_file with "+str(len(_con.msg_q))+" msg in q")
@@ -145,7 +145,7 @@ def upload_picture(_con, high_res):
 	p.set_last_action("loading img")
 	#if full frame read other file
 	try:
-		if high_res:
+		if res!="VGA":
 			img = open("/dev/shm/mjpeg/cam_full.jpg", 'rb')
 		else:
 			img = open("/dev/shm/mjpeg/cam_prev.jpg", 'rb')
@@ -379,12 +379,13 @@ def parse_incoming_msg(con):
 				light.add_q_entry(time.time(), light.l.d_r, light.l.d_g, light.l.d_b, 500) # 4 sec to dimm to warm orange - now
 
 			elif(enc.get("cmd") == "set_interval"):
-				print("setting interval to "+str(enc.get("interval", 0)))
+				print("setting interval to "+str(enc.get("interval", 0))+" "+str(enc.get("qual", 0)))
 				if(enc.get("interval", 0) == 0):
 					cam.webview_active = 0
 				else:
 					cam.webview_active = 1
 				cam.interval = (enc.get("interval", 0))
+				cam.quality = (enc.get("qual", "HD"))
 ######### SPY MODE #########
 #						if(enc.get("interval",0)>0):
 #							light.add_q_entry(time.time(),0,100,0,1000) # 4 sec to dimm to off - in 10 min from now
