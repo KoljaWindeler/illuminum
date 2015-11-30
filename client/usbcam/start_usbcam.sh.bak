@@ -1,0 +1,6 @@
+#!/bin/bash
+
+mkdir /dev/shm/mjpeg > /dev/null 2>&1;
+mkdir /dev/shm/mjpeg/n > /dev/null 2>&1;
+
+./mjpg_streamer -i "./input_uvc.so -f 10 -r 640x480 -n -y"  -o "./output_file.so -f /dev/shm/mjpeg/n -c ./m.sh"&
