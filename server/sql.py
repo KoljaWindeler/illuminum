@@ -505,11 +505,56 @@ class sql:
 			with self.connection.cursor() as cursor:
 				req = "DELETE FROM  `alert`.`m2m`  WHERE  `mid`='"+str(mid)+"'";
 				cursor.execute(req)
-				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`, `latitude`, `longitude`) VALUES ('"+str(mid)+"', '"+str(m2m_pw)+"', 'home', '"+str(account)+"', '"+str(alias)+"','0.0','0.0');"
+				req = "SELECT `latitude`, `longitude` FROM `alert`.`m2m` WHERE `account`="+account+" AND `area`='home'"
+				cursor.execute(req)				
+				if(cursor.rowcount==0):
+					result['latitude']="0.0"
+					result['logitude']="0.0"
+				else:
+					result = cursor.fetchone()
+				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`, `latitude`, `longitude`) VALUES ('"+str(mid)+"', '"+str(m2m_pw)+"', 'home', '"+str(account)+"', '"+str(alias)+"',"+result['latitude']+","+result['logitude']+");"
 				cursor.execute(req)
 			self.connection.commit()
 			ret=0
 		except:
+			ret=-1
+
+		return ret
+
+	#############################################################
+	def register_ws(self,login,pw,email):
+		ret=-1
+		#try:
+		if(1):
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "SELECT COUNT(*) FROM  `alert`.`ws`  WHERE  `login`='"+str(login)+"'";
+				cursor.execute(req)
+				result = cursor.fetchone()
+				result = result['COUNT(*)']
+				if(result>0):
+					ret=-2 # user already existed
+				else:
+					account_prefix="acc"
+					account_counter=1
+					result=1
+					while(result>0):
+						account_counter=account_counter+1
+						account_full=account_prefix+str(account_counter)
+						req = "SELECT COUNT(*) FROM  `alert`.`ws`  WHERE  `account`='"+str(account_full)+"'";
+						cursor.execute(req)
+						result = cursor.fetchone()
+						result=result['COUNT(*)']
+
+					# final step ... insert the data
+					req = "INSERT INTO  `alert`.`ws` (`id`,`login`,`pw`,`location`,`update`,`ip`,`account`,`email`) VALUES "
+					req+= "(NULL , '"+login+"', '"+pw+"',  '',  '1',  '', '"+account_full+"',  '"+email+"')"
+					cursor.execute(req)
+					
+					self.connection.commit()
+					ret=0
+		#except:
+		else:
 			ret=-1
 
 		return ret
