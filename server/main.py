@@ -415,7 +415,7 @@ def recv_m2m_msg_handle(data,m2m):
 						msg["webcam_countdown"]=v.ws.webcam_countdown
 						msg_q_ws.append((msg,v.ws))
 					elif(v.ws.webcam_countdown<1):
-						set_webcam_con(m2m.mid,0,"HD",v.ws) # disconnect the webcam from us						
+						set_webcam_con(m2m.mid,0,"HD","no_alarm",v.ws) # disconnect the webcam from us						
 					else:
 						p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
 
@@ -560,7 +560,7 @@ def recv_ws_con_handle(data,ws):
 					m2m.m2v.remove(viewer)
 
 					# also check if that ws has been one of the watchers of the webfeed
-					set_webcam_con(m2m.mid,0,"HD",ws)
+					set_webcam_con(m2m.mid,0,"HD","no_alarm",ws)
 
 		try:
 			server_ws.clients.remove(ws)
@@ -806,7 +806,7 @@ def recv_ws_msg_handle(data,ws):
 			
 		## webcam interval -> sign in or out to webcam, for WS
 		elif(enc.get("cmd")=="set_interval"):
-			set_webcam_con(enc.get("mid"),float(enc.get("interval",0)),enc.get("qual","HD"),ws)
+			set_webcam_con(enc.get("mid"),float(enc.get("interval",0)),enc.get("qual","HD"),enc.get("alarm_while_stream","no_alarm"),ws)
 
 		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
 		elif(enc.get("cmd")=="update_location"):
@@ -1083,11 +1083,12 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 # this will be called if the websocket requests a webcam stream OR if he had done it before and disconnects
 # purpose of this function is to ADD or REMOVE the websocket to the list "webcam" of the m2m unit and to tell
 # the cam at what speed it shall run. BTW: there is a problem with the KGV .. but not important.
-def set_webcam_con(mid,interval,qual,ws):
+def set_webcam_con(mid,interval,qual,alarm_while_streaming,ws):
 	#rint("--> change interval "+str(interval))
 	msg={}
 	msg["cmd"]="set_interval"
 	msg["qual"]=qual	# yes, we change he quality for everyone... too bad
+	msg["alarm_while_streaming"]=alarm_while_streaming
 	#search for the m2m module that shall upload the picture to the ws
 
 	for m2m in ws.v2m:

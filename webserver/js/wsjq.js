@@ -1266,6 +1266,17 @@ function check_append_m2m(msg_dec){
 		qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast"));
 		setupcontrol.append(qual_select);
 
+		// alarm while streaming selector
+		var alarm_while_stream_select=$("<select></select>");
+		alarm_while_stream_select.attr({
+			"id": mid+"_alarm_while_stream_select",
+			"class":"setup_controll_scroller"
+		});
+		alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', true));
+		alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)"));
+		setupcontrol.append(alarm_while_stream_select);
+
+
 		////////////////// COLOR SLIDER ////////////////////////////
 
 		////////////////// ALARM MANAGER ////////////////////////////
@@ -1386,7 +1397,7 @@ function hide_liveview(mid,animation){
 	$("#"+mid+"_toggle_liveview").removeClass("live_sym_active");
 	$("#"+mid+"_toggle_liveview_text").removeClass("toggle_liveview_text_active");
 	if(view.is(":visible")){
-		set_interval(mid,0,0);
+		set_interval(mid,0,0,"no_alarm");
 		if(animation){
 			view.fadeOut("fast");
 		} else {
@@ -1429,18 +1440,23 @@ function show_liveview(mid){
 
 		// load fps from input
 		var fps=0.5;
-		var qual=1; // 1 high, 0 low
+		var qual="HD"; // high, vga is low
+		var alarm_stream="no_alarm";
 		var fps_sel=$("#"+mid+"_fps_select");
 		var qual_sel=$("#"+mid+"_qual_select");
+		var alarm_stream_sel=$("#"+mid+"_alarm_while_stream_select");
 		if(fps_sel.length){
 			fps=fps_sel.val();
 		};
 		if(qual_sel.length){
 			qual=qual_sel.val();
 		};
+		if(alarm_stream_sel.length){
+			alarm_stream=alarm_stream_sel.val();
+		}
 
 		// send request
-		set_interval(mid,fps,qual);
+		set_interval(mid,fps,qual,alarm_stream);
 	};
 }
 ///////////////////////// LIVE VIEW //////////////////////////////////
@@ -1727,11 +1743,11 @@ function get_alarms(mid){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function set_interval(mid,interval,qual){
+function set_interval(mid,interval,qual,alarm_while_stream){
 	if(con == null){
 		return;
 	}
-	var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":interval, "qual":qual};
+	var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":interval, "qual":qual, "alarm_while_stream":alarm_while_stream};
 	con.send(JSON.stringify(cmd_data));
 
 	// active / deactivate fast HB, updates once per second
