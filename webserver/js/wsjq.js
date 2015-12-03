@@ -1256,25 +1256,40 @@ function check_append_m2m(msg_dec){
 		};
 		setupcontrol.append(fps_select);
 
-		// quality selector
+		///////////////// quality selector //////////////////////
 		var qual_select=$("<select></select>");
 		qual_select.attr({
 			"id": mid+"_qual_select",
 			"class":"setup_controll_scroller"
 		});
-		qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', true));
-		qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast"));
+		var hd_sel=true;
+		var vga_sel=false;
+		if(msg_dec["resolution"]!="HD"){
+			hd_sel=false;
+			vga_sel=true;
+		}
+		qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
+		qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
 		setupcontrol.append(qual_select);
+		///////////////// quality selector //////////////////////
 
-		// alarm while streaming selector
+		/////////// alarm while streaming selector //////////////////
 		var alarm_while_stream_select=$("<select></select>");
 		alarm_while_stream_select.attr({
 			"id": mid+"_alarm_while_stream_select",
 			"class":"setup_controll_scroller"
 		});
-		alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', true));
-		alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)"));
+
+		var no_alarm_sel=true;
+		var alarm_sel=false;
+		if(msg_dec["alarm_while_streaming"]==1 || msg_dec["alarm_while_streaming"]=="alarm"){
+			no_alarm_sel=false;
+			alarm_sel=true;
+		}
+		alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
+		alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
 		setupcontrol.append(alarm_while_stream_select);
+		/////////// alarm while streaming selector //////////////////
 
 
 		////////////////// COLOR SLIDER ////////////////////////////
