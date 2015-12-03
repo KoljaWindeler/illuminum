@@ -142,6 +142,9 @@ def handle (client,addr):
 			except (SSL.ZeroReturnError, SSL.SysCallError):
 				# regular good SSL disconnect
 				disconnect(client)
+			except ValueError as err:
+				# disconnct while handshake
+				disconnect(client)
 			except Exception as n:
 				print("except while read in server_ws, our status ",end="")
 				print(lt)
@@ -406,14 +409,15 @@ class WebSocket(object):
 				lt="decoding"
 				data = data.decode("UTF-8")
 			except Exception as e:
-				print("")
-				print("SERVER_WS ")
-				print("recv exception in handshaking:'", end="")
-				print(lt,end="")
-				print(" ",end="")
-				print(e,end="")
-				print("'")
-				raise Exception("remote socket closed")
+				#rint("")
+				#rint("SERVER_WS ")
+				#rint("recv exception in handshaking:'", end="")
+				#rint(lt,end="")
+				#rint(" ",end="")
+				#rint(e,end="")
+				#rint("'")
+				raise ValueError('disconnect')
+				#raise Exception("remote socket closed")
 			if not data:
 				#print("empty data received, eventhough headertoread was "+str(self.headertoread))
 				raise Exception("remote socket closed")
