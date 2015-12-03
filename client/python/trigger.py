@@ -67,7 +67,7 @@ def start_trigger():
 				s.state=gpio_state
 				busy=1
 
-				print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[s.state]+"' with detection '"+det_state[s.detection]+"'")
+				#print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[s.state]+"' with detection '"+det_state[s.detection]+"'")
 
 				# call everyone who subscribed to our update list
 				for callb in s.callback_action:

@@ -66,10 +66,14 @@ class Debugging:
 def trigger_handle(event, data):
 	global cam
 	global con
+	global register_mode
 
 	if(event == "state_change"):
 		_state = data[0]
 		_detection = data[1]
+
+		if(register_mode==0):
+			print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+trigger.m2m_state[_state]+"' with detection '"+trigger.det_state[_detection]+"'")
 
 		msg = {}
 		msg["cmd"] = event
@@ -86,7 +90,7 @@ def trigger_handle(event, data):
 		if(_state>0 and _detection>0 and cam.alarm_while_streaming==0): 
 			if(cam.interval>0):				# no alarm while streaming
 				send_msg=0
-			elif(time.time()-last_picture_taken_ts<5):	# dead - time after streaming, 5 sec
+			elif(time.time()-cam.last_picture_taken_ts<5):	# dead - time after streaming, 5 sec
 				send_msg=0
 		if(send_msg):
 			con.msg_q.append(msg)
