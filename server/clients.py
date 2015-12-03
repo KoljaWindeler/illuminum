@@ -33,6 +33,8 @@ class m2m_clients:
 		self.sendq = []						# the messages to be send
 		self.alarm_ws = 1					# shall the photos of this m2m be forwarded to the connected WS in case of an alert
 		self.frame_dist = 0.5					# distance between frames, 2fps
+		self.resolution = "HD"					# 720p
+		self.alarm_while_streaming = 0				# bad power supply
 # dies ist der WEBSOCKET client
 class ws_clients:
 	def __init__(self, addr):
