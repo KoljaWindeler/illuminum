@@ -1953,7 +1953,10 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws){
 	} else {
 		// if we change to non-alert-state and there is still the alert popup, show the old_alert popup
 		if($("#"+mid+"_liveview_alert_fb").length && alarm_ws>0){
-			show_old_alert_fb(mid,-1);
+			var open_alarms=$("#"+mid+"_alarm_counter");
+			if(open_alarms.length){
+				show_old_alert_fb(mid,open_alarms.text());
+			}
 		};
 	}
 	// POP UP
