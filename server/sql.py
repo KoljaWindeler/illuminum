@@ -132,7 +132,7 @@ class sql:
 				#rint(result)
 				#rint(result)
 				if(result["COUNT(*)"] == 1):
-					req = "SELECT  pw, area, account, alias, longitude, latitude, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist  FROM m2m WHERE mid= %s"
+					req = "SELECT  pw, area, account, alias, longitude, latitude, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist, resolution  FROM m2m WHERE mid= %s"
 					#rint(req)
 					cursor.execute(req, str(mid))
 					#rint("setting result to ")
@@ -600,6 +600,29 @@ class sql:
 					
 					self.connection.commit()
 					ret = 0
+		except:
+			he()
+			ret = -1
+
+		return ret
+	#############################################################
+	def update_cam_parameter(self, mid, frame_space, resolution, alarm_while_stream, alarm_ws):
+		ret = -1
+		try:
+			if(float(frame_space)>0):
+				# translate
+				if(alarm_while_stream=="no_alarm"):
+					alarm_while_stream=0
+				else:
+					alarm_while_stream=1
+
+				self.connect()
+				with self.connection.cursor() as cursor:
+					req = "UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s  WHERE  `m2m`.`mid` = %s"
+					#rint("UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s  WHERE  `m2m`.`mid` = %s" % (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(mid)))
+					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(mid)) )
+					self.connection.commit()
+			ret = 0
 		except:
 			he()
 			ret = -1
