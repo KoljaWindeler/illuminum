@@ -110,12 +110,25 @@ def rint(input,sc):
 	except:
 		ignore=1
 
+def err(input):
+	try:
+		print("==============================================")
+		print("ERR:"+input)
+		input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
+		with open("err.txt", "a") as log_file:
+			log_file.write(input_log)
+			log_file.close()
+		print("==============================================")
+    									
+	except:
+		ignore=1
+
 
 def m2m_login(m2m,viewer):
 	p_alias=(m2m.alias+"          ")[0:12]
 	p_account=(m2m.account+"          ")[0:10]
-	p_mid=(m2m.mid+"                ")[0:14]
-	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+p_mid+"' / '"+p_alias+"' @ '"+p_account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(m2m.detection)])+"' (->"+str(viewer)+" ws_clients)","l")
+	p_mid=("'"+m2m.mid+"'                  ")[0:17]
+	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] "+p_mid+" / '"+p_alias+"' @ '"+p_account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(m2m.detection)])+"' (->"+str(viewer)+" ws_clients)","l")
 
 def ws_login(ws):
 	p_account=(ws.account+"          ")[0:10]
