@@ -2,6 +2,17 @@ import sys,  threading, time, datetime
 from clients import m2m_state,det_state
 
 __author__ = 'kolja'
+
+#******************************************************#
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 #******************************************************#
 
 def subscribe_callback(fun):
@@ -128,32 +139,32 @@ def m2m_login(m2m,viewer):
 	p_alias=(m2m.alias+"          ")[0:12]
 	p_account=(m2m.account+"          ")[0:10]
 	p_mid=("'"+m2m.mid+"'                  ")[0:17]
-	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] "+p_mid+" / '"+p_alias+"' @ '"+p_account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(m2m.detection)])+"' (->"+str(viewer)+" ws_clients)","l")
+	rint(bcolors.OKGREEN+"[A_m2m "+time.strftime("%H:%M:%S")+"] "+p_mid+" / '"+p_alias+"' @ '"+p_account+"' log-in: OK, ->(M2M) set detection to '"+str(det_state[int(m2m.detection)])+"' (->"+str(viewer)+" ws_clients)"+bcolors.ENDC,"l")
 
 def ws_login(ws):
 	p_account=(ws.account+"          ")[0:10]
 	p_login=(ws.login+"                                                ")[0:32]
-	rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+p_login+"' @ '"+p_account+"' log-in: OK, ->(WS)","l")
+	rint(bcolors.OKBLUE+"[A_ws  "+time.strftime("%H:%M:%S")+"] '"+p_login+"' @ '"+p_account+"' log-in: OK, ->(WS)"+bcolors.ENDC,"l")
 
 def change_state(m2m,viewer):
 	p_alias=(m2m.alias+"          ")[0:12]
 	p_account=(m2m.account+"          ")[0:10]
 	p_state=(str(m2m_state[m2m.state])+"                  ")[0:5]
-	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' changed state to: '"+p_state+"', detection: '"+str(det_state[m2m.detection])+"' (->"+str(viewer)+" ws_clients)","s")
+	rint(bcolors.OKGREEN+"[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' changed state to: '"+p_state+"', detection: '"+str(det_state[m2m.detection])+"' (->"+str(viewer)+" ws_clients)"+bcolors.ENDC,"s")
 
 def connect_ws_m2m(m2m,ws):
 	p_alias=(m2m.alias+"          ")[0:12]
 	p_account=(m2m.account+"          ")[0:10]
 	p_login=(ws.login+"             ")[0:20]
-	rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' <-> WS '"+p_login+"' "+str(ws.ip),"l")
+	rint(bcolors.OKGREEN+"[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' <-> WS '"+p_login+"' "+str(ws.ip)+bcolors.ENDC,"l")
 
 
 def show_ws(id,l,ws):
 	if(id==-2):
 		show_m2m(1,l,"")
-		print("we got "+str(l)+" ws-clients connected")
+		print(bcolors.WARNING+"we got "+str(l)+" ws-clients connected"+bcolors.ENDC)
 	elif(id==-1):
-		print("WS login        | Account    | IP             | l-in | last_seen  | Q-length | uuid            | Location ")
+		print(bcolors.WARNING+"WS login        | Account    | IP             | l-in | last_seen  | Q-length | uuid            | Location "+bcolors.ENDC)
 		show_m2m(1,l,"")
 	elif(id==0):
 		p_login=(ws.login+"               ")[0:15]
@@ -166,7 +177,7 @@ def show_ws(id,l,ws):
 		
 		output=p_login+" | "+p_account+" | "+str(p_ip)+" | "+str(ws.logged_in)+"    | "+p_last_seen+" | "+p_qlen+" | "+p_uuid
 		output+=" | "+p_location
-		print(output)
+		print(bcolors.WARNING+output+bcolors.ENDC)
 	elif(id==1):
 		show_m2m(1,"","")
 		
@@ -174,9 +185,9 @@ def show_ws(id,l,ws):
 def show_m2m(id,l,m2m):
 	if(id==-2):
 		show_m2m(1,l,m2m)
-		print("we got "+str(l)+" m2m-clients connected")
+		print(bcolors.WARNING+"we got "+str(l)+" m2m-clients connected"+bcolors.ENDC)
 	elif(id==-1):
-		print("M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Coordinates")
+		print(bcolors.WARNING+"M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Coordinates"+bcolors.ENDC)
 		show_m2m(1,l,m2m)
 	elif(id==0):
 		p_alias=(m2m.alias+"                        ")[0:15]
@@ -191,9 +202,9 @@ def show_m2m(id,l,m2m):
 		p_state=(m2m_state[int(m2m.state)]+"                   ")[0:13]
 		output=str(m2m.mid)[-5:]+"/"+p_alias+" | "+p_account+" | "+str(p_detection)+" | "+(p_state)+" | "+str(p_ip)+" | "+str(m2m.logged_in)+"    | "
 		output+=p_last_seen+" | "+p_area+" | "+str(m2m.latitude)+"/"+str(m2m.longitude)
-		print(output)
+		print(bcolors.WARNING+output+bcolors.ENDC)
 	elif(id==1):
-		print("-------------------------------------------------------------------------------------------------------------------------------------------------------")
+		print(bcolors.WARNING+"-------------------------------------------------------------------------------------------------------------------------------------------------------"+bcolors.ENDC)
 
 
 
