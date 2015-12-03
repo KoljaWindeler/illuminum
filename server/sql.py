@@ -5,12 +5,20 @@ class sql:
 	def __init__(self):
 		self.connection = ''
 	#############################################################
+	def he(self):
+		p.err("sys:",end="")
+		p.err(sys.exc_info()[0])
+		p.err(sys.exc_info()[1])
+		p.err(repr(traceback.format_tb(sys.exc_info()[2])))
+		p.err("")
+		
+	#############################################################
 	def connect(self):
 		try:
 			# Connect to the database
 			self.connection = pymysql.connect(host = 'localhost', user = 'root', passwd = sql_login, db = 'alert', charset = 'utf8mb4', cursorclass = pymysql.cursors.DictCursor)
 		except:
-			print("exception on connect to sql database")
+			he()
 	#############################################################
 	def connection_check(self):
 		try:
@@ -22,21 +30,23 @@ class sql:
 				self.close()
 				return 0
 		except:
+			he()
 			return -1
 	#############################################################
 	def load_rules(self, area, account, sub_rules):
 		try:
-			#print("try:")
+			#rint("try:")
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Read a single record
-				#print("gen req:")
+				#rint("gen req:")
 				req = "SELECT `id`, `conn`, `arg1`, `arg2` FROM `rules` WHERE `area` =%s and `account` = %s and `sub_rule` = %s"
-				#print(req)
+				#rint(req)
 				cursor.execute(req, (str(area), str(account), str(sub_rules)) )
 				result = cursor.fetchall()
 		except:
-				result = -2
+			he()
+			result = -2
 		self.close()
 		return result
 	#############################################################
@@ -50,11 +60,12 @@ class sql:
 				self.connection.commit()
 				
 				req = "SELECT LAST_INSERT_ID()"
-				#print(req)
+				#rint(req)
 				cursor.execute(req)
 				result = cursor.fetchone()
 				result = result['LAST_INSERT_ID()']
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -62,48 +73,48 @@ class sql:
 	def rm_rule(self, id):
 		try:
 			self.connect()
-			#print("try:")
+			#rint("try:")
 			with self.connection.cursor() as cursor:
 				# Read a single record
-				#print("gen req:")
+				#rint("gen req:")
 				req = "DELETE FROM `rules` WHERE `id` =%s"
-				#print(req)
+				#rint(req)
 				cursor.execute(req, str(id))
 
 			self.connection.commit()
 			result = 0
 		except:
+			he()
 			result = -2
 		self.close()
 		return result
 	#############################################################
 	def get_ws_data(self, login):
-		#print("get data mid:"+mid)
-		#try:
-		if(1):
+		#rint("get data mid:"+mid)
+		try:
 			self.connect()
-			#print("try:")
+			#rint("try:")
 			with self.connection.cursor() as cursor:
 				# Read a single record
-				#print("get_data gen req:")
+				#rint("get_data gen req:")
 				req = "SELECT COUNT(*) FROM ws WHERE login=%s"
 				cursor.execute(req, str(login))
 				result = cursor.fetchone()
-				#print(result)
-				#print(result)
+				#rint(result)
+				#rint(result)
 				if(result["COUNT(*)"] == 1):
 					req = "SELECT  pw, account, email FROM ws WHERE login=%s"
-					#print(req)
+					#rint(req)
 					cursor.execute(req, str(login))
-					#print("setting result to ")
+					#rint("setting result to ")
 					result = cursor.fetchone()
 				else:
 					result = -1
 					p.rint("count not 1, it is "+result["COUNT(*)"], "d")
 					p.rint(req, "d")
-				#print(result)
-		else:#xcept:
-			p.rint("Error ", "d")
+				#rint(result)
+		except:
+			he()
 			result = -2
 		self.close()
 		return result
@@ -111,28 +122,28 @@ class sql:
 	def get_data(self, mid):
 		try:
 			self.connect()
-			#print("try:")
+			#rint("try:")
 			with self.connection.cursor() as cursor:
 				# Read a single record
-				#print("get_data gen req:")
+				#rint("get_data gen req:")
 				req = "SELECT COUNT(*) FROM m2m WHERE mid= %s"
 				cursor.execute(req, str(mid))
 				result = cursor.fetchone()
-				#print(result)
-				#print(result)
+				#rint(result)
+				#rint(result)
 				if(result["COUNT(*)"] == 1):
 					req = "SELECT  pw, area, account, alias, longitude, latitude, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist  FROM m2m WHERE mid= %s"
-					#print(req)
+					#rint(req)
 					cursor.execute(req, str(mid))
-					#print("setting result to ")
+					#rint("setting result to ")
 					result = cursor.fetchone()
 				else:
 					result = -1
 					p.rint("count not 1", "d")
 					p.rint(req, "d")
-				#print(result)
+				#rint(result)
 		except:
-			p.rint("exception running self check", "d")
+			he()
 			result = -2
 		self.close()
 		return result
@@ -149,6 +160,7 @@ class sql:
 			self.connection.commit()
 			result = 0
 		except:
+			he()
 			result = -2
 		self.close()
 		return result
@@ -163,6 +175,7 @@ class sql:
 			self.connection.commit()
 			result = 0
 		except:
+			he()
 			result = 1
 		self.close()
 		return result
@@ -175,22 +188,23 @@ class sql:
 				req = "SELECT COUNT(*) FROM area_state WHERE `account` = %s AND `area`=%s"
 				cursor.execute(req, (str(account), str(area)) )
 				result = cursor.fetchone()
-				#print(result)
+				#rint(result)
 				if(result["COUNT(*)"] == 1):
 					req = "UPDATE  `area_state` SET  `state` = %s, `login` = %s, `updated` = '"+str(int(time.time()))+"'  WHERE  `account` = %s AND `area` = %s"
-					#print(req)
+					#rint(req)
 					cursor.execute(req, (str(state), str(login), str(account), str(area)) )
 					self.connection.commit()
 					result = 0
 				elif(result["COUNT(*)"] == 0):
 					req = "INSERT INTO  `area_state` (`id` ,`area` ,`account` ,`state` ,`updated` ,`login`) VALUES (NULL,%s,%s,%s,'"+str(int(time.time()))+"',%s)"
-					#print(req)
+					#rint(req)
 					cursor.execute(req, (str(area), str(account), str(state), str(login)) )
 					self.connection.commit()
 					result = 0
 				else: 
 					result = -1
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -203,10 +217,10 @@ class sql:
 				req = "SELECT COUNT(*) FROM area_state WHERE `account` = %s AND `area`=%s"
 				cursor.execute(req, (str(account), str(area)) )
 				result = cursor.fetchone()
-				#print(result)
+				#rint(result)
 				if(result["COUNT(*)"] == 0):
 					req = "INSERT INTO  `area_state` (`id` ,`area` ,`account` ,`state` ,`updated` ,`login`) VALUES (NULL,%s,%s,'0','"+str(int(time.time()))+"','create')"
-					#print(req)
+					#rint(req)
 					cursor.execute(req, (str(area), str(account)) )
 					self.connection.commit()
 					result = 0
@@ -216,6 +230,7 @@ class sql:
 				cursor.execute(req, (str(account), str(area)) )
 				result = cursor.fetchone()
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -230,6 +245,7 @@ class sql:
 				cursor.execute(req, str(account))
 				result = cursor.fetchall()
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -242,7 +258,7 @@ class sql:
 				req = "SELECT COUNT(*) FROM area_state WHERE `account` = %s AND `area`=%s"
 				cursor.execute(req, (str(account), str(area)) )
 				result = cursor.fetchone()
-				#print(result)
+				#rint(result)
 				if(result["COUNT(*)"] == 1):
 					req = "SELECT `state` FROM  `area_state` WHERE  `account` = %s AND `area`=%s"
 					cursor.execute(req, (str(account), str(area)) )
@@ -252,6 +268,7 @@ class sql:
 					p.rint(req, "d")
 					return -1
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -262,10 +279,11 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "SELECT COUNT(*) FROM  `ws` WHERE  `account` = %s and `location` LIKE %s" 
-				#print(req)
+				#rint(req)
 				cursor.execute(req, (str(account), "%"+str(area)+"%"))
 				result = cursor.fetchone()
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -276,10 +294,11 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "SELECT login FROM  `ws` WHERE  `account` = %s and `location` like %s"
-				#print(req)
+				#rint(req)
 				cursor.execute(req, (str(account), "%"+str(area)+"%"))
 				result = cursor.fetchall()
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -295,6 +314,7 @@ class sql:
 			self.connection.commit()
 			result = 0
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -309,6 +329,7 @@ class sql:
 				self.connection.commit()
 			result = 0
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -328,8 +349,7 @@ class sql:
 				cursor.execute(req, str(account))
 				result = cursor.fetchall()
 		except:
-			p.rint("req:failed", "d")
-			p.rint(sys.exc_info()[0], "d")
+			he()
 			result = -1
 		self.close()
 		return result
@@ -340,16 +360,18 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "INSERT INTO `alert`.`alerts` (`id`, `f_ts`, `mid`, `area`, `account`, `rm_string`, `ack`, `ack_ts`, `ack_by`) VALUES (NULL, %s, %s, %s, %s, %s, '0', '0', '')"
-				cursor.execute(req, (str(time.time()), str(m2m.mid), +str(m2m.area), str(m2m.account), str(rm_string)) )
+				cursor.execute(req, (str(time.time()), str(m2m.mid), str(m2m.area), str(m2m.account), str(rm_string)) )
 				self.connection.commit()
 				
 				req = "SELECT LAST_INSERT_ID()"
-				#print(req)
+				#rint(req)
 				cursor.execute(req)
 				result = cursor.fetchone()
 				result = result['LAST_INSERT_ID()']
 		except:
+			he()
 			result = -1
+
 		self.close()
 		return result
 	############################################################# 
@@ -359,11 +381,12 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "INSERT INTO `alert`.`alert_pics` (`id`, `alert_id`, `path`,`ts`) VALUES (NULL, %s, %s, '"+str(time.time())+"')"
-				#print(req)
+				#rint(req)
 				cursor.execute(req, (str(m2m.alert.id),str(des_location)) )
 				self.connection.commit()
 				result = 0
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -378,6 +401,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -392,6 +416,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -401,11 +426,12 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s ORDER BY `f_ts` DESC LIMIT %s, %s"
-				cursor.execute(req, (str(account), str(mid), str(a), str(b)) )
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
+				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchall()
 		except:
 			result = -1
+			he()
 		self.close()
 		return result
 	#############################################################
@@ -414,11 +440,12 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s ORDER BY `f_ts` DESC LIMIT %s, %s"
-				cursor.execute(req, (str(account), str(mid), str(a), str(b)) )
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s ORDER BY `f_ts` DESC LIMIT "+str(a)+", "+str(b)
+				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchall()
 		except:
 			result = -1
+			he()
 		self.close()
 		return result
 	#############################################################
@@ -428,10 +455,11 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				req = "SELECT  `f_ts`,`mid`,`area`,`rm_string`,`ack`,`ack_ts`,`ack_by` FROM  `alerts` WHERE  `account` =  %s and `id`=%s"
-				#print(req)
+				#rint(req)
 				cursor.execute(req, (str(account), str(alert_id)) )
 				result = cursor.fetchone()
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -446,6 +474,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -456,14 +485,15 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				if(int(century) >= 0 and int(century) < 100):
-					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` =%s ORDER BY `id` DESC LIMIT %s, %s"
-					cursor.execute(req, (str(alert_id), str(int(century)*10), str((int(century)+1)*20)) )
+					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` =%s ORDER BY `id` DESC LIMIT "+str(int(century)*10)+", "+str((int(century)+1)*20)
+					cursor.execute(req, (str(alert_id)) )
 					result = cursor.fetchall()
-					#print(req)
-					#print(result)
+					#rint(req)
+					#rint(result)
 				else:
 					result = -1
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -477,6 +507,7 @@ class sql:
 				result = cursor.fetchone()
 				result=result['account']
 		except:
+			he()
 			result = -1
 		self.close()
 		return result
@@ -491,7 +522,7 @@ class sql:
 			result = 0
 		except:
 			result = -1
-			p.rint(sys.exc_info()[0], "d")
+			he()
 		self.close()
 		return result
 	#############################################################
@@ -505,7 +536,7 @@ class sql:
 			result = 0
 		except:
 			result = -1
-			p.rint(sys.exc_info()[0], "d")
+			he()
 		self.close()
 		return result
 
@@ -513,7 +544,7 @@ class sql:
 	#############################################################
 	def register_m2m(self, mid, m2m_pw, account, alias):
 		ret = -1
-		if(1):
+		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "DELETE FROM  `alert`.`m2m`  WHERE  `mid`=%s"
@@ -532,8 +563,8 @@ class sql:
 				cursor.execute(req, (str(mid), str(m2m_pw), str(account), str(alias), str(latitude), str(longitude)) )
 			self.connection.commit()
 			ret = 0
-		#except:
-		else:
+		except:
+			he()
 			ret = -1
 
 		return ret
@@ -541,8 +572,7 @@ class sql:
 	#############################################################
 	def register_ws(self, login, pw, email):
 		ret = -1
-		#try:
-		if(1):
+		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "SELECT COUNT(*) FROM  `alert`.`ws`  WHERE  `login`=%s"
@@ -570,8 +600,8 @@ class sql:
 					
 					self.connection.commit()
 					ret = 0
-		#except:
-		else:
+		except:
+			he()
 			ret = -1
 
 		return ret
