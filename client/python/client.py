@@ -93,6 +93,10 @@ def trigger_handle(event, data):
 			elif(time.time()-cam.last_picture_taken_ts<5):	# dead - time after streaming, 5 sec
 				send_msg=0
 		if(send_msg):
+			# if we have a new status, check the complete queue if we have old unsend stati and remove them first, they aren't valid anymore
+			for msg_i in con.msg_q:
+				if(msg_i["cmd"]==msg["cmd"]):
+					con.msg_q.remove(msg_i)
 			con.msg_q.append(msg)
 		##### delete ALL old status msg, and place the current status in the queue #########
 
