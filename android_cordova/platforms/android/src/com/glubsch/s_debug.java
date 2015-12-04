@@ -34,6 +34,8 @@ public class s_debug {
         else {
             baseFolder = mContext.getFilesDir().getAbsolutePath();
         }
+        // 2015 12 04 redirect file to download to be able to access it
+        baseFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath()+"/";
 
         // delete old files
         String old_date = new SimpleDateFormat("yyyy_MM_dd").format(new Date(System.currentTimeMillis()-5*24*60*60*1000));
@@ -63,6 +65,7 @@ public class s_debug {
         }
 
         // debug output
+        Log.i(mContext.getString(R.string.debug_id), baseFolder);
         Log.i(mContext.getString(R.string.debug_id), started);
     }
 }
