@@ -120,6 +120,7 @@ function parse_msg(msg_dec){
 		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"]);
 		// do it again here, to update a m2m that was existing (reconnect situation)
 		set_alert_button_state($("#"+mid+"_alarm_counter"),$("#"+mid+"_toggle_alarms"),$("#"+mid+"_toggle_alarms_text"),msg_dec["open_alarms"]);
+		set_override_buttons(msg_dec["account"],msg_dec["area"],msg_dec["rm_override"]);
 
 		// remove loading if still existing and scroll down to the box 
 		if($("#welcome_loading").length){
@@ -220,7 +221,15 @@ function parse_msg(msg_dec){
 	// received callback from register
 	else if(msg_dec["cmd"]=="new_register"){
 		callback_register(msg_dec["status"]);
+	}
+
+	// set override buttons
+	else if(msg_dec["cmd"]=="set_override"){
+		if(msg_dec["ok"]==1){
+			set_override_buttons(msg_dec["account"],msg_dec["area"],msg_dec["rm_override"]);
+		};
 	};
+
 }
 
 /////////////////////// END OF PARSE MESSAGE ////////////////////////
@@ -676,7 +685,6 @@ function add_alert_details(msg_dec){
 		var a = new Date(parseFloat(msg_dec["f_ts"])*1000);
 		var min = a.getMinutes() < 10 ? '0' + a.getMinutes() : a.getMinutes();
 		var hour = a.getHours();
-//		txt.text("Movement detected at: "+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
 		date_txt.text(""+a.getDate()+"."+(a.getMonth()+1)+"."+a.getFullYear()+" "+hour+":"+min);
 		date_txt.addClass("m2m_text");
 	}		
@@ -952,29 +960,28 @@ function check_append_m2m(msg_dec){
 			});
 			header.append(header_button);
 
-			var button=document.createElement("A");
-			button.setAttribute("id",msg_dec["account"]+"_"+msg_dec["area"]+"_on");
-			button.className="button";
-			button.text="Force Detection on";
-			button.onclick=function(){
-				var msg_int=msg_dec;
-				return function(){
-					set_override(msg_int["account"],msg_int["area"],"*");
-				}
-			}();
+			// three buttons now, on|auto|off
+			var button=$("<a></a>");
+			button.attr("id",msg_dec["account"]+"_"+msg_dec["area"]+"_on");
+			button.text("on");
+			button.addClass("button");
+			button.addClass("button_deactivated");
 			header_button.append(button);
 
-			button=document.createElement("A");
-			button.setAttribute("id",msg_dec["account"]+"_"+msg_dec["area"]+"_off");
-			button.onclick=function(){
-				var msg_int=msg_dec;
-				return function(){
-					set_override(msg_int["account"],msg_int["area"],"/");
-				}
-			}();
-			button.className="button";
-			button.text="Force Detection off";
+			var button=$("<a></a>");
+			button.attr("id",msg_dec["account"]+"_"+msg_dec["area"]+"_auto");
+			button.text("auto");
+			button.addClass("button");
+			button.addClass("button_deactivated");
 			header_button.append(button);
+
+			var button=$("<a></a>");
+			button.attr("id",msg_dec["account"]+"_"+msg_dec["area"]+"_off");
+			button.text("off");
+			button.addClass("button");
+			button.addClass("button_deactivated");
+			header_button.append(button);
+			// three buttons now, on|auto|off
 
 			$("#clients").append(node);
 			area=node;
@@ -1971,13 +1978,13 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws){
 	// text state of the area
 
 	// activate/deactivate buttons of the area
-	if(detection>0){
+/*	if(detection>0){
 		$("#"+account+"_"+area+"_on").hide();
 		$("#"+account+"_"+area+"_off").show();
 	} else {
 		$("#"+account+"_"+area+"_on").show();
 		$("#"+account+"_"+area+"_off").hide();
-	};
+	};*/
 	// activate/deactivate buttons of the area
 
 	// glow icon state of the m2m
@@ -2053,11 +2060,97 @@ function add_menu(){
 	var menu=$("<div></div>");
 	menu.attr("id","menu");
 	menu.addClass("menu");
-	var list=$("<ul></ul>");
 	
-	var listentry=$("<li></li>");
-	listentry.text("Log out");
-	listentry.click(function(){
+	//////////////// rulemanager //////////////////
+	var title=$("<div></div>");
+	title.addClass("menu_spacer");
+	title.text("+ rule-manager");
+	title.attr("id","rm_title");
+	title.click(function(){
+		var box=$("#rm_box");
+		if(box.length){
+			box.toggle();	
+			var title=$("#rm_title");
+			if(title.length){
+				if(box.is(":visible")){
+					title.text(title.text().replace("+","-"));
+				} else {
+					title.text(title.text().replace("-","+"));
+				};
+			};
+		}
+	});
+	menu.append(title);
+	var box=$("<div></div>");
+	box.attr("id","rm_box");
+	box.text("here is a lot of content needed, like a the current rm stuff per area and an area where we can add new rules");
+	box.hide();
+	menu.append(box);	
+	//////////////// rulemanager //////////////////
+
+
+	//////////////// area setup //////////////////
+	var title=$("<div></div>");
+	title.addClass("menu_spacer");
+	title.text("+ areas");
+	title.attr("id","areas_title");
+	title.click(function(){
+		var box=$("#areas_box");
+		if(box.length){
+			box.toggle();	
+			var title=$("#areas_title");
+			if(title.length){
+				if(box.is(":visible")){
+					title.text(title.text().replace("+","-"));
+				} else {
+					title.text(title.text().replace("-","+"));
+				};
+			};
+		}
+	});
+	menu.append(title);
+	var box=$("<div></div>");
+	box.attr("id","areas_box");
+	box.text("here is a lot of content needed, like a list of all aereas, how to set the coordiantes per cam and how to create and delete them");
+	box.hide();
+	menu.append(box);	
+	//////////////// area setup //////////////////
+
+
+	//////////////// camera setup //////////////////
+	var title=$("<div></div>");
+	title.addClass("menu_spacer");
+	title.text("+ cameras");
+	title.attr("id","cameras_title");
+	title.click(function(){
+		var box=$("#cameras_box");
+		if(box.length){
+			box.toggle();	
+			var title=$("#cameras_title");
+			if(title.length){
+				if(box.is(":visible")){
+					title.text(title.text().replace("+","-"));
+				} else {
+					title.text(title.text().replace("-","+"));
+				};
+			};
+		}
+	});
+	menu.append(title);
+	var box=$("<div></div>");
+	box.attr("id","cameras_box");
+	box.text("here is a lot of content needed, like a list of all cameras, if they stream in HD or vga, if there should be alerts during stream, what area thez belog to");
+	box.hide();
+	menu.append(box);	
+	//////////////// camera setup //////////////////
+
+	
+	//////////////// logout //////////////////
+	var title=$("<div></div>");
+	title.addClass("menu_spacer");
+	title.addClass("menu_spacer_last");
+	title.text("log-out");
+	title.click(function(){
 		return function(){
 			g_user="nongoodlogin";
 			g_pw="nongoodlogin";
@@ -2078,17 +2171,19 @@ function add_menu(){
 			}
 		}
 	}());
-	list.append(listentry);
+	menu.append(title);
+	//////////////// logout //////////////////
 
-	listentry=$("<li></li>");
+	// debug
+	/*listentry=$("<li></li>");
 	var t=$("<div></div>");
 	t.attr("id","HB_fast");
 	t.text("hb_fast");
 	listentry.append(t);
 	list.append(listentry);
+	menu.append(list);*/
 
 
-	menu.append(list);
 	menu.insertAfter("#clients");
 	
 
@@ -2717,3 +2812,64 @@ function callback_register(value){
 	};
 };
 
+/////////////////////////////////////////// set override buttons  //////////////////////////////////////////
+// triggered by: incoming msg from the websocket at login or change of settings
+// arguemnts:	 account and area of the cam, status of the override ("*","/","")
+// why: 	 
+/////////////////////////////////////////// callback register  //////////////////////////////////////////
+function set_override_buttons(account, area, value){
+	var on=$("#"+account+"_"+area+"_on");
+	var off=$("#"+account+"_"+area+"_off");
+	var auto=$("#"+account+"_"+area+"_auto");
+
+	if(auto.length && on.length && off.length && value !== undefined){
+		// remove all old handles
+		auto.off();
+		on.off();
+		off.off();
+
+		// auto
+		auto.click(function(){
+			var acc_int=account;
+			var area_int=area;
+			return function(){
+				set_override(acc_int,area_int,"");
+			}
+		}());
+
+		// off
+		off.click(function(){
+			var acc_int=account;
+			var area_int=area;
+			return function(){
+				set_override(acc_int,area_int,"/");
+			}
+		}());
+
+		// on
+		on.click(function(){
+			var acc_int=account;
+			var area_int=area;
+			return function(){
+				set_override(acc_int,area_int,"*");
+			}
+		}());
+
+		// colorize
+		on.removeClass("button_selected");
+		on.removeClass("button_deactivated");
+		off.removeClass("button_selected");
+		off.removeClass("button_deactivated");
+		auto.removeClass("button_selected");
+		auto.removeClass("button_deactivated");
+
+		if(value==""){
+			auto.addClass("button_selected");
+		} else if(value=="*"){
+			on.addClass("button_selected");
+		} else if(value=="/"){
+			off.addClass("button_selected");
+		} 
+	};	
+
+};

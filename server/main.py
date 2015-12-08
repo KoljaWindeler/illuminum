@@ -773,19 +773,23 @@ def recv_ws_msg_handle(data,ws):
 				rule_area=r.get_area(area)
 				if(rule_area!=0):
 					# check if opposit rule existed and remove up front
-					if(rule=="*" and rule_area.has_override_detection_off):
-						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] RM, remove / rule","r")
-						rule_area.rm_override("/")
-					elif(rule=="/" and rule_area.has_override_detection_on):
-						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] RM, remove * rule","r")
-						rule_area.rm_override("*")
-					else: # add new override as no one was in place to remove
+					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] RM, remove override rule","r")
+					rule_area.rm_override("/")
+					rule_area.rm_override("*")
+					
+					if(rule!=""): # add new override as no one was in place to remove
 						if(duration>0): # duration can be a time in sec or -1 = forever
 							duration=int(time.time()+duration)
 						rule_area.append_rule(rule,duration,0)	
 				
 					msg["status"]="running rule check"
-					msg["ok"]=0
+					msg["ok"]=1
+					msg["rm_override"]=""
+					if(rule_area.has_override_detection_off):
+						 msg["rm_override"]="/"
+					elif(rule_area.has_override_detection_on):
+						msg["rm_override"]="*"
+
 				else:
 					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Can't find area '"+str(area)+"' on this account, camera online?","r")
 					msg["status"]="area not found"
@@ -804,7 +808,14 @@ def recv_ws_msg_handle(data,ws):
 
 	
 			# send an update that the server has received the request
-			msg_q_ws.append((msg,ws))
+			if(msg["ok"]==1): # new override set successful, inform every viewer
+				msg["area"]=enc.get("area")
+				msg["account"]=ws.account
+				for v in server_ws.clients:
+					if(v.account==ws.account):
+						msg_q_ws.append((msg,v))
+			else: # update failed, send message just to the requester
+				msg_q_ws.append((msg,ws))
 
 			
 		## webcam interval -> sign in or out to webcam, for WS
@@ -1040,13 +1051,17 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["color_pos"]=m2m.color_pos
 		msg_ws2["brightness_pos"]=m2m.brightness_pos
 		msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
-		msg_ws2["rm_override_on"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_on
-		msg_ws2["rm_override_off"]=rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_off
 		msg_ws2["open_alarms"]=db.get_open_alert_count(m2m.account,m2m.mid)
 		msg_ws2["frame_dist"]=m2m.frame_dist
 		msg_ws2["alarm_ws"]=m2m.alarm_ws
 		msg_ws2["resolution"]=m2m.resolution
 		msg_ws2["alarm_while_streaming"]=m2m.alarm_while_streaming
+		msg_ws2["rm_override"]=""
+		if(rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_off):
+			 msg_ws2["rm_override"]="/"
+		elif(rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_on):
+			msg_ws2["rm_override"]="*"
+
 		msg_q_ws.append((msg_ws2,ws))
 	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
 		# 1. get all boxed with the same account
