@@ -209,7 +209,7 @@ class rule_account:
 		i=1
 		for a in self.areas:
 			p.rint("|","r")
-			p.rint("||+ Area "+str(i)+"/"+str(len(self.areas)),"r")
+			p.rint("||"+p.bcolors.WARNING+"+ Area "+str(i)+"/"+str(len(self.areas))+p.bcolors.ENDC,"r") 
 			a.print_rules()
 			i+=1
 		p.rint("|","r")
