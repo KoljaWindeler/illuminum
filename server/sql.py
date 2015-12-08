@@ -396,7 +396,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s"
+				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s and `del_by`=''"
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
@@ -411,7 +411,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s"
+				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s and `del_by`=''"
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
@@ -426,7 +426,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s  and `del_by`='' ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchall()
 		except:
@@ -440,7 +440,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s ORDER BY `f_ts` DESC LIMIT "+str(a)+", "+str(b)
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s  and `del_by`='' ORDER BY `f_ts` DESC LIMIT "+str(a)+", "+str(b)
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchall()
 		except:
@@ -454,7 +454,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `f_ts`,`mid`,`area`,`rm_string`,`ack`,`ack_ts`,`ack_by` FROM  `alerts` WHERE  `account` =  %s and `id`=%s"
+				req = "SELECT  `f_ts`,`mid`,`area`,`rm_string`,`ack`,`ack_ts`,`ack_by` FROM  `alerts` WHERE  `account` =  %s and `id`=%s  and `del_by`=''"
 				#rint(req)
 				cursor.execute(req, (str(account), str(alert_id)) )
 				result = cursor.fetchone()
@@ -469,7 +469,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT COUNT(*) FROM  `alert_pics` WHERE  `alert_id` =%s "
+				req = "SELECT COUNT(*) FROM  `alert_pics` WHERE  `alert_id` =%s"
 				cursor.execute(req, str(alert_id))
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
@@ -517,6 +517,21 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "UPDATE  `alert`.`alerts` SET  `ack` =  '1',`ack_ts` =  '"+str(int(time.time()))+"',`ack_by` =  %s WHERE  `id` =%s and `mid`=%s"
+				cursor.execute(req, (str(login), str(aid), str(mid)) )
+			self.connection.commit()
+			result = 0
+		except:
+			result = -1
+			he()
+		self.close()
+		return result
+	#############################################################
+	def del_alert(self, mid, aid, login):
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "UPDATE  `alert`.`alerts` SET  `del_by` =  %s WHERE  `id` =%s and `mid`=%s"
+				print(req%(str(login), str(aid), str(mid)))
 				cursor.execute(req, (str(login), str(aid), str(mid)) )
 			self.connection.commit()
 			result = 0
