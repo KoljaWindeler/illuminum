@@ -935,11 +935,13 @@ def recv_ws_msg_handle(data,ws):
 				msg_q_ws.append((msg,ws))
 
 		# acknowledge alerts
-		elif(enc.get("cmd")=="ack_alert" or enc.get("cmd")=="ack_all_alert"):
+		elif(enc.get("cmd")=="ack_alert" or enc.get("cmd")=="ack_all_alert" or enc.get("cmd")=="del_alert"):
 			if(enc.get("cmd")=="ack_alert"):
 				db.ack_alert(enc.get("mid"),enc.get("aid"),ws.login)
 			elif(enc.get("cmd")=="ack_all_alert"):
 				db.ack_all_alert(enc.get("mid"),ws.login)
+			elif(enc.get("cmd")=="del_alert"):
+				db.del_alert(enc.get("mid"),enc.get("aid"),ws.login)
 			msg={}
 			msg["cmd"]="update_open_alerts"
 			msg["mid"]=enc.get("mid")
