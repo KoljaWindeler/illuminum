@@ -611,6 +611,24 @@ function add_alert(aid,mid,view){
 	ack.hide();
 	side.append(ack);
 
+	// del button
+	var del=$("<a></a>");
+	del.attr({
+		"id":"alert_"+mid+"_"+aid+"_del",
+		"class":"button"
+	});
+	del.text("Delete alert");
+	del.click(function(){
+		var id_int=aid;
+		var mid_int=mid;
+		return function(){
+			del_alert(id_int,mid_int);
+			get_alarms(mid_int);
+		};
+	}());
+	del.hide();
+	side.append(del);
+
 	// send button
 	var send=$("<a></a>");
 	send.attr({
@@ -692,6 +710,12 @@ function add_alert_details(msg_dec){
 		ack_button.show();
 	};
 
+	// show del button
+	if(msg_dec["ack"]!=0){
+		var del_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_del");
+		del_button.show();
+	};
+
 	// show send button
 	var send_button=$("#alert_"+mid+"_"+msg_dec["id"]+"_send");
 	send_button.show();
@@ -747,6 +771,22 @@ function ack_alert(id,mid){
 	set_alert_button_state(counter,button,txt,open_alarms);
 
 	var cmd_data = { "cmd":"ack_alert", "mid":mid, "aid":id};
+	//console.log(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data)); 		
+};
+
+/////////////////////////////////////////// DEL ALERT //////////////////////////////////////////
+// triggered by: user button
+// arguemnts:	 id of the alert and MID
+// what it does: sends a message to the server to ack the alert
+// why: 	 to get ridge of the alert in the alert view
+/////////////////////////////////////////// DEL ALERT //////////////////////////////////////////
+
+function del_alert(id,mid){
+	// remove field
+	$("#alert_"+mid+"_"+id).fadeOut(600, function() { $(this).remove(); });
+
+	var cmd_data = { "cmd":"del_alert", "mid":mid, "aid":id};
 	//console.log(JSON.stringify(cmd_data));
 	con.send(JSON.stringify(cmd_data)); 		
 };
