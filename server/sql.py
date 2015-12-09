@@ -1,4 +1,4 @@
-import pymysql.cursors, time, p, sys
+import pymysql.cursors, time, p, sys, traceback
 from sql_login import *
 
 class sql:
@@ -6,7 +6,7 @@ class sql:
 		self.connection = ''
 	#############################################################
 	def he(self):
-		p.err("sys:",end="")
+		p.err("sys:")
 		p.err(sys.exc_info()[0])
 		p.err(sys.exc_info()[1])
 		p.err(repr(traceback.format_tb(sys.exc_info()[2])))
@@ -18,7 +18,7 @@ class sql:
 			# Connect to the database
 			self.connection = pymysql.connect(host = 'localhost', user = 'root', passwd = sql_login, db = 'alert', charset = 'utf8mb4', cursorclass = pymysql.cursors.DictCursor)
 		except:
-			he()
+			self.he()
 	#############################################################
 	def connection_check(self):
 		try:
@@ -30,7 +30,7 @@ class sql:
 				self.close()
 				return 0
 		except:
-			he()
+			self.he()
 			return -1
 	#############################################################
 	def load_rules(self, area, account, sub_rules):
@@ -45,7 +45,7 @@ class sql:
 				cursor.execute(req, (str(area), str(account), str(sub_rules)) )
 				result = cursor.fetchall()
 		except:
-			he()
+			self.he()
 			result = -2
 		self.close()
 		return result
@@ -65,7 +65,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['LAST_INSERT_ID()']
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -84,7 +84,7 @@ class sql:
 			self.connection.commit()
 			result = 0
 		except:
-			he()
+			self.he()
 			result = -2
 		self.close()
 		return result
@@ -114,7 +114,7 @@ class sql:
 					p.rint(req, "d")
 				#rint(result)
 		except:
-			he()
+			self.he()
 			result = -2
 		self.close()
 		return result
@@ -143,7 +143,7 @@ class sql:
 					p.rint(req, "d")
 				#rint(result)
 		except:
-			he()
+			self.he()
 			result = -2
 		self.close()
 		return result
@@ -160,7 +160,7 @@ class sql:
 			self.connection.commit()
 			result = 0
 		except:
-			he()
+			self.he()
 			result = -2
 		self.close()
 		return result
@@ -175,7 +175,7 @@ class sql:
 			self.connection.commit()
 			result = 0
 		except:
-			he()
+			self.he()
 			result = 1
 		self.close()
 		return result
@@ -204,7 +204,7 @@ class sql:
 				else: 
 					result = -1
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -230,7 +230,7 @@ class sql:
 				cursor.execute(req, (str(account), str(area)) )
 				result = cursor.fetchone()
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -256,7 +256,7 @@ class sql:
 						result.append(item)
 
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -279,7 +279,7 @@ class sql:
 					p.rint(req, "d")
 					return -1
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -294,7 +294,7 @@ class sql:
 				cursor.execute(req, (str(account), "%"+str(area)+"%"))
 				result = cursor.fetchone()
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -309,7 +309,7 @@ class sql:
 				cursor.execute(req, (str(account), "%"+str(area)+"%"))
 				result = cursor.fetchall()
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -325,7 +325,7 @@ class sql:
 			self.connection.commit()
 			result = 0
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -340,7 +340,7 @@ class sql:
 				self.connection.commit()
 			result = 0
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -355,12 +355,15 @@ class sql:
 		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
-				req = "SELECT  `mid` ,  `area` ,  `last_seen` ,  `last_ip`, `alias`, `longitude`, `latitude`, `brightness_pos`, `color_pos` FROM  `m2m` WHERE `account` =  %s"
+				req = "SELECT  * FROM  `m2m` WHERE `account` =  %s"
 				# Create a new record
 				cursor.execute(req, str(account))
 				result = cursor.fetchall()
+			# avoid showning the PW
+			for r in result:
+				r.pop("pw")
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -380,7 +383,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['LAST_INSERT_ID()']
 		except:
-			he()
+			self.he()
 			result = -1
 
 		self.close()
@@ -397,7 +400,7 @@ class sql:
 				self.connection.commit()
 				result = 0
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -412,7 +415,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -427,7 +430,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -442,7 +445,7 @@ class sql:
 				result = cursor.fetchall()
 		except:
 			result = -1
-			he()
+			self.he()
 		self.close()
 		return result
 	#############################################################
@@ -456,7 +459,7 @@ class sql:
 				result = cursor.fetchall()
 		except:
 			result = -1
-			he()
+			self.he()
 		self.close()
 		return result
 	#############################################################
@@ -470,7 +473,7 @@ class sql:
 				cursor.execute(req, (str(account), str(alert_id)) )
 				result = cursor.fetchone()
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -485,7 +488,7 @@ class sql:
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -504,7 +507,7 @@ class sql:
 				else:
 					result = -1
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -518,7 +521,7 @@ class sql:
 				result = cursor.fetchone()
 				result=result['account']
 		except:
-			he()
+			self.he()
 			result = -1
 		self.close()
 		return result
@@ -533,7 +536,7 @@ class sql:
 			result = 0
 		except:
 			result = -1
-			he()
+			self.he()
 		self.close()
 		return result
 	#############################################################
@@ -548,7 +551,7 @@ class sql:
 			result = 0
 		except:
 			result = -1
-			he()
+			self.he()
 		self.close()
 		return result
 	#############################################################
@@ -562,7 +565,7 @@ class sql:
 			result = 0
 		except:
 			result = -1
-			he()
+			self.he()
 		self.close()
 		return result
 
@@ -590,7 +593,7 @@ class sql:
 			self.connection.commit()
 			ret = 0
 		except:
-			he()
+			self.he()
 			ret = -1
 
 		return ret
@@ -627,12 +630,12 @@ class sql:
 					self.connection.commit()
 					ret = 0
 		except:
-			he()
+			self.he()
 			ret = -1
 
 		return ret
 	#############################################################
-	def update_cam_parameter(self, mid, frame_space, resolution, alarm_while_stream, alarm_ws):
+	def update_cam_parameter(self, mid, frame_space, resolution, alarm_while_stream, area, alarm_ws):
 		ret = -1
 		try:
 			if(float(frame_space)>0):
@@ -644,13 +647,13 @@ class sql:
 
 				self.connect()
 				with self.connection.cursor() as cursor:
-					req = "UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s  WHERE  `m2m`.`mid` = %s"
+					req = "UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s, `area` = %s  WHERE  `m2m`.`mid` = %s"
 					#rint("UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s  WHERE  `m2m`.`mid` = %s" % (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(mid)))
-					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(mid)) )
+					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(area), str(mid)) )
 					self.connection.commit()
 			ret = 0
 		except:
-			he()
+			self.he()
 			ret = -1
 
 		return ret
