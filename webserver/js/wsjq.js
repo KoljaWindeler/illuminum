@@ -28,7 +28,6 @@ $(function(){
 	l.insertAfter("#clients");
 	l.append(get_loading("wli","Connecting..."));
 	
-	add_menu();
 	open_ws();
 
 	//var txt=$("<div></div>");
@@ -107,10 +106,12 @@ function parse_msg(msg_dec){
 			g_user="nongoodlogin";
 			g_pw="nongoodlogin";
 			add_login("login failed");
-		};
-		c_set_login(g_user,g_pw);
+		} else {
+		add_menu();
 		setTimeout("$('#wli').addClass('loginok')",1000);
 		setTimeout("$('#wli').html('Login accepted, all your cameras will show up.<br>You can also register new cameras now.')",1000);
+		};
+		c_set_login(g_user,g_pw);
 	}
 
 	// server has established a connection between m2m and WS, this should be received after a login
@@ -1971,6 +1972,26 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws){
 
 }
 
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function rem_menu(){
+	var menu=$("#menu");
+	if(menu.length){
+		menu.remove();
+	};
+
+	var hamb=$("#hamb");
+	if(hamb.length){
+		hamb.remove();
+	};
+};
+
+
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 // triggered by: 
 // arguemnts:	 
@@ -1981,7 +2002,12 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws){
 function add_menu(){
 	/******* add menu ******/
 	// menu itsself
-	var menu=$("<div></div>");
+	var menu=$("#menu");
+	if(menu.length){
+		rem_menu();
+	};
+
+	menu=$("<div></div>");
 	menu.attr("id","menu");
 	menu.addClass("menu");
 	
@@ -2084,15 +2110,7 @@ function add_menu(){
 			con.close();
 
 			// hide menu
-			var m=$("#menu");
-			if(m.length){
-				if(m.hasClass("menu_active")){
-					m.removeClass("menu_active");
-					$("#hamb").css("position", "absolute");
-					$("#hamb").css("transform", "translate(0px, 0px)");
-					$("#hamb").css("transition","all 0.75s ease-in-out");
-				}
-			}
+			rem_menu();
 		}
 	}());
 	menu.append(title);
