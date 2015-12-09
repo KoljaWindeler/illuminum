@@ -310,7 +310,7 @@ class area:
 			if(on):
 				p_conn="Activating protection, because nobody is near "+self.area+"."
 			else:
-				p_conn="Not activating protection, because actually there are "
+				p_conn="Not activating protection, because currently there are "
 				user_count=self.db.user_count_on_area(self.account, self.area)
 				if(user_count!=-1): # no db problem
 					user_count=int(user_count["COUNT(*)"])
@@ -382,8 +382,17 @@ class area:
 		## msg
 		
 	#############################################################
-	def print_rules(self,bars=1,account_info=1,print_out=1):
-		ret=""
+	def print_rules(self,bars=1,account_info=1,print_out=1,formating=1,header=1,dict=0):
+		if(dict):
+			ret_dict=""
+			header=0
+			print_out=0
+			account_info=0
+			bars=0
+			formating=0
+		else:
+			ret=""
+
 		if(bars):
 			ret+="|||+ "
 		
@@ -393,37 +402,48 @@ class area:
 		i=1
 		if(bars):
 			ret+="(r)|||+ "
-		ret+="Rules: <br>(protection activ if at least one is true)\r\n"
+		if(header):
+			ret+="Rules: <br>(protection activ if at least one is true)\r\n"
 		for r in self.rules:
 			## marker
 			g=0
 			if(bars):
 				ret+="(r)||||- "
 			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)>=1):
-				ret+="<g>"
+				if(formating):
+					ret+="<g>"
 				g=1
 			else:
-				ret+="<r>"
+				if(formating):
+					ret+="<r>"
 			## marker
-			ret+=self.explain_rule(r,g,i)
+			txt=self.explain_rule(r,g,i)
+			if(dict):
+				ret_dict["rules"].append((r.id,txt,g))
+			else:
+				ret+=txt
 			## marker
 			if(g):
-				ret+="</g>\r\n"
+				if(formating):
+					ret+="</g>\r\n"
 			else:
-				ret+="</r>\r\n"
+				if(formating):
+					ret+="</r>\r\n"
 			## marker
 			i+=1
 			
 		if(len(self.rules)==0):
 			if(bars):
 				ret+="(r)||||- "
-			ret+="<g>none</g>\r\n"
+			if(formating):		
+				ret+="<g>none</g>\r\n"
 
 		i=1
 		if(bars):
 			ret+="(r)|||\r\n"
 			ret+="(r)|||+ "
-		ret+="Sub-Rules:\r\n"
+		if(header):
+			ret+="Sub-Rules:\r\n"
 		
 		for r in self.sub_rules:
 		## marker
@@ -431,17 +451,25 @@ class area:
 			if(bars):
 				ret+="(r)||||- "
 			if(self.eval_rule(r.conn,r.arg1,r.arg2,10,1,r.id)>=1):
-				ret+="<g>"
+				if(formating):
+					ret+="<g>"
 				g=1
 			else:
-				ret+="<r>"
+				if(formating):
+					ret+="<r>"
 			## marker
-			ret+=self.explain_rule(r,g,i)
+			txt=self.explain_rule(r,g,i)
+			if(dict):
+				ret_dict["subrules"].append((r.id,txt,g))
+			else:
+				ret+=txt
 			## marker
 			if(g):
-				ret+="</g>"
+				if(formating):
+					ret+="</g>"
 			else:
-				ret+="</r>"
+				if(formating):
+					ret+="</r>"
 			## marker
 			i+=1
 			if((i-1)<len(self.sub_rules)):
@@ -450,12 +478,15 @@ class area:
 		if(len(self.sub_rules)==0):
 			if(bars):
 				ret+="(r)||||- "
-			ret+="<g>none</g>"
+			if(formating):
+				ret+="<g>none</g>"
 			
 		if(print_out):
 			p.rint(ret,"r")
 			return 0
 		
+		if(dict):
+			return ret_dict
 		return ret
 		
 	#############################################################		
