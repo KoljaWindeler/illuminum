@@ -241,9 +241,20 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT distinct `area` FROM  `m2m` WHERE  `account` = %s"
-				cursor.execute(req, str(account))
-				result = cursor.fetchall()
+				req1 = "SELECT distinct `area` FROM  `m2m` WHERE  `account` = %s"
+				cursor.execute(req1, str(account))
+				result1 = cursor.fetchall()
+
+				req2 = "SELECT distinct `area` FROM  `area_state` WHERE  `account` = %s"
+				cursor.execute(req2, str(account))
+				result2 = cursor.fetchall()
+
+				result_double = result1 + result2
+				result = []
+				for item in result_double:
+					if item not in result:
+						result.append(item)
+
 		except:
 			he()
 			result = -1
