@@ -87,6 +87,10 @@ import time, datetime, p, calendar
 class rule_manager:
 	def __init__(self):
 		self.data = []
+	
+		# create one empty backup entry
+		new_rule_account=rule_account("")
+		self.add_account(new_rule_account)
 	#############################################################	
 	def add_account(self, account):
 		self.data.append(account)
@@ -128,13 +132,14 @@ class rule_manager:
 				break
 			
 		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
-		p.rint("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered at ts: "+str(now)+"==","r")
+		p.rint("== I'm the rule manager, I have "+str(len(self.data)-1)+" accounts registered at ts: "+str(now)+"==","r") # -1 for the empty account
 		i=1
 		for a in self.data:
-			p.rint("","r")
-			p.rint("|+ Account "+str(i)+"/"+str(len(self.data)),"r")
-			a.print_account()
-			i+=1
+			if(a.account!=""):
+				p.rint("","r")
+				p.rint("|+ Account "+str(i)+"/"+str(len(self.data)-1),"r")
+				a.print_account()
+				i+=1
 		p.rint("","r")
 		p.rint("== End of rule manager output ==","r")
 		
@@ -149,6 +154,11 @@ class rule_manager:
 		for a in self.data:
 			if(a.account==account):
 				return a
+		# if we haven't return now, we haven't found the account, return backup
+		for a in self.data:
+			if(a.account==""):
+				return a
+		# this should never happen
 		return 0	
 
 #*************************************#
@@ -160,9 +170,13 @@ class rule_manager:
 class rule_account:
 	def __init__(self,account):
 		self.account=account
-		self.areas = []
 		self.next_ts = -1
 		self.day_last_check=-1
+		self.areas = []
+
+		# create one empty backup entry
+		new_area=area("", account, "") # will load rule set on its own from the database
+		self.add_area(new_area)
 	#############################################################
 	def add_area(self, area):
 		self.areas.append(area)
@@ -202,22 +216,28 @@ class rule_account:
 			if(a.area==area):
 				return a
 				break
+		# if we reach this point, we haven't found the area, return the empty backup
+		for a in self.areas:
+			if(a.area==""):
+				return a
+				break
 		return 0
 	#############################################################
 	def print_account(self,m_dict=0):
 		if(m_dict!=1):
-			p.rint("|+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:","r")
+			p.rint("|"+p.bcolors.FAIL+"+ This is account '"+self.account+"' I have "+str(len(self.areas)-1)+" areas:"+p.bcolors.ENDC,"r") # -1 for ghost area
 		else:
 			ret_dict={}
 		i=1
 		for a in self.areas:
-			if(m_dict!=1):
-				p.rint("|","r")
-				p.rint("||"+p.bcolors.WARNING+"+ Area "+str(i)+"/"+str(len(self.areas))+p.bcolors.ENDC,"r") 
-				a.print_rules()
-			else:
-				ret_dict[a.area]=a.print_rules(dict=1)
-			i+=1
+			if(a.area!=""):
+				if(m_dict!=1):
+					p.rint("|","r")
+					p.rint("||"+p.bcolors.WARNING+"+ Area "+str(i)+"/"+str(len(self.areas)-1)+p.bcolors.ENDC,"r")  # -1 for ghost area
+					a.print_rules()
+				else:
+					ret_dict[a.area]=a.print_rules(dict=1)
+				i+=1
 		if(m_dict!=1):
 			p.rint("|","r")
 			p.rint("|+ my next timebased trigger event is at '"+str(self.next_ts)+"'","r")
@@ -278,7 +298,8 @@ class area:
 		self.sub_rules.append(rule(id,conn,arg1,arg2))
 	#############################################################
 	def append_rule(self, conn,arg1,arg2):
-		id=self.db.append_rule(self.account,self.area,conn,arg1,arg2)
+		if(self.db!=""):
+			id=self.db.append_rule(self.account,self.area,conn,arg1,arg2)
 		self.add_rule(id,conn,arg1,arg2)
 	#############################################################
 	def add_rule(self, id, conn, arg1, arg2):
@@ -296,8 +317,12 @@ class area:
 		# clear all rules
 		self.clear_rules()
 		# load new sets from database
-		db_rules=self.db.load_rules(self.area,self.account,0) 				# 0=rules, 1=sub_rules
-		db_sub_rules=self.db.load_rules(self.area,self.account,1)	# 0=rules, 1=sub_rules
+		if(self.db!=""):
+			db_rules=self.db.load_rules(self.area,self.account,0) 				# 0=rules, 1=sub_rules
+			db_sub_rules=self.db.load_rules(self.area,self.account,1)	# 0=rules, 1=sub_rules
+		else:
+			db_rules=[]
+			db_sub_rules=[]
 		#print(db_rules)
 		# add them
 		for r in db_rules:
@@ -320,21 +345,22 @@ class area:
 				p_conn="Activating protection, because nobody is near "+self.area+"."
 			else:
 				p_conn="Not activating protection, because currently there are "
-				user_count=self.db.user_count_on_area(self.account, self.area)
-				if(user_count!=-1): # no db problem
-					user_count=int(user_count["COUNT(*)"])
-				p_conn+=str(user_count)+" user close to "+self.area
-				if(user_count>0):
-					p_conn+=": "
-					user_present=self.db.user_on_area(self.account,self.area)
-					ii=0
-					p_conn+="<b>"
-					for u in user_present:
-						ii+=1
-						p_conn+=u["login"]
-						if(ii<user_count):
-							p_conn+=", "	
-					p_conn+="</b>"
+				if(self.db!=""):
+					user_count=self.db.user_count_on_area(self.account, self.area)
+					if(user_count!=-1): # no db problem
+						user_count=int(user_count["COUNT(*)"])
+					p_conn+=str(user_count)+" user close to "+self.area
+					if(user_count>0):
+						p_conn+=": "
+						user_present=self.db.user_on_area(self.account,self.area)
+						ii=0
+						p_conn+="<b>"
+						for u in user_present:
+							ii+=1
+							p_conn+=u["login"]
+							if(ii<user_count):
+								p_conn+=", "	
+						p_conn+="</b>"
 										
 		###############
 		elif(str(r.conn)=="AND"):
@@ -558,11 +584,10 @@ class area:
 					self.sub_rules.remove(r)
 					break;
 		# delete from db
-		self.db.rm_rule(id)
-
-				
-		if(not(self.db.rm_rule(id)==0)):
-			p.rint("Delete rule "+str(id)+" failed","r")
+		if(self.db!=""):
+			self.db.rm_rule(id)		
+			if(not(self.db.rm_rule(id)==0)):
+				p.rint("Delete rule "+str(id)+" failed","r")
 	#############################################################
 	def eval_rule(self,conn, arg1, arg2, depth, use_db, id):
 		if(depth<0):
