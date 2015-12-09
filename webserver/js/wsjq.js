@@ -228,6 +228,16 @@ function parse_msg(msg_dec){
 		if(msg_dec["ok"]==1){
 			set_override_buttons(msg_dec["account"],msg_dec["area"],msg_dec["rm_override"]);
 		};
+	}
+
+	// parse incoming areas for sidebar
+	else if(msg_dec["cmd"]=="get_areas"){
+		parse_all_areas(msg_dec);
+	}
+
+	// parse incoming cams for sidebar
+	else if(msg_dec["cmd"]=="get_cams"){
+		parse_all_cams(msg_dec);
 	};
 
 }
@@ -2190,21 +2200,8 @@ function add_menu(){
 	var header=$("<header></header>");
 	header.click(function(){
 		return function(){
-			var m=$("#menu");
-			if(m.length){
-				if(m.hasClass("menu_active")){
-					m.removeClass("menu_active");
-					$("#hamb").css("position", "absolute");
-					$("#hamb").css("transform", "translate(0px, 0px)");
-					$("#hamb").css("transition","all 0.75s ease-in-out");
-				} else {
-					m.addClass("menu_active");
-					$("#hamb").css("position", "fixed");
-					$("#hamb").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
-					$("#hamb").css("transition","all 0.75s ease-in-out");
-				};
-			};
-		};
+			toggle_menu();
+		}
 	}());
 	var hamb=$("<div></div>");
 	hamb.attr("id","hamb");
@@ -2221,6 +2218,86 @@ function add_menu(){
 	header.append(hamb);
 	header.insertAfter("#clients");
 	/******* add menu ******/
+};
+
+/////////////////////////////////////////// TOGGLE_MENU //////////////////////////////////////////
+// triggered by:	user click
+// arguemnts:	 	none
+// what it does: 	shows the menu and requests info
+// why: 	 	GUI
+/////////////////////////////////////////// TOGGLE_MENU //////////////////////////////////////////
+
+function toggle_menu(){
+	var m=$("#menu");
+	if(m.length){
+		if(m.hasClass("menu_active")){
+			m.removeClass("menu_active");
+			$("#hamb").css("position", "absolute");
+			$("#hamb").css("transform", "translate(0px, 0px)");
+			$("#hamb").css("transition","all 0.75s ease-in-out");
+		} else {
+			// request required info
+			//request_all_rules();
+			request_all_cams();
+			request_all_areas();
+			// show menu
+			m.addClass("menu_active");
+			$("#hamb").css("position", "fixed");
+			$("#hamb").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
+			$("#hamb").css("transition","all 0.75s ease-in-out");
+		};
+	};
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function request_all_areas(){
+	var cmd_data = { "cmd":"get_areas"};
+	con.send(JSON.stringify(cmd_data));
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function request_all_cams(){
+	var cmd_data = { "cmd":"get_cams"};
+	con.send(JSON.stringify(cmd_data));
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function parse_all_areas(msg){
+	var field=$("#areas_box");
+	if(field.length){
+		field.text(msg["areas"]);
+	};
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function parse_all_cams(msg){
+	var field=$("#cameras_box");
+	if(field.length){
+		field.text("");
+		for(var i=0;i<msg["m2m"].length;i++){
+			field.text(field.text()+","+msg["m2m"][i]["alias"]);
+		};
+	};
 };
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
