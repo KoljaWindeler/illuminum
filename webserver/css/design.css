@@ -434,6 +434,7 @@ div.menu{
 	top: 0px;
 	padding: 0 0px;
 	height: 100%;
+	overflow-y: overlay;
 	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
 	z-index: 10;
 	transform: translate(-150%, 0px);
@@ -460,7 +461,7 @@ div.menu_spacer{
 }
 
 div.menu_spacer_last{
-	position: absolute;
+	/*position: absolute;*/
 	bottom: 5px;
 }
 

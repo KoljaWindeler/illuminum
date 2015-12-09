@@ -16,6 +16,9 @@ var c_freeze_state=0;
 var g_user="";//"browser";
 var g_pw="";//"hui";
 
+// big picture info
+var g_areas=[];
+var g_m2m=[];
 
 // run as son as everything is loaded
 $(function(){
@@ -232,12 +235,12 @@ function parse_msg(msg_dec){
 
 	// parse incoming areas for sidebar
 	else if(msg_dec["cmd"]=="get_areas"){
-		parse_all_areas(msg_dec);
+		parse_sidebar_info(msg_dec);
 	}
 
 	// parse incoming cams for sidebar
 	else if(msg_dec["cmd"]=="get_cams"){
-		parse_all_cams(msg_dec);
+		parse_sidebar_info(msg_dec);
 	};
 
 }
@@ -1278,78 +1281,6 @@ function check_append_m2m(msg_dec){
 				};
 			}()});
 		setupcontrol.append(scroller);
-
-		// add fps dropdown
-		var fps_select=$("<select></select>");
-		fps_select.attr({
-			"id": mid+"_fps_select",
-			"class":"setup_controll_scroller"
-		});
-		// load from message
-		var default_t=parseFloat(msg_dec["frame_dist"]);
-		if(!$.isNumeric(default_t)){
-			default_t=1/2;
-		};
-		// create field
-		var t=1/16;
-		var fps_text;
-		for(var i=0; i<12; i++) {
-			if(1/t >= 1){
-				fps_text = 1/t+" fps (a frame every "+Math.round(t*100)/100+" sec)";
-			} else {
-				fps_text = "1/"+t+" fps (a frame every "+t+" sec)";
-			};
-			// set selected option for the 2fps option
-			if(t==default_t){
-				fps_select.append($('<option></option>').val(t).html(fps_text).prop('selected', true));
-			} else {
-				fps_select.append($('<option></option>').val(t).html(fps_text));
-			};
-			// calc the next framerate
-			if(t<1){
-				t*=2;
-			} else {
-				t+=1;
-			}
-		};
-		setupcontrol.append(fps_select);
-
-		///////////////// quality selector //////////////////////
-		var qual_select=$("<select></select>");
-		qual_select.attr({
-			"id": mid+"_qual_select",
-			"class":"setup_controll_scroller"
-		});
-		var hd_sel=true;
-		var vga_sel=false;
-		if(msg_dec["resolution"]!="HD"){
-			hd_sel=false;
-			vga_sel=true;
-		}
-		qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
-		qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
-		setupcontrol.append(qual_select);
-		///////////////// quality selector //////////////////////
-
-		/////////// alarm while streaming selector //////////////////
-		var alarm_while_stream_select=$("<select></select>");
-		alarm_while_stream_select.attr({
-			"id": mid+"_alarm_while_stream_select",
-			"class":"setup_controll_scroller"
-		});
-
-		var no_alarm_sel=true;
-		var alarm_sel=false;
-		if(msg_dec["alarm_while_streaming"]==1 || msg_dec["alarm_while_streaming"]=="alarm"){
-			no_alarm_sel=false;
-			alarm_sel=true;
-		}
-		alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
-		alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
-		setupcontrol.append(alarm_while_stream_select);
-		/////////// alarm while streaming selector //////////////////
-
-
 		////////////////// COLOR SLIDER ////////////////////////////
 
 		////////////////// ALARM MANAGER ////////////////////////////
@@ -1470,7 +1401,7 @@ function hide_liveview(mid,animation){
 	$("#"+mid+"_toggle_liveview").removeClass("live_sym_active");
 	$("#"+mid+"_toggle_liveview_text").removeClass("toggle_liveview_text_active");
 	if(view.is(":visible")){
-		set_interval(mid,0,0,"no_alarm");
+		set_interval(mid,0);
 		if(animation){
 			view.fadeOut("fast");
 		} else {
@@ -1511,25 +1442,8 @@ function show_liveview(mid){
 
 		view.fadeIn("fast");
 
-		// load fps from input
-		var fps=0.5;
-		var qual="HD"; // high, vga is low
-		var alarm_stream="no_alarm";
-		var fps_sel=$("#"+mid+"_fps_select");
-		var qual_sel=$("#"+mid+"_qual_select");
-		var alarm_stream_sel=$("#"+mid+"_alarm_while_stream_select");
-		if(fps_sel.length){
-			fps=fps_sel.val();
-		};
-		if(qual_sel.length){
-			qual=qual_sel.val();
-		};
-		if(alarm_stream_sel.length){
-			alarm_stream=alarm_stream_sel.val();
-		}
-
 		// send request
-		set_interval(mid,fps,qual,alarm_stream);
+		set_interval(mid,1);
 	};
 }
 ///////////////////////// LIVE VIEW //////////////////////////////////
@@ -1816,20 +1730,20 @@ function get_alarms(mid){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function set_interval(mid,interval,qual,alarm_while_stream){
+function set_interval(mid,on_off){
 	if(con == null){
 		return;
 	}
-	var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":interval, "qual":qual, "alarm_while_stream":alarm_while_stream};
+	var cmd_data = { "cmd":"set_interval", "mid":mid, "interval":on_off};
 	con.send(JSON.stringify(cmd_data));
 
-	// active / deactivate fast HB, updates once per second
-	if(interval==0){
+	// active / deactivate fast HB, updates once per second, shows server debug
+	/*if(interval==0){
 		cmd_data = { "cmd":"hb_fast", "active":0};
 	} else {
 		cmd_data = { "cmd":"hb_fast", "active":1};
 	}
-	con.send(JSON.stringify(cmd_data));
+	con.send(JSON.stringify(cmd_data));*/
 
 	//console.log(JSON.stringify(cmd_data));
 }
@@ -2193,6 +2107,18 @@ function add_menu(){
 	list.append(listentry);
 	menu.append(list);*/
 
+	////////////// hidden data_fields /////////////
+	var h=$("<div></div>");
+	h.attr("id","list_cameras");
+	h.hide();
+	menu.append(h);
+
+	h=$("<div></div>");
+	h.attr("id","list_area");
+	h.hide();
+	menu.append(h);
+	////////////// hidden data_fields /////////////
+
 
 	menu.insertAfter("#clients");
 	
@@ -2215,7 +2141,7 @@ function add_menu(){
 	hamb.append(a);
 	hamb.append(b);
 	hamb.append(c);
-	header.append(hamb);
+	header.append(hamb);	
 	header.insertAfter("#clients");
 	/******* add menu ******/
 };
@@ -2232,9 +2158,22 @@ function toggle_menu(){
 	if(m.length){
 		if(m.hasClass("menu_active")){
 			m.removeClass("menu_active");
+			// super messy
+			var hamb=$("#hamb");
+			hamb.detach();
+			hamb.insertAfter("#clients");
+			hamb.off();
+			hamb.click(function(){ toggle_menu(); });
+			hamb.css("left", (m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px");
 			$("#hamb").css("position", "absolute");
-			$("#hamb").css("transform", "translate(0px, 0px)");
+			$("#hamb").css("transform", "translate(-"+(m.outerWidth(true)-$("#hamb").outerWidth()-30)+"px, 0px)");
 			$("#hamb").css("transition","all 0.75s ease-in-out");
+			setTimeout(function(){
+				var hamb=$("#hamb");
+				hamb.css("left",10);
+				hamb.css("transform", "translate(0px, 0px)");
+				hamb.css("transition","all 0.0s ease-in-out");
+			},760);
 		} else {
 			// request required info
 			//request_all_rules();
@@ -2242,9 +2181,19 @@ function toggle_menu(){
 			request_all_areas();
 			// show menu
 			m.addClass("menu_active");
-			$("#hamb").css("position", "fixed");
-			$("#hamb").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
-			$("#hamb").css("transition","all 0.75s ease-in-out");
+			var hamb=$("#hamb");
+			hamb.css("position", "fixed");
+			hamb.css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
+			hamb.css("transition","all 0.75s ease-in-out");
+
+			setTimeout(function() { 
+				var hamb=$("#hamb");
+				hamb.detach();
+				m.append(hamb);
+				hamb.off();
+				hamb.click(function(){ toggle_menu(); });
+			}, 760);
+
 		};
 	};
 };
@@ -2258,6 +2207,7 @@ function toggle_menu(){
 function request_all_areas(){
 	var cmd_data = { "cmd":"get_areas"};
 	con.send(JSON.stringify(cmd_data));
+	g_areas=[];
 };
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -2269,6 +2219,7 @@ function request_all_areas(){
 function request_all_cams(){
 	var cmd_data = { "cmd":"get_cams"};
 	con.send(JSON.stringify(cmd_data));
+	g_m2m=[];
 };
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -2277,28 +2228,169 @@ function request_all_cams(){
 // what it does: 
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
-function parse_all_areas(msg){
-	var field=$("#areas_box");
-	if(field.length){
-		field.text(msg["areas"]);
-	};
-};
-
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-// triggered by: 
-// arguemnts:	 
-// what it does: 
-// why: 	 
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-function parse_all_cams(msg){
-	var field=$("#cameras_box");
-	if(field.length){
-		field.text("");
+function parse_sidebar_info(msg){
+	if(msg["cmd"]=="get_areas"){
+		// save all areas as array in the global g_areas
+		g_areas=msg["areas"];
+		console.log(g_areas);
+	} else if(msg["cmd"]=="get_cams"){
+		// save all cams as array 
 		for(var i=0;i<msg["m2m"].length;i++){
-			field.text(field.text()+","+msg["m2m"][i]["alias"]);
+			g_m2m[i]=msg["m2m"][i];
 		};
+		console.log(g_m2m);
+	};
+
+	if(g_areas.length && g_m2m.length){
+		console.log("both have entries");
+		// populate the camera box
+		var field=$("#cameras_box");
+		if(field.length){
+			field.text("");
+			for(var a=0;a<g_m2m.length;a++){
+				var cam=$("<div></div>");
+				cam.attr("id","m_"+g_m2m[a]["mid"]);
+				cam.text(g_m2m[a]["alias"]);
+				field.append(cam);
+		
+				//////////////// add fps dropdown ////////////////////
+				var fps_select=$("<select></select>");
+				fps_select.attr({
+					"id": g_m2m[a]["mid"]+"_fps_select",
+					"class":"setup_controll_scroller"
+				});
+				// load from message
+				var default_t=parseFloat(g_m2m[a]["frame_dist"]);
+				if(!$.isNumeric(default_t)){
+					default_t=1/2;
+				};
+				// create field
+				var t=1/16;
+				var fps_text;
+				for(var i=0; i<12; i++) {
+					if(1/t >= 1){
+						fps_text = 1/t+" fps (a frame every "+Math.round(t*100)/100+" sec)";
+					} else {
+						fps_text = "1/"+t+" fps (a frame every "+t+" sec)";
+					};
+					// set selected option for the 2fps option
+					if(t==default_t){
+						fps_select.append($('<option></option>').val(t).html(fps_text).prop('selected', true));
+					} else {
+						fps_select.append($('<option></option>').val(t).html(fps_text));
+					};
+					// calc the next framerate
+					if(t<1){
+						t*=2;
+					} else {
+						t+=1;
+					}
+				};
+				fps_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+
+				field.append(fps_select);
+				//////////////// add fps dropdown ////////////////////
+
+				///////////////// quality selector //////////////////////
+				var qual_select=$("<select></select>");
+				qual_select.attr({
+					"id": g_m2m[a]["mid"]+"_qual_select",
+					"class":"setup_controll_scroller"
+				});
+				var hd_sel=true;
+				var vga_sel=false;
+				if(g_m2m[a]["resolution"]!="HD"){
+					hd_sel=false;
+					vga_sel=true;
+				}
+				qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
+				qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
+				qual_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+				field.append(qual_select);
+				///////////////// quality selector //////////////////////
+
+				/////////// alarm while streaming selector //////////////////
+				var alarm_while_stream_select=$("<select></select>");
+				alarm_while_stream_select.attr({
+					"id": g_m2m[a]["mid"]+"_alarm_while_stream_select",
+					"class":"setup_controll_scroller"
+				});
+
+				var no_alarm_sel=true;
+				var alarm_sel=false;
+				if(g_m2m[a]["alarm_while_streaming"]==1 || g_m2m[a]["alarm_while_streaming"]=="alarm"){
+					no_alarm_sel=false;
+					alarm_sel=true;
+				}
+				alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
+				alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
+				alarm_while_stream_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+				field.append(alarm_while_stream_select);
+				/////////// alarm while streaming selector //////////////////
+
+				/////////// areas switch //////////////////
+				var area_select=$("<select></select>");
+				area_select.attr({
+					"id": g_m2m[a]["mid"]+"_area_select",
+					"class":"setup_controll_scroller"
+				});
+				
+				for(var i=0; i<g_areas.length; i++){
+					sel=false;
+					if(g_m2m[a]["area"]==g_areas[i]){
+						sel=true;
+					}
+					area_select.append($('<option></option>').val(g_areas[i]).html(g_areas[i]).prop('selected', sel));
+				}
+				area_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+				field.append(area_select);
+				/////////// areas switch //////////////////
+
+			};
+		};
+
 	};
 };
+
+/////////////////////////////////////////// UPDATE_CAM_PARAMETER //////////////////////////////////////////
+// triggered by: 	user changed values in sidebar for cam
+// arguemnts:	 	mid of cam
+// what it does: 	gathers all info for the cam and send it to the server
+// why: 	 	to change cam behaviour
+/////////////////////////////////////////// UPDATE_CAM_PARAMETER //////////////////////////////////////////
+function update_cam_parameter(mid){
+	var area=$("#"+mid+"_area_select");
+	var qual=$("#"+mid+"_qual_select");
+	var alarm_while_stream=$("#"+mid+"_alarm_while_stream_select");
+	var fps=$("#"+mid+"_fps_select");
+	
+	if(area.length && qual.length && alarm_while_stream.length && fps.length){
+		var cmd_data = { "cmd":"update_cam_parameter", "mid":mid, "area":area.val(), "qual":qual.val(), "alarm_while_stream":alarm_while_stream.val(), "fps":fps.val()};
+		console.log(cmd_data);
+		con.send(JSON.stringify(cmd_data));
+	}
+};
+
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 // triggered by: 
@@ -2400,7 +2492,7 @@ function resize_alert_pic(mid,data){
 				'position: fixed;'+
 				'left: '+((w-fb_w)/2)+'px;'+
 				'top: '+((h-fb_h)/2)+'px;'+
-				'opacity: 1; overflow: visible;'
+				'opacity: 1; overflow: hidden;'
 		});
 	};
 
