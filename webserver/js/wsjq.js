@@ -2141,13 +2141,12 @@ function add_menu(){
 	menu.insertAfter("#clients");
 	
 
-	var header=$("<header></header>");
-	header.click(function(){
+	var hamb=$("<div></div>");
+	hamb.click(function(){
 		return function(){
 			toggle_menu();
 		}
 	}());
-	var hamb=$("<div></div>");
 	hamb.attr("id","hamb");
 	hamb.addClass("hamb");
 	var a=$("<div></div>");
@@ -2159,8 +2158,7 @@ function add_menu(){
 	hamb.append(a);
 	hamb.append(b);
 	hamb.append(c);
-	header.append(hamb);	
-	header.insertAfter("#clients");
+	hamb.insertAfter("#clients");
 	/******* add menu ******/
 };
 
