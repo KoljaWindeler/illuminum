@@ -2157,17 +2157,24 @@ function toggle_menu(){
 	var m=$("#menu");
 	if(m.length){
 		if(m.hasClass("menu_active")){
+			/// HIDE THE MENU ///
 			m.removeClass("menu_active");
-			// super messy
+			// super messy hamb handling
+			// datach it from the MENU and make it standalone
 			var hamb=$("#hamb");
 			hamb.detach();
 			hamb.insertAfter("#clients");
+			// remove and reattache on click handle, sometimes not working without this
 			hamb.off();
 			hamb.click(function(){ toggle_menu(); });
+			// since the hamb moved in the DOM, we have to set it FAR to the right first, and perform the transform for the animation
+			//hamb.css("left", 10);
 			hamb.css("left", (m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px");
-			$("#hamb").css("position", "absolute");
-			$("#hamb").css("transform", "translate(-"+(m.outerWidth(true)-$("#hamb").outerWidth()-30)+"px, 0px)");
-			$("#hamb").css("transition","all 0.75s ease-in-out");
+			hamb.css("position", "absolute");
+			//hamb.css("transition","all 0.0s ease-in-out");
+			hamb.css("transform", "translate(-"+(m.outerWidth(true)-$("#hamb").outerWidth()-30)+"px, 0px)");
+			hamb.css("transition","all 0.75s ease-in-out");
+			// after the transformation-animation is done, remove tansformation and restore original left position
 			setTimeout(function(){
 				var hamb=$("#hamb");
 				hamb.css("left",10);
@@ -2175,17 +2182,20 @@ function toggle_menu(){
 				hamb.css("transition","all 0.0s ease-in-out");
 			},760);
 		} else {
+			/////////// SHOW THE MENU //////////
 			// request required info
 			//request_all_rules();
 			request_all_cams();
 			request_all_areas();
 			// show menu
 			m.addClass("menu_active");
+
 			var hamb=$("#hamb");
 			hamb.css("position", "fixed");
+			// move the hamb out, with the menu (same timing)
 			hamb.css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
 			hamb.css("transition","all 0.75s ease-in-out");
-
+			// and as soon as the animation is done, move it in the DOM into the menu object, so it will scroll with the menu
 			setTimeout(function() { 
 				var hamb=$("#hamb");
 				hamb.detach();
