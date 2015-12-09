@@ -393,7 +393,6 @@ def parse_incoming_msg(con):
 				light.add_q_entry(time.time(), light.l.d_r, light.l.d_g, light.l.d_b, 500) # 4 sec to dimm to warm orange - now
 
 			elif(enc.get("cmd") == "set_interval"):
-				print("setting interval to "+str(enc.get("interval", 0))+" "+str(enc.get("qual", 0)))
 				if(enc.get("interval", 0) == 0):
 					cam.webview_active = 0
 				else:
@@ -421,6 +420,15 @@ def parse_incoming_msg(con):
 				msg["mid"] = mid
 				msg["cmd"] = "prelogin"
 				con.msg_q.append(msg)
+	
+			elif(enc.get("cmd") == "update_parameter"):
+				if(enc.get("alarm_while_streaming","no_alarm")=="alarm"):
+					cam.alarm_while_streaming = 1
+				else:
+					cam.alarm_while_streaming = 0
+				cam.interval = (enc.get("interval", 0))
+				cam.quality = (enc.get("qual", "HD"))
+				
 
 			else:
 				print("unsopported command:"+enc.get("cmd"))
