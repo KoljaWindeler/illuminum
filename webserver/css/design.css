@@ -328,7 +328,7 @@ div.toggle_liveview_text_active {	color:#d80000;		}
 a.color_sym_not_available{		content:url("../images/ic_flare_gray_48dp.png");	}
 a.color_sym{				content:url("../images/ic_flare_black_48dp.png");	}
 a.color_sym_active{			content:url("../images/ic_flare_red_48dp.png");	}
-div.toggle_setupcontrol_text::after {	content:'settings';	}
+div.toggle_setupcontrol_text::after {	content:'color';	}
 div.toggle_setupcontrol_text_active {	color:#d80000;		}
 
 a.alarm_sym{				content:url("../images/ic_notifications_black_48dp.png");	}
