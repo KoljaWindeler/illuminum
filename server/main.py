@@ -418,7 +418,7 @@ def recv_m2m_msg_handle(data,m2m):
 						msg["webcam_countdown"]=v.ws.webcam_countdown
 						msg_q_ws.append((msg,v.ws))
 					elif(v.ws.webcam_countdown<1):
-						set_webcam_con(m2m.mid,0,"HD","no_alarm",v.ws) # disconnect the webcam from us						
+						set_webcam_con(m2m.mid,0,v.ws) # disconnect the webcam from us						
 					else:
 						p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")
 
@@ -563,7 +563,7 @@ def recv_ws_con_handle(data,ws):
 					m2m.m2v.remove(viewer)
 
 					# also check if that ws has been one of the watchers of the webfeed
-					set_webcam_con(m2m.mid,0,"HD","no_alarm",ws)
+					set_webcam_con(m2m.mid,0,ws)
 
 		try:
 			server_ws.clients.remove(ws)
@@ -820,8 +820,46 @@ def recv_ws_msg_handle(data,ws):
 			
 		## webcam interval -> sign in or out to webcam, for WS
 		elif(enc.get("cmd")=="set_interval"):
-			set_webcam_con(enc.get("mid"),float(enc.get("interval",0)),enc.get("qual","HD"),enc.get("alarm_while_stream","no_alarm"),ws)
-			db.update_cam_parameter(enc.get("mid"), enc.get("interval","0.5"), enc.get("qual","HD"), enc.get("alarm_while_stream","no_alarm"), "1")
+			set_webcam_con(enc.get("mid"), enc.get("interval",0) ,ws)
+
+		## set updated camera parameter
+		elif(enc.get("cmd")=="update_cam_parameter"):
+			in_mid=enc.get("mid",0)
+			in_alarm_while_stream=enc.get("alarm_while_stream","no_alarm")
+			in_resolution=enc.get("qual","HD")
+			in_frame_dist=enc.get("fps","0.5")
+			in_area=enc.get("area","home")
+			in_alarm_ws="1"
+
+			# save new parameter
+			for m2m in server_m2m.clients:
+				if(m2m.mid==in_mid):
+					m2m.alarm_while_streaming=in_alarm_while_stream
+					m2m.resolution=in_resolution
+					m2m.frame_dist=in_frame_dist
+					m2m.area=in_area
+					m2m.alarm_ws=in_alarm_ws
+
+					# inform the webcam about the new parameter
+					msg={}
+					msg["cmd"]="update_parameter"
+					msg["qual"]=m2m.resolution	
+					msg["alarm_while_streaming"]=m2m.alarm_while_streaming
+					msg["interval"]=in_frame_dist
+					msg_q_m2m.append((msg,m2m))
+
+					break;
+
+			# outside of loop to update cams that are offline
+			db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws)
+
+			# send ok response to ws
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=1
+			msg_q_ws.append((msg,ws))
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated cam parameter for  '"+in_mid+"'","d")
+
 
 		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
 		elif(enc.get("cmd")=="update_location"):
@@ -1128,6 +1166,10 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 					msg_ws2["brightness_pos"]=m2m["brightness_pos"]
 					msg_ws2["rm"]="offline"
 					msg_ws2["open_alarms"]=db.get_open_alert_count(ws.account,m2m["mid"])
+					msg_ws2["frame_dist"]=m2m["frame_dist"]
+					msg_ws2["alarm_ws"]=m2m["alarm_ws"]
+					msg_ws2["resolution"]=m2m["resolution"]
+					msg_ws2["alarm_while_streaming"]=m2m["alarm_while_streaming"]
 			# 3. send data to the websocket
 					msg_q_ws.append((msg_ws2,ws))
 #******************************************************#
@@ -1136,24 +1178,22 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 # this will be called if the websocket requests a webcam stream OR if he had done it before and disconnects
 # purpose of this function is to ADD or REMOVE the websocket to the list "webcam" of the m2m unit and to tell
 # the cam at what speed it shall run. BTW: there is a problem with the KGV .. but not important.
-def set_webcam_con(mid,interval,qual,alarm_while_streaming,ws):
+def set_webcam_con(mid,interval,ws):
 	#rint("--> change interval "+str(interval))
+	interval=int(interval)
 	msg={}
 	msg["cmd"]="set_interval"
-	msg["qual"]=qual	# yes, we change he quality for everyone... too bad
-	msg["alarm_while_streaming"]=alarm_while_streaming
 	#search for the m2m module that shall upload the picture to the ws
 
 	for m2m in ws.v2m:
 		if(m2m.mid==mid):
+			# yes, we change he quality for everyone... too bad
+			msg["qual"]=m2m.resolution	
+			msg["alarm_while_streaming"]=m2m.alarm_while_streaming
+
 			#rint("habe die angeforderte MID in der clienten liste vom ws gefunden")
 			# thats our m2m cam
 			if(interval>0):
-				# save new parameter
-				m2m.alarm_while_streaming=alarm_while_streaming
-				m2m.resolution=qual
-				m2m.frame_dist=interval
-
 				# reset counter
 				ws.webcam_countdown=99;
 
