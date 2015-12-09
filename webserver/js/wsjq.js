@@ -2167,20 +2167,10 @@ function toggle_menu(){
 			// remove and reattache on click handle, sometimes not working without this
 			hamb.off();
 			hamb.click(function(){ toggle_menu(); });
-			// since the hamb moved in the DOM, we have to set it FAR to the right first, and perform the transform for the animation
-			//hamb.css("left", 10);
-			hamb.css("left", (m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px");
+			// set the position do be absolute floating on the upper left corner
 			hamb.css("position", "absolute");
-			//hamb.css("transition","all 0.0s ease-in-out");
-			hamb.css("transform", "translate(-"+(m.outerWidth(true)-$("#hamb").outerWidth()-30)+"px, 0px)");
-			hamb.css("transition","all 0.75s ease-in-out");
-			// after the transformation-animation is done, remove tansformation and restore original left position
-			setTimeout(function(){
-				var hamb=$("#hamb");
-				hamb.css("left",10);
-				hamb.css("transform", "translate(0px, 0px)");
-				hamb.css("transition","all 0.0s ease-in-out");
-			},760);
+			// since the hamb moved in the DOM, we have to move it out fast, without animation  and then perform another transform with animation
+			hamb.css("transition","all 0.0s ease-in-out").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-30)+"px, 0px)").css("transition","all 0.75s ease-in-out").css("transform", "translate(0px, 0px)");
 		} else {
 			/////////// SHOW THE MENU //////////
 			// request required info
@@ -2191,14 +2181,14 @@ function toggle_menu(){
 			m.addClass("menu_active");
 
 			var hamb=$("#hamb");
+			// set the postition to be fixed to the div below
 			hamb.css("position", "fixed");
 			// move the hamb out, with the menu (same timing)
-			hamb.css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
-			hamb.css("transition","all 0.75s ease-in-out");
+			hamb.css("transition","all 0.75s ease-in-out").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
 			// and as soon as the animation is done, move it in the DOM into the menu object, so it will scroll with the menu
 			setTimeout(function() { 
 				var hamb=$("#hamb");
-				hamb.detach();
+				hamb.detach();	// this will not only detach it but also remove the transform appearently
 				m.append(hamb);
 				hamb.off();
 				hamb.click(function(){ toggle_menu(); });
