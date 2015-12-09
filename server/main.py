@@ -183,7 +183,7 @@ def recv_m2m_msg_handle(data,m2m):
 					m2m.brightness_pos=db_r["brightness_pos"]
 					m2m.color_pos=db_r["color_pos"]
 					m2m.alarm_ws=db_r["alarm_ws"]
-					m2m.frame_dist=db_r["frame_dist"]
+					m2m.frame_dist=float(db_r["frame_dist"])
 					m2m.alarm_while_streaming=db_r["alarm_while_streaming"]
 					m2m.resolution=db_r["resolution"]
 
@@ -827,7 +827,7 @@ def recv_ws_msg_handle(data,ws):
 			in_mid=enc.get("mid",0)
 			in_alarm_while_stream=enc.get("alarm_while_stream","no_alarm")
 			in_resolution=enc.get("qual","HD")
-			in_frame_dist=enc.get("fps","0.5")
+			in_frame_dist=float(enc.get("fps","0.5"))
 			in_area=enc.get("area","home")
 			in_alarm_ws="1"
 
@@ -1119,7 +1119,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["brightness_pos"]=m2m.brightness_pos
 		msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 		msg_ws2["open_alarms"]=db.get_open_alert_count(m2m.account,m2m.mid)
-		msg_ws2["frame_dist"]=m2m.frame_dist
+		msg_ws2["frame_dist"]=float(m2m.frame_dist)
 		msg_ws2["alarm_ws"]=m2m.alarm_ws
 		msg_ws2["resolution"]=m2m.resolution
 		msg_ws2["alarm_while_streaming"]=m2m.alarm_while_streaming
@@ -1178,9 +1178,9 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 # this will be called if the websocket requests a webcam stream OR if he had done it before and disconnects
 # purpose of this function is to ADD or REMOVE the websocket to the list "webcam" of the m2m unit and to tell
 # the cam at what speed it shall run. BTW: there is a problem with the KGV .. but not important.
-def set_webcam_con(mid,interval,ws):
-	#rint("--> change interval "+str(interval))
-	interval=int(interval)
+def set_webcam_con(mid,on_off,ws):
+	#rint("--> change on_off "+str(on_off))
+	on_off=int(on_off)
 	msg={}
 	msg["cmd"]="set_interval"
 	#search for the m2m module that shall upload the picture to the ws
@@ -1193,7 +1193,7 @@ def set_webcam_con(mid,interval,ws):
 
 			#rint("habe die angeforderte MID in der clienten liste vom ws gefunden")
 			# thats our m2m cam
-			if(interval>0):
+			if(on_off>0):
 				# reset counter
 				ws.webcam_countdown=99;
 
@@ -1204,21 +1204,14 @@ def set_webcam_con(mid,interval,ws):
 
 				# put the ws on his list of webcam subscripters
 				viewer=webcam_viewer(ws)
-				viewer.interval=interval
+				viewer.interval=m2m.frame_dist
 				viewer.ts=0 # deliver the next frame asap
 				m2m.webcam.append(viewer) 
 
-				# find fastest webcam viewer
-				sm_interval=9999
-				for wcv in m2m.webcam:
-					if(wcv.interval<interval):
-						sm_interval=wcv.interval
-				#check if our interval is even faster
-				if(sm_interval>interval):
-					#we requested a faster rate than every one else
-					msg["interval"]=interval
-					# inform the webcam that we are watching
-					msg_q_m2m.append((msg,m2m))
+				msg["interval"]=m2m.frame_dist
+				# inform the webcam that we are watching
+				print(msg)
+				msg_q_m2m.append((msg,m2m))
 
 				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+str(ws.login)+" to webcam stream from '"+str(m2m.alias)+"' "+str(mid),"c")
 					
@@ -1237,14 +1230,6 @@ def set_webcam_con(mid,interval,ws):
 						if(clients_remaining==0):
 							msg["interval"]=0
 							#rint("sende stop nachricht an m2m:"+str(m2m.mid))
-						else:
-							#find fastest webcam viewer
-							sm_interval=9999
-							for wcv in m2m.webcam:
-								if(wcv.interval<sm_interval):
-									sm_interval=wcv.interval
-							msg["interval"]=sm_interval
-
 						msg_q_m2m.append((msg,m2m))
 						p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Removed "+str(ws.login)+" from webcam stream of '"+str(m2m.alias)+"' "+str(m2m.mid)+" ("+str(clients_remaining)+" ws left)","c")
 #******************************************************#
