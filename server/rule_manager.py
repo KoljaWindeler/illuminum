@@ -205,22 +205,24 @@ class rule_account:
 		return 0
 	#############################################################
 	def print_account(self,m_dict=0):
-		if(!m_dict):
+		if(m_dict!=1):
 			p.rint("|+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:","r")
 		else:
-			ret_dict=""
+			ret_dict={}
 		i=1
 		for a in self.areas:
-			if(!m_dict):
+			if(m_dict!=1):
 				p.rint("|","r")
 				p.rint("||"+p.bcolors.WARNING+"+ Area "+str(i)+"/"+str(len(self.areas))+p.bcolors.ENDC,"r") 
 				a.print_rules()
 			else:
 				ret_dict[a.area]=a.print_rules(dict=1)
 			i+=1
-		if(!m_dict):
+		if(m_dict!=1):
 			p.rint("|","r")
 			p.rint("|+ my next timebased trigger event is at '"+str(self.next_ts)+"'","r")
+		else:
+			print(ret_dict)
 	
 #*************************************#
 # an area is the third animal or second from the bottom
@@ -391,12 +393,14 @@ class area:
 	#############################################################
 	def print_rules(self,bars=1,account_info=1,print_out=1,formating=1,header=1,dict=0):
 		if(dict):
+			ret_dict={}
+			ret_dict["rules"]=[]
+			ret_dict["subrules"]=[]
 			header=0
 			print_out=0
 			account_info=0
 			bars=0
 			formating=0
-			ret_dict=""
 		else:
 			ret=""
 
@@ -479,8 +483,9 @@ class area:
 					ret+="</r>"
 			## marker
 			i+=1
-			if((i-1)<len(self.sub_rules)):
-				ret+="\r\n"
+			if(dict!=1):
+				if((i-1)<len(self.sub_rules)):
+					ret+="\r\n"
 			
 		if(len(self.sub_rules)==0):
 			if(bars):
@@ -496,6 +501,9 @@ class area:
 			return ret_dict
 		return ret
 		
+	#############################################################		
+	def get_schedule(self):
+		return 1
 	#############################################################		
 	def check_rules(self,use_db):
 		ret=0 					# assume false
