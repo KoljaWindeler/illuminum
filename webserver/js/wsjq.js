@@ -900,16 +900,31 @@ function show_pic_slider(img,mid,core,slider_id){
 /////////////////////////////////////////// CHECK_APPEND_M2M //////////////////////////////////////////
 // triggered by: parse_msg()
 // arguemnts:	 complete msg
-// what it does: create an area and a m2m if it does not exists. 
+// what it does: create an area and a m2m if it does not exists if it exists, remove it
 // why: 	 core code for the interface
 /////////////////////////////////////////// CHECK_APPEND_M2M //////////////////////////////////////////
-
 function check_append_m2m(msg_dec){
 	//console.log(msg_dec);
 	// get root clients node
 	if($("#clients").length){
-		//console.log("suche nach gruppe "+msg_dec["account"]+"_"+msg_dec["area"]);
+		var mid=msg_dec["mid"];
+		var node=$("#"+mid);
+
+		// check if this m2m already exists, if so remove it as it might be underthe wrong area
+		if(node.length){
+			var area=node.parent();
+			// count nodeof class area_m2m on area if just one then we have to delete this area as well
+			if(area.children('.area_m2m').length==1){
+				area.remove();
+			} else {
+				node.remove();
+			};
+			/////////////////// REMOVE M2M ////////////////////////////(
+		}
+
+		// AREA Creation if needed
 		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
+		//console.log("suche nach gruppe "+msg_dec["account"]+"_"+msg_dec["area"]);
 		// check if area is already existing
 		if(area.length==0){
 
@@ -1003,330 +1018,322 @@ function check_append_m2m(msg_dec){
 		} // area
 	} // clients
 
-	var mid=msg_dec["mid"];
-	var node=$("#"+mid);
-	// check if this m2m already exists
-	if(!node.length){
-		/////////////////// CREATE M2M ////////////////////////////(
-		//console.log("knoten! nicht gefunden, lege ihn an");
-		node=$("<div></div>");
-		node.attr({
-			"id":mid,
-			"class":"area_m2m"
-		});
+	/////////////////// CREATE M2M ////////////////////////////(
+	//console.log("knoten! nicht gefunden, lege ihn an");
+	node=$("<div></div>");
+	node.attr({
+		"id":mid,
+		"class":"area_m2m"
+	});
 	
-		var m2m_header=$("<div></div>");
-		m2m_header.attr({
-			"id":mid+"_header",
-			"class":"m2m_header"
-		});
-		node.append(m2m_header);
-
+	var m2m_header=$("<div></div>");
+	m2m_header.attr({
+		"id":mid+"_header",
+		"class":"m2m_header"
+	});
+	node.append(m2m_header);
 /*
-		var icon=$("<img></img>");
-		icon.attr({
-			"id": mid+"_icon",
-			"width": 64,
-			"height": 51,
-			"class":"m2m_header"
-			});
-		icon.addClass("cam_sym");
-		m2m_header.append(icon);
+	var icon=$("<img></img>");
+	icon.attr({
+		"id": mid+"_icon",
+		"width": 64,
+		"height": 51,
+		"class":"m2m_header"
+		});
+	icon.addClass("cam_sym");
+	m2m_header.append(icon);
 */
 
-		var m2m_header_text=$("<div></div>");
-		m2m_header_text.attr({
-			"id":mid+"_header_text",
-			"class":"m2m_header_text"
-		});
-		m2m_header.append(m2m_header_text);
+	var m2m_header_text=$("<div></div>");
+	m2m_header_text.attr({
+		"id":mid+"_header_text",
+		"class":"m2m_header_text"
+	});
+	m2m_header.append(m2m_header_text);
 	
-		var text=$("<div></div>").text(msg_dec["alias"]);
-		text.attr({
-			"id" : mid+"_name",
-			"class": "m2m_text_name"
-		});
-		m2m_header_text.append(text);
+	var text=$("<div></div>").text(msg_dec["alias"]);
+	text.attr({
+		"id" : mid+"_name",
+		"class": "m2m_text_name"
+	});
+	m2m_header_text.append(text);
 		
-		var glow=$("<div></div>");
-		glow.attr("id",mid+"_glow");
-		glow.addClass("glow_dot"); // setting real state in update routine
-		glow.addClass("float_left");
-	//	m2m_header_text.append(glow);
+	var glow=$("<div></div>");
+	glow.attr("id",mid+"_glow");
+	glow.addClass("glow_dot"); // setting real state in update routine
+	glow.addClass("float_left");
+	//m2m_header_text.append(glow);
 	
 
-		text=$("<div></div>");
-		text.attr({
-			"id" : mid+"_state",
-			"class": "m2m_text"
-		});
-		text.addClass("float_left");
-		m2m_header_text.append(text);
+	text=$("<div></div>");
+	text.attr({
+		"id" : mid+"_state",
+		"class": "m2m_text"
+	});
+	text.addClass("float_left");
+	m2m_header_text.append(text);
 
+	text=$("<div></div>").text("--");
+	text.attr({
+		"id" : mid+"_lastseen",
+		"class": "m2m_text"
+	});
+	text.addClass("clear_both");
+	//m2m_header_text.append(text);
 
-		text=$("<div></div>").text("--");
-		text.attr({
-			"id" : mid+"_lastseen",
-			"class": "m2m_text"
-		});
-		text.addClass("clear_both");
-		//m2m_header_text.append(text);
+	var m2m_header_button=$("<div></div>");
+	m2m_header_button.attr({
+		"class":"m2m_header_button"
+	});
+	node.append(m2m_header_button);
 
-		var m2m_header_button=$("<div></div>");
-		m2m_header_button.attr({
-			"class":"m2m_header_button"
-		});
-		node.append(m2m_header_button);
-
-		//////////// live view button /////////////
-		var wb=$("<div></div>");
-		wb.addClass("inline_block");
-		button=$("<a></a>");
-		button.attr({
-			"id": msg_dec["mid"]+"_toggle_liveview",
-		});
-		button.text("set_via_css");
-		button.addClass("live_sym");
-		button.click(function(){
-			var msg_int=msg_dec;
-			return function(){
-				toggle_liveview(msg_int["mid"]);
-			};
-		}());
-		set_button_state(button,msg_dec["state"]);
-		wb.append(button);
-		var wl=$("<div></div>");
-		wl.attr("id",mid+"_toggle_liveview_text");
-		wl.addClass("toggle_liveview_text");
-		wl.addClass("toggle_text");
-		wb.append(wl);
-		m2m_header_button.append(wb);
-		//m2m_header_button.append(button);
-		//////////// live view button /////////////
+	//////////// live view button /////////////
+	var wb=$("<div></div>");
+	wb.addClass("inline_block");
+	button=$("<a></a>");
+	button.attr({
+		"id": msg_dec["mid"]+"_toggle_liveview",
+	});
+	button.text("set_via_css");
+	button.addClass("live_sym");
+	button.click(function(){
+		var msg_int=msg_dec;
+		return function(){
+			toggle_liveview(msg_int["mid"]);
+		};
+	}());
+	set_button_state(button,msg_dec["state"]);
+	wb.append(button);
+	var wl=$("<div></div>");
+	wl.attr("id",mid+"_toggle_liveview_text");
+	wl.addClass("toggle_liveview_text");
+	wl.addClass("toggle_text");
+	wb.append(wl);
+	m2m_header_button.append(wb);
+	//m2m_header_button.append(button);
+	//////////// live view button /////////////
 		
-		//////////// setup controll button /////////////
-		wb=$("<div></div>");
-		wb.addClass("inline_block");
-		button=$("<a></a>");
-		button.attr({
-			"id": msg_dec["mid"]+"_toggle_setupcontrol",
-		});
-		button.addClass("color_sym");
-		button.click(function(){
+	//////////// setup controll button /////////////
+	wb=$("<div></div>");
+	wb.addClass("inline_block");
+	button=$("<a></a>");
+	button.attr({
+		"id": msg_dec["mid"]+"_toggle_setupcontrol",
+	});
+	button.addClass("color_sym");
+	button.click(function(){
+		var msg_int=msg_dec;
+		return function(){
+			toggle_setupcontrol(msg_int["mid"]);
+		};
+	}());
+	button.text("set_via_css");
+	set_button_state(button,msg_dec["state"]);
+	wb.append(button);
+	wl=$("<div></div>");
+	wl.attr("id",mid+"_toggle_setupcontrol_text");
+	wl.addClass("toggle_setupcontrol_text");
+	wl.addClass("toggle_text");
+	wb.append(wl);
+	m2m_header_button.append(wb);
+	//m2m_header_button.append(button);
+	//////////// setup controll button /////////////
+
+	//////////// alert button /////////////
+	wb=$("<div></div>");
+	wb.addClass("inline_block");
+	wb.addClass("alarm_button");
+
+	var num_text=$("<div></div>");
+	num_text.text("4");
+	num_text.addClass("alarm_sym_wrap");
+	num_text.attr("id",msg_dec["mid"]+"_alarm_counter");
+	num_text.click(function(){
+		var msg_int=msg_dec;
+		return function(){
+			toggle_alarms(msg_int["mid"]);
+		};
+	}());
+	wb.append(num_text);
+
+	button=$("<a></a>");
+	button.attr({
+		"id": msg_dec["mid"]+"_toggle_alarms",
+	});
+	button.addClass("alarm_sym");
+	button.click(function(){
+		var msg_int=msg_dec;
+		return function(){
+			toggle_alarms(msg_int["mid"]);
+		};
+	}());
+	button.text("no alarms");
+	wb.append(button);
+
+	wl=$("<div></div>");
+	wl.attr("id",mid+"_toggle_alarms_text");
+	wl.addClass("toggle_text");		// size etc
+	wl.addClass("toggle_alarms_text");	// color and text
+	wb.append(wl);
+	m2m_header_button.append(wb);
+
+	// hide it if no alarm is available
+	set_alert_button_state(num_text,button,wl,msg_dec["open_alarms"]);
+	//////////// alert button /////////////
+
+
+
+	////////////////// LIVE VIEW ////////////////////////////
+	liveview=$("<div></div>");
+	liveview.attr({
+		"id" : mid+"_liveview",
+	});
+	liveview.addClass("center");
+	liveview.hide();
+	node.append(liveview);
+
+	var txt=$("<div></div>");
+	txt.attr("id",mid+"_liveview_txt");
+	txt.attr("style","padding-top:20px;");
+	txt.html("Loading liveview<br>");
+	liveview.append(txt);
+
+	// upload download info
+	txt=$("<div></div>");
+	txt.attr("id",mid+"_liveview_up_down_debug");
+	txt.attr("style","padding-top:20px;");
+	txt.html("Loading speed info<br>");
+	txt.addClass("tiny_text");
+	txt.hide();
+	liveview.append(txt);
+	
+
+	// fancybox link around the liveview
+	var rl = $("<a></a>");
+	rl.attr("href","#"+mid+"_liveview_pic");
+	rl.fancybox({
+		beforeShow: function() { 
+			mid_i=mid; 
+			resize_alert_pic(mid_i,""); 
+		},
+		afterClose: function() {	
+			mid_i=mid;
+              	    		$("#"+mid_i+"_liveview_pic").show();
+			resize_alert_pic(mid,""); 
+       		}
+	});
+	liveview.append(rl);
+
+	var img=$("<img></img>");
+	img.attr({
+		"src" : host+"images/support-loading.gif",
+		"id" : mid+"_liveview_pic",
+		"width":64,
+		"height":64
+	});
+	rl.append(img);
+	////////////////// LIVE VIEW ////////////////////////////
+
+	////////////////// COLOR SLIDER ////////////////////////////
+	setupcontrol=$("<div></div>");
+	setupcontrol.attr({
+		"id" : mid+"_setupcontrol",
+	});
+	setupcontrol.hide();
+	node.append(setupcontrol);
+
+	var scroller=$("<div></div>");
+	scroller.append(createRainbowDiv(100));
+	scroller.addClass("setup_controll_color");
+	setupcontrol.append(scroller);
+
+	scroller=$("<div></div>");
+	scroller.attr({
+		"id":"colorslider_"+mid,
+		"class":"setup_controll_scroller"
+	});
+	scroller.slider({min:0, max:255, value:msg_dec["color_pos"], 
+		slide:function(){
 			var msg_int=msg_dec;
 			return function(){
-				toggle_setupcontrol(msg_int["mid"]);
+				send_color(msg_int["mid"]);
 			};
-		}());
-		button.text("set_via_css");
-		set_button_state(button,msg_dec["state"]);
-		wb.append(button);
-		wl=$("<div></div>");
-		wl.attr("id",mid+"_toggle_setupcontrol_text");
-		wl.addClass("toggle_setupcontrol_text");
-		wl.addClass("toggle_text");
-		wb.append(wl);
-		m2m_header_button.append(wb);
-		//m2m_header_button.append(button);
-		//////////// setup controll button /////////////
-
-		//////////// alert button /////////////
-		wb=$("<div></div>");
-		wb.addClass("inline_block");
-		wb.addClass("alarm_button");
-
-		var num_text=$("<div></div>");
-		num_text.text("4");
-		num_text.addClass("alarm_sym_wrap");
-		num_text.attr("id",msg_dec["mid"]+"_alarm_counter");
-		num_text.click(function(){
+		}(), 
+		change:function(){
 			var msg_int=msg_dec;
 			return function(){
-				toggle_alarms(msg_int["mid"]);
+				send_color(msg_int["mid"]);
 			};
-		}());
-		wb.append(num_text);
+		}()});
+	setupcontrol.append(scroller);
 
-		button=$("<a></a>");
-		button.attr({
-			"id": msg_dec["mid"]+"_toggle_alarms",
-		});
-		button.addClass("alarm_sym");
-		button.click(function(){
+	scroller=$("<div></div>");
+	scroller.append(createRainbowDiv(0));
+	scroller.addClass("setup_controll_color");
+	setupcontrol.append(scroller);
+
+	scroller=$("<div></div>");
+	scroller.attr({
+		"id":"brightnessslider_"+mid,
+		"class":"setup_controll_scroller"
+	});
+	scroller.slider({min:0, max:255, value:msg_dec["brightness_pos"], 
+		slide:function(){
 			var msg_int=msg_dec;
 			return function(){
-				toggle_alarms(msg_int["mid"]);
+				send_color(msg_int["mid"]);
 			};
-		}());
-		button.text("no alarms");
-		wb.append(button);
+		}(), 
+		change:function(){
+			var msg_int=msg_dec;
+			return function(){
+				send_color(msg_int["mid"]);
+			};
+		}()});
+	setupcontrol.append(scroller);
+	////////////////// COLOR SLIDER ////////////////////////////
 
-		wl=$("<div></div>");
-		wl.attr("id",mid+"_toggle_alarms_text");
-		wl.addClass("toggle_text");		// size etc
-		wl.addClass("toggle_alarms_text");	// color and text
-		wb.append(wl);
-		m2m_header_button.append(wb);
+	////////////////// ALARM MANAGER ////////////////////////////
+	alarms=$("<div></div>");
+	alarms.attr({
+		"id" : mid+"_alarms",
+	});
 
-		// hide it if no alarm is available
-		set_alert_button_state(num_text,button,wl,msg_dec["open_alarms"]);
-		//////////// alert button /////////////
+	var open=$("<div></div>").attr("id",mid+"_alarms_open");
+	open.append($("<div></div>").text("Not-acknowledged").addClass("m2m_text").addClass("inline_block"));
+	open.append($("<div></div>").attr("id",mid+"_alarms_open_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
+	a=$("<div></div>").attr("id",mid+"_alarms_open_display");
+	open.append(a);
+	a.append($("<div></div>").attr("id",mid+"_alarms_open_stopper"));		
+	open.append($("<div></div>").attr("id",mid+"_alarms_open_list").hide());
+	open.append($("<div></div>").attr("id",mid+"_alarms_open_start").text("0").hide());
+	open.append($("<div></div>").attr("id",mid+"_alarms_open_count").text("10").hide());
+	open.append($("<div></div>").attr("id",mid+"_alarms_open_max").hide());
+	alarms.append(open);	
 
+	alarms.append($("<hr>"));
 
+	var close=$("<div></div>").attr("id",mid+"_alarms_closed");
+	close.append($("<div></div>").text("Acknowledged").addClass("m2m_text").addClass("inline_block"));
+	close.append($("<div></div>").attr("id",mid+"_alarms_closed_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
+	a=$("<div></div>").attr("id",mid+"_alarms_closed_display");
+	close.append(a);
+	a.append($("<div></div>").attr("id",mid+"_alarms_closed_stopper"));		
+	close.append($("<div></div>").attr("id",mid+"_alarms_closed_list").hide());
+	close.append($("<div></div>").attr("id",mid+"_alarms_closed_start").text("0").hide());
+	close.append($("<div></div>").attr("id",mid+"_alarms_closed_count").text("10").hide());
+	close.append($("<div></div>").attr("id",mid+"_alarms_closed_max").hide());
+	alarms.append(close);	
 
-		////////////////// LIVE VIEW ////////////////////////////
-		liveview=$("<div></div>");
-		liveview.attr({
-			"id" : mid+"_liveview",
-		});
-		liveview.addClass("center");
-		liveview.hide();
-		node.append(liveview);
+	alarms.hide();
+	node.append(alarms);
+	////////////////// ALARM MANAGER ////////////////////////////
+	//<div style="width: 300px;" id="slider1"></div>
 
-		var txt=$("<div></div>");
-		txt.attr("id",mid+"_liveview_txt");
-		txt.attr("style","padding-top:20px;");
-		txt.html("Loading liveview<br>");
-		liveview.append(txt);
+	area.append(node);
+	//console.log("hb feld in client angebaut");
+	/////////////////// CREATE M2M ////////////////////////////(
 
-		// upload download info
-		txt=$("<div></div>");
-		txt.attr("id",mid+"_liveview_up_down_debug");
-		txt.attr("style","padding-top:20px;");
-		txt.html("Loading speed info<br>");
-		txt.addClass("tiny_text");
-		txt.hide();
-		liveview.append(txt);
-		
-
-		// fancybox link around the liveview
-		var rl = $("<a></a>");
-		rl.attr("href","#"+mid+"_liveview_pic");
-		rl.fancybox({
-			beforeShow: function() { 
-				mid_i=mid; 
-				resize_alert_pic(mid_i,""); 
-			},
-			afterClose: function() {	
-				mid_i=mid;
-               	    		$("#"+mid_i+"_liveview_pic").show();
-				resize_alert_pic(mid,""); 
-        		}
-		});
-		liveview.append(rl);
-
-		var img=$("<img></img>");
-		img.attr({
-			"src" : host+"images/support-loading.gif",
-			"id" : mid+"_liveview_pic",
-			"width":64,
-			"height":64
-		});
-		rl.append(img);
-		////////////////// LIVE VIEW ////////////////////////////
-
-		////////////////// COLOR SLIDER ////////////////////////////
-		setupcontrol=$("<div></div>");
-		setupcontrol.attr({
-			"id" : mid+"_setupcontrol",
-		});
-		setupcontrol.hide();
-		node.append(setupcontrol);
-
-		var scroller=$("<div></div>");
-		scroller.append(createRainbowDiv(100));
-		scroller.addClass("setup_controll_color");
-		setupcontrol.append(scroller);
-
-		scroller=$("<div></div>");
-		scroller.attr({
-			"id":"colorslider_"+mid,
-			"class":"setup_controll_scroller"
-		});
-		scroller.slider({min:0, max:255, value:msg_dec["color_pos"], 
-			slide:function(){
-				var msg_int=msg_dec;
-				return function(){
-					send_color(msg_int["mid"]);
-				};
-			}(), 
-			change:function(){
-				var msg_int=msg_dec;
-				return function(){
-					send_color(msg_int["mid"]);
-				};
-			}()});
-		setupcontrol.append(scroller);
-
-		scroller=$("<div></div>");
-		scroller.append(createRainbowDiv(0));
-		scroller.addClass("setup_controll_color");
-		setupcontrol.append(scroller);
-
-		scroller=$("<div></div>");
-		scroller.attr({
-			"id":"brightnessslider_"+mid,
-			"class":"setup_controll_scroller"
-		});
-		scroller.slider({min:0, max:255, value:msg_dec["brightness_pos"], 
-			slide:function(){
-				var msg_int=msg_dec;
-				return function(){
-					send_color(msg_int["mid"]);
-				};
-			}(), 
-			change:function(){
-				var msg_int=msg_dec;
-				return function(){
-					send_color(msg_int["mid"]);
-				};
-			}()});
-		setupcontrol.append(scroller);
-		////////////////// COLOR SLIDER ////////////////////////////
-
-		////////////////// ALARM MANAGER ////////////////////////////
-		alarms=$("<div></div>");
-		alarms.attr({
-			"id" : mid+"_alarms",
-		});
-
-
-		var open=$("<div></div>").attr("id",mid+"_alarms_open");
-		open.append($("<div></div>").text("Not-acknowledged").addClass("m2m_text").addClass("inline_block"));
-		open.append($("<div></div>").attr("id",mid+"_alarms_open_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
-		a=$("<div></div>").attr("id",mid+"_alarms_open_display");
-		open.append(a);
-		a.append($("<div></div>").attr("id",mid+"_alarms_open_stopper"));		
-		open.append($("<div></div>").attr("id",mid+"_alarms_open_list").hide());
-		open.append($("<div></div>").attr("id",mid+"_alarms_open_start").text("0").hide());
-		open.append($("<div></div>").attr("id",mid+"_alarms_open_count").text("10").hide());
-		open.append($("<div></div>").attr("id",mid+"_alarms_open_max").hide());
-		alarms.append(open);	
-
-		alarms.append($("<hr>"));
-
-		var close=$("<div></div>").attr("id",mid+"_alarms_closed");
-		close.append($("<div></div>").text("Acknowledged").addClass("m2m_text").addClass("inline_block"));
-		close.append($("<div></div>").attr("id",mid+"_alarms_closed_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
-		a=$("<div></div>").attr("id",mid+"_alarms_closed_display");
-		close.append(a);
-		a.append($("<div></div>").attr("id",mid+"_alarms_closed_stopper"));		
-		close.append($("<div></div>").attr("id",mid+"_alarms_closed_list").hide());
-		close.append($("<div></div>").attr("id",mid+"_alarms_closed_start").text("0").hide());
-		close.append($("<div></div>").attr("id",mid+"_alarms_closed_count").text("10").hide());
-		close.append($("<div></div>").attr("id",mid+"_alarms_closed_max").hide());
-		alarms.append(close);	
-
-		alarms.hide();
-		node.append(alarms);
-		////////////////// ALARM MANAGER ////////////////////////////
-		//<div style="width: 300px;" id="slider1"></div>
-
-
-		area.append(node);
-		//console.log("hb feld in client angebaut");
-		/////////////////// CREATE M2M ////////////////////////////(
-	} // node
 	show_old_alert_fb(mid,msg_dec["open_alarms"]);
 }
 
