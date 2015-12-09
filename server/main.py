@@ -980,6 +980,35 @@ def recv_ws_msg_handle(data,ws):
 			msg_q_ws.append((msg,ws))
 
 
+		## get all areas for account
+		elif(enc.get("cmd")=="get_areas"):
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			areas=db.get_areas_for_account(ws.account)
+			if(areas!=-1):
+				msg["ok"]=1
+				msg["areas"]=[]#areas
+				for a in areas:
+					a=a["area"]
+					msg["areas"].append((a))
+			else:
+				msg["ok"]=-1
+			msg_q_ws.append((msg,ws))
+
+		## get all cams for account
+		elif(enc.get("cmd")=="get_cams"):
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			all_m2m4account=db.get_m2m4account(ws.account)
+			if(type(all_m2m4account) is int):
+				p.rint("Error getting data for account "+str(ws.account),"d")
+				msg["ok"]=-1
+			else:
+				msg["ok"]=1
+				msg["m2m"]=all_m2m4account
+			msg_q_ws.append((msg,ws))
+
+
 		## unsupported cmd, for WS
 		else:
 			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+str(ws.login),"d")
