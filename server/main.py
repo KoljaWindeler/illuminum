@@ -837,17 +837,21 @@ def recv_ws_msg_handle(data,ws):
 					m2m.alarm_while_streaming=in_alarm_while_stream
 					m2m.resolution=in_resolution
 					m2m.frame_dist=in_frame_dist
-					m2m.area=in_area
 					m2m.alarm_ws=in_alarm_ws
 
-					# inform the webcam about the new parameter
-					msg={}
-					msg["cmd"]="update_parameter"
-					msg["qual"]=m2m.resolution	
-					msg["alarm_while_streaming"]=m2m.alarm_while_streaming
-					msg["interval"]=in_frame_dist
-					msg_q_m2m.append((msg,m2m))
-
+					if(m2m.area!=in_area):
+						# it might sound rough, but we have to reloader all the rules, 
+						# change the area, inform all clients. If we just disconnect to box
+						# it will redial in in 3 sec and everything will run on its own
+						server_m2m.disconnect(m2m)
+					else:
+						# inform the webcam about the new parameter
+						msg={}
+						msg["cmd"]="update_parameter"
+						msg["qual"]=m2m.resolution	
+						msg["alarm_while_streaming"]=m2m.alarm_while_streaming
+						msg["interval"]=in_frame_dist
+						msg_q_m2m.append((msg,m2m))
 					break;
 
 			# outside of loop to update cams that are offline
@@ -1101,8 +1105,9 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 			# and add them to us to give us the change to tell them if they should be sharp or not
 			if not(m2m in ws.v2m):
 				ws.v2m.append(m2m)
-		# send a nice and shiny message to the viewer to tell him what boxes are online,
+
 		p.connect_ws_m2m(m2m,ws)
+		# send a nice and shiny message to the viewer to tell him what boxes are online,
 		msg_ws2={}
 		msg_ws2["cmd"]="m2v_login"
 		msg_ws2["mid"]=m2m.mid
@@ -1307,20 +1312,21 @@ def rm_check_rules(account,login,use_db):
 
 	# get account from rulemanager
 	acc=rm.get_account(account)
-	if(acc!=0):
+	if(acc!=0 and acc.account!=""):
 		# run the rule check for every area in this account
 		#rint("running rule check on every area of this account")
 		for b in acc.areas:
-			detection_state=b.check_rules(use_db) 	# get the rule state, 1 for detection on and 0 for off ... this is NOT the detection state the box shall get (could be 2)
-			if(detection_state): # if the alert should be "on", grab the first box you can find in this account and area and check what the detection_on_mode is to set it to 1 or 2
-				real_detection_state=1 # backup
-				for m2m in server_m2m.clients:
-					if(m2m.account==account and m2m.area==b.area):
-						real_detection_state=m2m.detection_on_mode
-						break
-			else:
-				real_detection_state=0
-			db.update_det(login,account,b.area,real_detection_state)
+			if(b.area!=""):
+				detection_state=b.check_rules(use_db) 	# get the rule state, 1 for detection on and 0 for off ... this is NOT the detection state the box shall get (could be 2)
+				if(detection_state): # if the alert should be "on", grab the first box you can find in this account and area and check what the detection_on_mode is to set it to 1 or 2
+					real_detection_state=1 # backup
+					for m2m in server_m2m.clients:
+						if(m2m.account==account and m2m.area==b.area):
+							real_detection_state=m2m.detection_on_mode
+							break
+				else:
+					real_detection_state=0
+				db.update_det(login,account,b.area,real_detection_state)
 			#rint("updateing to db that detection of area "+str(b.area)+" should be")
 			#rint(detection_state)
 
