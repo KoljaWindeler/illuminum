@@ -4,6 +4,7 @@ if($_GET['useas']=="dummy"){
 	exit(0);
 };
 ///////////////// server status ///////////////////////////
+$v=exec('git -C /home/ubuntu/python/illumino/ rev-list HEAD --count');
 $body='<div class="logo_l1">welcome to </div><div class="logo_l2">illuminum</div>';
 unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
@@ -33,7 +34,7 @@ $header='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="robots" content="noindex">
         <link rel="stylesheet" href="css/design.css" type="text/css" media="screen" charset="utf-8">
-        <title></title>
+        <title>illuminum webapp v.'.$v.'</title>
 	'.$extra_header.'
     </head>
     <body>';
