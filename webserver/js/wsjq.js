@@ -2434,13 +2434,13 @@ function parse_sidebar_info(msg){
 				var area_lat=$("<input></input>");
 				area_lat.attr("id","m_"+m_area["id"]+"_map_lat");
 				area_lat.attr("type","text");
-				area_lat.val(m_area["longitude"]); // wrong in db
+				area_lat.val(m_area["latitude"]); 
 				area_lat.hide();
 				field.append(area_lat);
 
 				var area_lng=$("<input></input>");
 				area_lng.attr("id","m_"+m_area["id"]+"_map_lng");
-				area_lng.val(m_area["latitude"]); // wrong in db
+				area_lng.val(m_area["longitude"]);
 				area_lng.attr("type","text");
 				area_lng.hide();
 				field.append(area_lng);
