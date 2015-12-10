@@ -822,6 +822,23 @@ def recv_ws_msg_handle(data,ws):
 		elif(enc.get("cmd")=="set_interval"):
 			set_webcam_con(enc.get("mid"), enc.get("interval",0) ,ws)
 
+		## set updated area parameter
+		elif(enc.get("cmd")=="update_area"):
+			db.update_area(enc.get("id",0), enc.get("name",""), enc.get("latitude","0.0"), enc.get("longitude","0.0"), ws.account)
+
+			# send ok response to ws
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=1
+			msg["id"]=enc.get("id");
+			msg["name"]=enc.get("name");
+			msg["latitude"]=enc.get("latitude");
+			msg["longitude"]=enc.get("longitude");
+
+			msg_q_ws.append((msg,ws))
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated area parameter for '"+enc.get("name","")+"'","d")
+			
+
 		## set updated camera parameter
 		elif(enc.get("cmd")=="update_cam_parameter"):
 			in_mid=enc.get("mid",0)
@@ -1031,7 +1048,6 @@ def recv_ws_msg_handle(data,ws):
 				msg["ok"]=1
 				msg["areas"]=[]#areas
 				for a in areas:
-					a=a["area"]
 					msg["areas"].append((a))
 			else:
 				msg["ok"]=-1
@@ -1215,7 +1231,6 @@ def set_webcam_con(mid,on_off,ws):
 
 				msg["interval"]=m2m.frame_dist
 				# inform the webcam that we are watching
-				print(msg)
 				msg_q_m2m.append((msg,m2m))
 
 				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Added "+str(ws.login)+" to webcam stream from '"+str(m2m.alias)+"' "+str(mid),"c")
