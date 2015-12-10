@@ -10,6 +10,7 @@ unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
 if(!empty($output[0])){	// python serer is running add everything
 	$extra_header='
+		<script src="https://maps.googleapis.com/maps/api/js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
 		<script src="js/md5.js"></script>
 		<script src="js/wsjq.js"></script>
@@ -46,4 +47,4 @@ echo $header;
 echo $body;
 echo $footer;
 ?>
-
+        
