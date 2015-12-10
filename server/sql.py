@@ -132,11 +132,19 @@ class sql:
 				#rint(result)
 				#rint(result)
 				if(result["COUNT(*)"] == 1):
-					req = "SELECT  pw, area, account, alias, longitude, latitude, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist, resolution  FROM m2m WHERE mid= %s"
-					#rint(req)
+					req = "SELECT  pw, area, account, alias, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist, resolution  FROM m2m WHERE mid= %s"
 					cursor.execute(req, str(mid))
-					#rint("setting result to ")
 					result = cursor.fetchone()
+
+					# area is just an id, lets replace it with a name and som location data
+					req2 = "SELECT  area, longitude, latitude FROM area_state WHERE id= %s"
+					cursor.execute(req2, str(result["area"]))
+					result2 = cursor.fetchone()
+					
+					result["latitude"]=result2["latitude"]
+					result["longitude"]=result2["longitude"]
+					result["area"]=result2["area"]
+					
 				else:
 					result = -1
 					p.rint("count not 1", "d")
@@ -240,21 +248,9 @@ class sql:
 		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
-				# Create a new record
-				req1 = "SELECT distinct `area` FROM  `m2m` WHERE  `account` = %s"
-				cursor.execute(req1, str(account))
-				result1 = cursor.fetchall()
-
-				req2 = "SELECT distinct `area` FROM  `area_state` WHERE  `account` = %s"
+				req2 = "SELECT distinct `area`, `id`, `latitude`, `longitude` FROM  `area_state` WHERE  `account` = %s"
 				cursor.execute(req2, str(account))
-				result2 = cursor.fetchall()
-
-				result_double = result1 + result2
-				result = []
-				for item in result_double:
-					if item not in result:
-						result.append(item)
-
+				result = cursor.fetchall()
 		except:
 			self.he()
 			result = -1
@@ -276,7 +272,7 @@ class sql:
 					result = cursor.fetchone()
 				else: 
 					p.rint("Count!=1", "d")
-					p.rint(req, "d")
+					p.rint(req%(str(account), str(area)), "d")
 					return -1
 		except:
 			self.he()
@@ -352,17 +348,28 @@ class sql:
 			pass
 	#############################################################
 	def get_m2m4account(self, account):
-		try:
+		if(1):#try:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "SELECT  * FROM  `m2m` WHERE `account` =  %s"
 				# Create a new record
 				cursor.execute(req, str(account))
 				result = cursor.fetchall()
-			# avoid showning the PW
-			for r in result:
-				r.pop("pw")
-		except:
+
+				# avoid showning the PW
+				for r in result:
+					r.pop("pw")
+
+					# area is just an id, lets replace it with a name and som location data
+					req2 = "SELECT  area, longitude, latitude FROM area_state WHERE id= %s"
+					cursor.execute(req2, str(r["area"]))
+					result2 = cursor.fetchone()
+				
+					r["latitude"]=result2["latitude"]
+					r["longitude"]=result2["longitude"]
+					r["area"]=result2["area"]
+
+		else:#except:
 			self.he()
 			result = -1
 		self.close()
@@ -576,20 +583,27 @@ class sql:
 		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
+				# delete old entries for cam
 				req = "DELETE FROM  `alert`.`m2m`  WHERE  `mid`=%s"
 				cursor.execute(req, str(mid))
-				req = "SELECT `latitude`, `longitude` FROM `alert`.`m2m` WHERE `account`=%s AND `area`='home'"
+				# get area cound for cam
+				req = "SELECT `id` FROM `alert`.`area_state` WHERE `account`=%s ORDER BY `id` ASC"
 				cursor.execute(req, str(account))				
 				if(cursor.rowcount == 0):
-					latitude="0.0"
-					longitude="0.0"
+					# oh oh, user doesn't have an area
+					req = "INSERT INTO `alert`.`area_state` (`area`, `account`, `login`) VALUES ('home', %s,  'create');"
+					cursor.execute(req, (str(account),) )
+					#rint(req)
+					req = "SELECT LAST_INSERT_ID()"
+					cursor.execute(req)
+					result = cursor.fetchone()
+					area = result['LAST_INSERT_ID()']
 				else:
 					result = cursor.fetchone()
-					longitude=result['longitude']
-					latitude=result['latitude']
+					area = result['id']
 
-				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`, `latitude`, `longitude`) VALUES (%s, %s, 'home', %s, %s,%s,%s)"
-				cursor.execute(req, (str(mid), str(m2m_pw), str(account), str(alias), str(latitude), str(longitude)) )
+				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`) VALUES (%s, %s, %s, %s, %s, %s)"
+				cursor.execute(req, (str(mid), str(m2m_pw), str(area), str(account), str(alias)) )
 			self.connection.commit()
 			ret = 0
 		except:
@@ -651,6 +665,34 @@ class sql:
 					#rint("UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s  WHERE  `m2m`.`mid` = %s" % (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(mid)))
 					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(area), str(mid)) )
 					self.connection.commit()
+			ret = 0
+		except:
+			self.he()
+			ret = -1
+
+		return ret
+	#############################################################
+	def update_area(self, id, name, latitude, longitude, account):
+		ret = -1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				## very very bad, but db is reversed
+				temp = latitude
+				latitude = longitude
+				longitude = temp
+				req = "SELECT COUNT(*) FROM  `alert`.`area_state`  WHERE  `id`=%s"
+				cursor.execute(req, str(id))
+				result = cursor.fetchone()
+				result = result['COUNT(*)']
+				if(result>0):
+					req = "UPDATE  `alert`.`area_state` SET  `area` =  %s, `latitude` =  %s, `longitude` =  %s WHERE  `id` = %s"
+					cursor.execute(req, (str(name), str(latitude), str(longitude), str(id)) )
+				else:
+					req = "INSERT INTO  `area_state` (`area` ,`account`, `latitude`, `longitude` ,`login`) VALUES (%s, %s, %s, %s, 'create')"
+					print(req %  (str(name), str(account), str(latitude), str(longitude)) )
+					cursor.execute(req, (str(name), str(account), str(latitude), str(longitude)) )
+				self.connection.commit()
 			ret = 0
 		except:
 			self.he()
