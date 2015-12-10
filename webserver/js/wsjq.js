@@ -29,7 +29,6 @@ $(function(){
 	l.append(get_loading("wli","Connecting..."));
 	
 	open_ws();
-
 	//var txt=$("<div></div>");
 	//txt.html("-->"+$(window).width()+"/"+$(window).height()+"<--");
 	//$("#clients").append(txt);	
@@ -2254,18 +2253,19 @@ function request_all_cams(){
 function parse_sidebar_info(msg){
 	if(msg["cmd"]=="get_areas"){
 		// save all areas as array in the global g_areas
-		g_areas=msg["areas"];
-		console.log(g_areas);
+		g_areas=[];
+		for(var i=0;i<msg["areas"].length;i++){
+			g_areas[i]=msg["areas"][i];
+		};
 	} else if(msg["cmd"]=="get_cams"){
 		// save all cams as array 
 		for(var i=0;i<msg["m2m"].length;i++){
 			g_m2m[i]=msg["m2m"][i];
 		};
-		console.log(g_m2m);
 	};
 
 	if(g_areas.length && g_m2m.length){
-		console.log("both have entries");
+		/////////////////////// CAMERA BOX ////////////////////
 		// populate the camera box
 		var field=$("#cameras_box");
 		if(field.length){
@@ -2375,10 +2375,10 @@ function parse_sidebar_info(msg){
 				
 				for(var i=0; i<g_areas.length; i++){
 					sel=false;
-					if(g_m2m[a]["area"]==g_areas[i]){
+					if(g_m2m[a]["area"]==g_areas[i]["area"]){
 						sel=true;
 					}
-					area_select.append($('<option></option>').val(g_areas[i]).html(g_areas[i]).prop('selected', sel));
+					area_select.append($('<option></option>').val(g_areas[i]["id"]).html(g_areas[i]["area"]).prop('selected', sel));
 				}
 				area_select.change(function(){
 					var mid_int=g_m2m[a]["mid"];
@@ -2389,9 +2389,165 @@ function parse_sidebar_info(msg){
 				field.append(area_select);
 				/////////// areas switch //////////////////
 
-			};
-		};
+			}; // for each camera
+		}; // camera box
+		/////////////////////// CAMERA BOX ////////////////////
 
+		/////////////////////// AREAS BOX ////////////////////
+		var field=$("#areas_box");
+		if(field.length){
+			field.text("");
+			for(var a=0;a<g_areas.length+1;a++){
+				if(a==g_areas.length){
+					m_area["area"]="";				
+					m_area["id"]=-1;
+					m_area["latitude"]="10.0";				
+					m_area["longitude"]="52.0";				
+				} else {
+					m_area=g_areas[a];
+				};
+
+				var area=$("<div></div>");
+				area.attr("id","m_"+m_area["id"]+"_name");
+				area.text(m_area["area"]);
+				if(m_area["id"]==-1){
+					area.hide();
+				}
+				field.append(area);
+
+				var area_name_edit=$("<input></input>");
+				area_name_edit.attr("id","m_"+m_area["id"]+"_name_edit");
+				area_name_edit.val(m_area["area"]);
+				if(m_area["id"]!=-1){
+					area_name_edit.hide();
+				} else {
+					area_name_edit.val("Enter area name");
+					area_name_edit.focus(function(){
+						if($(this).val()=="Enter area name"){
+							$(this).val("");
+						}
+					});
+				};
+
+				field.append(area_name_edit);
+
+				var area_lat=$("<input></input>");
+				area_lat.attr("id","m_"+m_area["id"]+"_map_lat");
+				area_lat.attr("type","text");
+				area_lat.val(m_area["longitude"]); // wrong in db
+				area_lat.hide();
+				field.append(area_lat);
+
+				var area_lng=$("<input></input>");
+				area_lng.attr("id","m_"+m_area["id"]+"_map_lng");
+				area_lng.val(m_area["latitude"]); // wrong in db
+				area_lng.attr("type","text");
+				area_lng.hide();
+				field.append(area_lng);
+
+				// the save button
+				var area_save=$("<a></a>");
+				area_save.attr("id","m_"+m_area["id"]+"_map_save");
+				area_save.attr("type","submit");
+				area_save.addClass("button");
+				if(m_area["id"]!=-1){
+					area_save.text("save");
+				} else {
+					area_save.text("create");
+				};
+				area_save.click(function(){
+					var int_area_save=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+					return function(){
+						var map=$("#m_"+int_area_save+"_map");
+						var lng=$("#m_"+int_area_save+"_map_lng");
+						var lat=$("#m_"+int_area_save+"_map_lat");
+						var save=$("#m_"+int_area_save+"_map_save");
+						var edit=$("#m_"+int_area_save+"_map_edit");
+						var name=$("#m_"+int_area_save+"_name");
+						var name_edit=$("#m_"+int_area_save+"_name_edit");
+						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
+							map.hide();
+							lng.hide();
+							lat.hide();
+							save.hide();
+							name_edit.hide();
+							name.text(name_edit.val());
+							name.show();
+							edit.show();
+							update_area(int_area_save, name_edit.val(), lat.val(), lng.val());
+						};
+						if(int_area_save==-1){
+							request_all_areas();
+						}; 
+					};
+				}());
+				area_save.hide();
+				field.append(area_save);
+
+				// the edit area button
+				var area_map_edit=$("<a></a>");
+				area_map_edit.attr("id","m_"+m_area["id"]+"_map_edit");
+				if(m_area["id"]!=-1){
+					area_map_edit.text("Edit");
+				} else {
+					area_map_edit.text("Locate");
+				}
+				area_map_edit.addClass("button");
+				area_map_edit.click(function(){
+					var int_area_edit=m_area["id"];
+					return function(){
+						var map = $("#m_"+int_area_edit+"_map");
+						var lng = $("#m_"+int_area_edit+"_map_lng");
+						var lat = $("#m_"+int_area_edit+"_map_lat");
+						var save = $("#m_"+int_area_edit+"_map_save");
+						var edit = $("#m_"+int_area_edit+"_map_edit");
+						var name = $("#m_"+int_area_edit+"_name");
+						var name_edit = $("#m_"+int_area_edit+"_name_edit");
+						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
+							map.show();
+							lng.show();
+							lat.show();
+							save.show();
+							name_edit.show();
+							name.hide();
+							edit.hide();
+							show_map(parseFloat(lat.val()),parseFloat(lng.val()),map,lat,lng);
+						} else {
+							alert("ele not found "+int_area_edit+":"+map.length +","+ lng.length +","+ lat.length +","+ save.length +","+ edit.length);
+						}
+					};
+				}());
+				field.append(area_map_edit);
+
+				// the remove button
+				var area_remove=$("<a></a>");
+				area_remove.attr("id","m_"+m_area["id"]+"_map_rem");
+				area_remove.attr("type","submit");
+				area_remove.text("remove");
+				area_remove.addClass("button");
+				if(m_area["id"]==-1){
+					area_remove.hide();
+				};
+				area_remove.click(function(){
+					var int_area_remove=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+					return function(){
+						alert("not yet implemented "+int_area_remove);
+					};
+				}());
+				field.append(area_remove);
+
+				// the map itsself
+				var area_map=$("<div></div>");
+				area_map.attr("id","m_"+m_area["id"]+"_map");
+				area_map.css("height",350);
+				area_map.hide();
+				field.append(area_map);
+
+				var spacer=$("<hr>");
+				field.append(spacer);
+			} // for each area
+		}; // area box
+		/////////////////////// AREAS BOX ////////////////////
 	};
 };
 
@@ -2412,6 +2568,18 @@ function update_cam_parameter(mid){
 		console.log(cmd_data);
 		con.send(JSON.stringify(cmd_data));
 	}
+};
+
+/////////////////////////////////////////// UPDATE_AREA //////////////////////////////////////////
+// triggered by: 	user changed values in sidebar for area
+// arguemnts:	 	id of area, name, longitude, latitude
+// what it does: 	gathers all info for the area and send it to the server, close the maps view
+// why: 	 	to change area info behaviour
+/////////////////////////////////////////// UPDATE_AREA //////////////////////////////////////////
+function update_area(id, name, latitude, longitude){
+	var cmd_data = { "cmd":"update_area", "id":id, "name":name, "longitude":longitude, "latitude":latitude };
+	console.log(cmd_data);
+	con.send(JSON.stringify(cmd_data));
 };
 
 
@@ -2515,7 +2683,7 @@ function resize_alert_pic(mid,data){
 				'position: fixed;'+
 				'left: '+((w-fb_w)/2)+'px;'+
 				'top: '+((h-fb_h)/2)+'px;'+
-				'opacity: 1; overflow: hidden;'
+				'opacity: 1; overflow: visible;'
 		});
 	};
 
@@ -3064,4 +3232,42 @@ function set_override_buttons(account, area, value){
 		} 
 	};	
 
+};
+
+/////////////////////////////////////////// show Map  //////////////////////////////////////////
+// triggered by: 	user klick
+// arguemnts:		lat, lng are start coordinates, map-,lat-,lng-ele are the outputs
+// why: 	 	map shall provide coordinates for area
+/////////////////////////////////////////// show Map  //////////////////////////////////////////
+function show_map(lat,lng,map_ele,lat_ele,lng_ele){
+        var map;
+        var geocoder;
+        var marker;
+        var infowindow;
+
+        var latlng = new google.maps.LatLng(lat,lng);
+        var myOptions = {
+            zoom: 9,
+            center: latlng,
+            panControl: true,
+            scrollwheel: false,
+            scaleControl: true,
+            overviewMapControl: true,
+            overviewMapControlOptions: { opened: true },
+            mapTypeId: google.maps.MapTypeId.HYBRID
+        };
+        map = new google.maps.Map(map_ele[0],myOptions);
+        geocoder = new google.maps.Geocoder();
+        marker = new google.maps.Marker({
+            position: latlng,
+            map: map
+        });
+
+        map.streetViewControl = false;
+
+        google.maps.event.addListener(map, 'click', function(event) {
+            marker.setPosition(event.latLng);
+            lat_ele.val(event.latLng.lat().toFixed(6));
+            lng_ele.val(event.latLng.lng().toFixed(6));
+	});
 };
