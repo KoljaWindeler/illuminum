@@ -2148,416 +2148,13 @@ function add_menu(){
 	/******* add menu ******/
 };
 
-/////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
-// triggered by:	add_menu()
-// arguemnts:	 	
-// what it does: 	shows an entry
-// why: 	 	GUI
-/////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
-function add_sidebar_entry(menu,f,text,icon){
-	//////////////// add title //////////////////
-	var title=$("<div></div>");
-	title.addClass("menu_spacer");
-	title.addClass("inline_block");
-	title.click(f);
-	menu.append(title);	
-
-	// insert name + icon block
-	var title_name_icon=$("<div></div>");
-	title_name_icon.addClass("float_left");
-	title_name_icon.addClass("menu_spacer_name");
-	title_name_icon.addClass("inline_block");
-	title.append(title_name_icon);
-
-	// insert name into title
-	var title_name=$("<div></div>");
-	title_name.text(text);
-	title_name.addClass("menu_spacer_name");
-	title_name.addClass("float_right");
-	title_name.attr("id","users_title");
-	title_name_icon.append(title_name);
-
-	// insert sym into title
-	var title_sym=$("<i></i>");
-	title_sym.text(icon);
-	title_sym.addClass("material-icons");
-	title_sym.addClass("float_left");
-	title_name_icon.append(title_sym);
-}
-
-/////////////////////////////////////////// TOGGLE_MENU //////////////////////////////////////////
-// triggered by:	user click
-// arguemnts:	 	none
-// what it does: 	shows the menu and requests info
-// why: 	 	GUI
-/////////////////////////////////////////// TOGGLE_MENU //////////////////////////////////////////
-
-function toggle_menu(){
-	var m=$("#menu");
-	if(m.length){
-		if(m.hasClass("menu_active")){
-			/// HIDE THE MENU ///
-			m.removeClass("menu_active");
-			// super messy hamb handling
-			// datach it from the MENU and make it standalone
-			var hamb=$("#hamb");
-			hamb.detach();
-			hamb.insertAfter("#clients");
-			// remove and reattache on click handle, sometimes not working without this
-			hamb.off();
-			hamb.click(function(){ toggle_menu(); });
-			// set the position do be absolute floating on the upper left corner
-			hamb.css("position", "absolute");
-			// since the hamb moved in the DOM, we have to move it out fast, without animation  and then perform another transform with animation
-			hamb.css("transition","all 0.0s ease-in-out").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-30)+"px, 0px)").css("transition","all 0.75s ease-in-out").css("transform", "translate(0px, 0px)");
-		} else {
-			/////////// SHOW THE MENU //////////
-			// request required info
-			request_all_rules();
-			request_all_cams();
-			request_all_areas();
-			// show menu
-			m.addClass("menu_active");
-
-			var hamb=$("#hamb");
-			// set the postition to be fixed to the div below
-			hamb.css("position", "fixed");
-			// move the hamb out, with the menu (same timing)
-			hamb.css("transition","all 0.75s ease-in-out").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
-			// and as soon as the animation is done, move it in the DOM into the menu object, so it will scroll with the menu
-			setTimeout(function() { 
-				var hamb=$("#hamb");
-				hamb.detach();	// this will not only detach it but also remove the transform appearently
-				m.append(hamb);
-				hamb.off();
-				hamb.click(function(){ toggle_menu(); });
-			}, 760);
-
-		};
-	};
-};
-
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 // triggered by: 
 // arguemnts:	 
 // what it does: 
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
-function request_all_areas(){
-	var cmd_data = { "cmd":"get_areas"};
-	con.send(JSON.stringify(cmd_data));
-	g_areas=[];
-};
-
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-// triggered by: 
-// arguemnts:	 
-// what it does: 
-// why: 	 
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-function request_all_rules(){
-	var cmd_data = { "cmd":"get_rules"};
-	con.send(JSON.stringify(cmd_data));
-	g_rules=[];
-};
-
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-// triggered by: 
-// arguemnts:	 
-// what it does: 
-// why: 	 
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-function request_all_cams(){
-	var cmd_data = { "cmd":"get_cams"};
-	con.send(JSON.stringify(cmd_data));
-	g_m2m=[];
-};
-
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-// triggered by: 
-// arguemnts:	 
-// what it does: 
-// why: 	 
-/////////////////////////////////////////// UNSET //////////////////////////////////////////
-function parse_sidebar_info(msg){
-	if(msg["cmd"]=="get_areas"){
-		// save all areas as array in the global g_areas
-		g_areas=[];
-		for(var i=0;i<msg["areas"].length;i++){
-			g_areas[i]=msg["areas"][i];
-		};
-	} else if(msg["cmd"]=="get_cams"){
-		// save all cams as array 
-		for(var i=0;i<msg["m2m"].length;i++){
-			g_m2m[i]=msg["m2m"][i];
-		};
-	} else if(msg["cmd"]=="get_rules"){
-		var i=0;
-		for(var a in msg["rules"]){
-			g_rules[i]=msg["rules"][i+1];
-			i++;
-		};
-	};
-
-	if(g_areas.length && g_m2m.length && g_rules.length){
-		/////////////////////// RM BOX ////////////////////
-		var field=$("#rm_box");
-		if(field.length){
-			field.text("");
-			// go through all areas
-			for(var a=0;a<g_areas.length;a++){
-				g_areas[a]["rules"]=[];
-				g_areas[a]["subrules"]=[];
-				// join rules and adreas
-				for(var b=0;b<g_rules.length;b++){
-					if(g_rules[b]["name"]==g_areas[a]["area"]){
-						g_areas[a]["rules"]=g_rules[b]["rules"];
-						g_areas[a]["subrules"]=g_rules[b]["subrules"];
-					};
-				};
-
-				///// create header /////
-				var area_header=$("<div></div>");
-				area_header.addClass("sidebar_area_entry");
-				area_header.addClass("inline_block");
-				field.append(area_header);
-
-				// create area div
-				var area_icon_name=$("<div></div>");
-				area_icon_name.addClass("float_left");
-				area_icon_name.addClass("inline_block");
-				area_header.append(area_icon_name);				
-
-				// add icon
-				var area_icon=$("<i></i>");
-				area_icon.addClass("material-icons");
-				area_icon.addClass("float_left");
-				area_icon.text("home");
-				area_icon_name.append(area_icon);
-			
-				// first the name
-				var area_name=$("<div></div>");
-				area_name.text(g_areas[a]["area"]);
-				area_name.addClass("float_right");
-				area_name.addClass("sidebar_area_name");
-				area_icon_name.append(area_name);
-				///// create header /////
-
-				///// now the ruels /////
-				var nobody_at_my_geo_area_active=false;
-				for(var b=0;b<g_areas[a]["rules"].length;b++){
-					var rm_rule=$("<div></div>");
-					if(g_areas[a]["rules"][b][1]=="nobody_at_my_geo_area"){
-						nobody_at_my_geo_area_active=true;
-					} else {
-						rm_rule.text(g_areas[a]["rules"][b][1]+","+g_areas[a]["rules"][b][2]+","+g_areas[a]["rules"][b][3]);
-					};
-					//rm_header.append(rm_rule);
-				};
-
-				///////// GPS /////////
-				var geo_select=$("<select></select>");
-				geo_select.attr({
-					"id": g_areas[a]["area"]+"_geo_area",
-					"class":"sidebar_select"
-				});
-				geo_select.append($('<option></option>').val("1").html("geofencing active").prop('selected', nobody_at_my_geo_area_active));
-				geo_select.append($('<option></option>').val("0").html("no geofencing").prop('selected', !nobody_at_my_geo_area_active));
-				geo_select.change(function(){
-					var int_id=g_areas[a]["area"];
-					return function(){
-						var geo_fencing=$("#"+int_id+"_geo_area");
-						if(geo_fencing.length){
-							alert("to be implemented, but area "+int_id+" is set to "+geo_fencing.val());
-						};
-					}
-				}());
-				field.append(geo_select);
-				///////// GPS /////////
-			};
-		};
-		/////////////////////// RM BOX ////////////////////
-
-		/////////////////////// CAMERA BOX ////////////////////
-		// populate the camera box
-		var field=$("#cameras_box");
-		if(field.length){
-			field.text("");
-			for(var a=0;a<g_m2m.length;a++){
-
-				// create header
-				var cam_header=$("<div></div>");
-				cam_header.addClass("sidebar_area_entry");
-				cam_header.addClass("inline_block");
-				field.append(cam_header);
-
-				// create cam div
-				var cam_icon_name=$("<div></div>");
-				cam_icon_name.addClass("float_left");
-				cam_icon_name.addClass("inline_block");
-				cam_header.append(cam_icon_name);				
-
-				// add icon
-				var cam_icon=$("<i></i>");
-				cam_icon.addClass("material-icons");
-				cam_icon.addClass("float_left");
-				cam_icon.text("camera_enhance");
-				cam_icon_name.append(cam_icon);
-			
-				// first the name
-				var cam_name=$("<div></div>");
-				cam_name.text(g_m2m[a]["alias"]);
-				cam_name.addClass("float_right");
-				cam_name.addClass("sidebar_area_name");
-				cam_icon_name.append(cam_name);
-
-				//////////////// add fps dropdown ////////////////////
-				var fps_select=$("<select></select>");
-				fps_select.attr({
-					"id": g_m2m[a]["mid"]+"_fps_select",
-					"class":"sidebar_select"
-				});
-				// load from message
-				var default_t=parseFloat(g_m2m[a]["frame_dist"]);
-				if(!$.isNumeric(default_t)){
-					default_t=1/2;
-				};
-				// create field
-				var t=1/16;
-				var fps_text;
-				for(var i=0; i<12; i++) {
-					if(1/t >= 1){
-						fps_text = 1/t+" fps (a frame every "+Math.round(t*100)/100+" sec)";
-					} else {
-						fps_text = "1/"+t+" fps (a frame every "+t+" sec)";
-					};
-					// set selected option for the 2fps option
-					if(t==default_t){
-						fps_select.append($('<option></option>').val(t).html(fps_text).prop('selected', true));
-					} else {
-						fps_select.append($('<option></option>').val(t).html(fps_text));
-					};
-					// calc the next framerate
-					if(t<1){
-						t*=2;
-					} else {
-						t+=1;
-					}
-				};
-				fps_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-
-				field.append(fps_select);
-				//////////////// add fps dropdown ////////////////////
-
-				///////////////// quality selector //////////////////////
-				var qual_select=$("<select></select>");
-				qual_select.attr({
-					"id": g_m2m[a]["mid"]+"_qual_select",
-					"class":"sidebar_select"
-				});
-				var hd_sel=true;
-				var vga_sel=false;
-				if(g_m2m[a]["resolution"]!="HD"){
-					hd_sel=false;
-					vga_sel=true;
-				}
-				qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
-				qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
-				qual_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-				field.append(qual_select);
-				///////////////// quality selector //////////////////////
-
-				/////////// alarm while streaming selector //////////////////
-				var alarm_while_stream_select=$("<select></select>");
-				alarm_while_stream_select.attr({
-					"id": g_m2m[a]["mid"]+"_alarm_while_stream_select",
-					"class":"sidebar_select"
-				});
-
-				var no_alarm_sel=true;
-				var alarm_sel=false;
-				if(g_m2m[a]["alarm_while_streaming"]==1 || g_m2m[a]["alarm_while_streaming"]=="alarm"){
-					no_alarm_sel=false;
-					alarm_sel=true;
-				}
-				alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
-				alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
-				alarm_while_stream_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-				field.append(alarm_while_stream_select);
-				/////////// alarm while streaming selector //////////////////
-
-				/////////// areas switch //////////////////
-				var area_select=$("<select></select>");
-				area_select.attr({
-					"id": g_m2m[a]["mid"]+"_area_select",
-					"class":"sidebar_select"
-				});
-				
-				for(var i=0; i<g_areas.length; i++){
-					sel=false;
-					if(g_m2m[a]["area"]==g_areas[i]["area"]){
-						sel=true;
-					}
-					area_select.append($('<option></option>').val(g_areas[i]["id"]).html(g_areas[i]["area"]).prop('selected', sel));
-				}
-				area_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-				field.append(area_select);
-				/////////// areas switch //////////////////
-
-			}; // for each camera
-		}; // camera box
-		/////////////////////// CAMERA BOX ////////////////////
-
-		/////////////////////////////////////////////////////
-		/////////////////////// AREAS BOX ////////////////////
-		/////////////////////////////////////////////////////
-		// add m2m count to each area
-		for(var a=0;a<g_areas.length;a++){
-			var c=0;
-			for(var i=0; i<g_m2m.length; i++){
-				if(g_m2m[i]["area"]==g_areas[a]["area"]){
-					c++;
-				}
-			};
-			g_areas[a]["m2m_count"]=c;
-		};
-			
-		// start showing the areas
-		var field=$("#areas_box");
-		if(field.length){
-			field.text("");
-			for(var a=0;a<g_areas.length+1;a++){
-				// prepare vars
-				if(a==g_areas.length){
-					m_area["area"]="";				
-					m_area["id"]=-1;
-					m_area["latitude"]="52.479761";				
-					m_area["longitude"]="62.185661";				
-					m_area["m2m_count"]=0;				
-				} else {
-					m_area=g_areas[a];
-				};
-				
+function add_area_entry(field,m_area){
 				// create header entry
 				var area_entry=$("<div></div>");
 				area_entry.addClass("sidebar_area_entry");
@@ -2802,7 +2399,420 @@ function parse_sidebar_info(msg){
 
 				var spacer=$("<hr>");
 				field.append(spacer);
-			} // for each area
+}
+
+/////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
+// triggered by:	add_menu()
+// arguemnts:	 	
+// what it does: 	shows an entry
+// why: 	 	GUI
+/////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
+function add_sidebar_entry(menu,f,text,icon){
+	//////////////// add title //////////////////
+	var title=$("<div></div>");
+	title.addClass("menu_spacer");
+	title.addClass("inline_block");
+	title.click(f);
+	menu.append(title);	
+
+	// insert name + icon block
+	var title_name_icon=$("<div></div>");
+	title_name_icon.addClass("float_left");
+	title_name_icon.addClass("menu_spacer_name");
+	title_name_icon.addClass("inline_block");
+	title.append(title_name_icon);
+
+	// insert name into title
+	var title_name=$("<div></div>");
+	title_name.text(text);
+	title_name.addClass("menu_spacer_name");
+	title_name.addClass("float_right");
+	title_name.attr("id","users_title");
+	title_name_icon.append(title_name);
+
+	// insert sym into title
+	var title_sym=$("<i></i>");
+	title_sym.text(icon);
+	title_sym.addClass("material-icons");
+	title_sym.addClass("float_left");
+	title_name_icon.append(title_sym);
+}
+
+/////////////////////////////////////////// TOGGLE_MENU //////////////////////////////////////////
+// triggered by:	user click
+// arguemnts:	 	none
+// what it does: 	shows the menu and requests info
+// why: 	 	GUI
+/////////////////////////////////////////// TOGGLE_MENU //////////////////////////////////////////
+
+function toggle_menu(){
+	var m=$("#menu");
+	if(m.length){
+		if(m.hasClass("menu_active")){
+			/// HIDE THE MENU ///
+			m.removeClass("menu_active");
+			// super messy hamb handling
+			// datach it from the MENU and make it standalone
+			var hamb=$("#hamb");
+			hamb.detach();
+			hamb.insertAfter("#clients");
+			// remove and reattache on click handle, sometimes not working without this
+			hamb.off();
+			hamb.click(function(){ toggle_menu(); });
+			// set the position do be absolute floating on the upper left corner
+			hamb.css("position", "absolute");
+			// since the hamb moved in the DOM, we have to move it out fast, without animation  and then perform another transform with animation
+			hamb.css("transition","all 0.0s ease-in-out").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-30)+"px, 0px)").css("transition","all 0.75s ease-in-out").css("transform", "translate(0px, 0px)");
+		} else {
+			/////////// SHOW THE MENU //////////
+			// request required info
+			request_all_rules();
+			request_all_cams();
+			request_all_areas();
+			// show menu
+			m.addClass("menu_active");
+
+			var hamb=$("#hamb");
+			// set the postition to be fixed to the div below
+			hamb.css("position", "fixed");
+			// move the hamb out, with the menu (same timing)
+			hamb.css("transition","all 0.75s ease-in-out").css("transform", "translate("+(m.outerWidth(true)-$("#hamb").outerWidth()-20)+"px, 0px)");
+			// and as soon as the animation is done, move it in the DOM into the menu object, so it will scroll with the menu
+			setTimeout(function() { 
+				var hamb=$("#hamb");
+				hamb.detach();	// this will not only detach it but also remove the transform appearently
+				m.append(hamb);
+				hamb.off();
+				hamb.click(function(){ toggle_menu(); });
+			}, 760);
+
+		};
+	};
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function request_all_areas(){
+	var cmd_data = { "cmd":"get_areas"};
+	con.send(JSON.stringify(cmd_data));
+	g_areas=[];
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function request_all_rules(){
+	var cmd_data = { "cmd":"get_rules"};
+	con.send(JSON.stringify(cmd_data));
+	g_rules=[];
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function request_all_cams(){
+	var cmd_data = { "cmd":"get_cams"};
+	con.send(JSON.stringify(cmd_data));
+	g_m2m=[];
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function parse_sidebar_info(msg){
+	if(msg["cmd"]=="get_areas"){
+		// save all areas as array in the global g_areas
+		g_areas=[];
+		for(var i=0;i<msg["areas"].length;i++){
+			g_areas[i]=msg["areas"][i];
+		};
+	} else if(msg["cmd"]=="get_cams"){
+		// save all cams as array 
+		for(var i=0;i<msg["m2m"].length;i++){
+			g_m2m[i]=msg["m2m"][i];
+		};
+	} else if(msg["cmd"]=="get_rules"){
+		var i=0;
+		g_rules=[];
+		for(var a in msg["rules"]){
+			g_rules[i]=msg["rules"][i+1];
+			i++;
+		};
+	};
+
+	if(g_areas.length && g_m2m.length && g_rules.length){
+		/////////////////////// RM BOX ////////////////////
+		var field=$("#rm_box");
+		if(field.length){
+			field.text("");
+			// go through all areas
+			for(var a=0;a<g_areas.length;a++){
+				g_areas[a]["rules"]=[];
+				g_areas[a]["subrules"]=[];
+				// join rules and adreas
+				for(var b=0;b<g_rules.length;b++){
+					if(g_rules[b]["name"]==g_areas[a]["area"]){
+						g_areas[a]["rules"]=g_rules[b]["rules"];
+						g_areas[a]["subrules"]=g_rules[b]["subrules"];
+					};
+				};
+
+				///// create header /////
+				var area_header=$("<div></div>");
+				area_header.addClass("sidebar_area_entry");
+				area_header.addClass("inline_block");
+				field.append(area_header);
+
+				// create area div
+				var area_icon_name=$("<div></div>");
+				area_icon_name.addClass("float_left");
+				area_icon_name.addClass("inline_block");
+				area_header.append(area_icon_name);				
+
+				// add icon
+				var area_icon=$("<i></i>");
+				area_icon.addClass("material-icons");
+				area_icon.addClass("float_left");
+				area_icon.text("home");
+				area_icon_name.append(area_icon);
+			
+				// first the name
+				var area_name=$("<div></div>");
+				area_name.text(g_areas[a]["area"]);
+				area_name.addClass("float_right");
+				area_name.addClass("sidebar_area_name");
+				area_icon_name.append(area_name);
+				///// create header /////
+
+				///// now the ruels /////
+				var nobody_at_my_geo_area_active=false;
+				for(var b=0;b<g_areas[a]["rules"].length;b++){
+					var rm_rule=$("<div></div>");
+					if(g_areas[a]["rules"][b][1]=="nobody_at_my_geo_area"){
+						nobody_at_my_geo_area_active=true;
+					} else {
+						rm_rule.text(g_areas[a]["rules"][b][1]+","+g_areas[a]["rules"][b][2]+","+g_areas[a]["rules"][b][3]);
+					};
+					//rm_header.append(rm_rule);
+				};
+
+				///////// GPS /////////
+				var geo_select=$("<select></select>");
+				geo_select.attr({
+					"id": g_areas[a]["area"]+"_geo_area",
+					"class":"sidebar_select"
+				});
+				geo_select.append($('<option></option>').val("1").html("geofencing active").prop('selected', nobody_at_my_geo_area_active));
+				geo_select.append($('<option></option>').val("0").html("no geofencing").prop('selected', !nobody_at_my_geo_area_active));
+				geo_select.change(function(){
+					var int_id=g_areas[a]["area"];
+					return function(){
+						var geo_fencing=$("#"+int_id+"_geo_area");
+						if(geo_fencing.length){
+							update_rule_geo(int_id,geo_fencing.val());
+						};
+					}
+				}());
+				field.append(geo_select);
+				///////// GPS /////////
+			};
+		};
+		/////////////////////// RM BOX ////////////////////
+
+		/////////////////////// CAMERA BOX ////////////////////
+		// populate the camera box
+		var field=$("#cameras_box");
+		if(field.length){
+			field.text("");
+			for(var a=0;a<g_m2m.length;a++){
+
+				// create header
+				var cam_header=$("<div></div>");
+				cam_header.addClass("sidebar_area_entry");
+				cam_header.addClass("inline_block");
+				field.append(cam_header);
+
+				// create cam div
+				var cam_icon_name=$("<div></div>");
+				cam_icon_name.addClass("float_left");
+				cam_icon_name.addClass("inline_block");
+				cam_header.append(cam_icon_name);				
+
+				// add icon
+				var cam_icon=$("<i></i>");
+				cam_icon.addClass("material-icons");
+				cam_icon.addClass("float_left");
+				cam_icon.text("camera_enhance");
+				cam_icon_name.append(cam_icon);
+			
+				// first the name
+				var cam_name=$("<div></div>");
+				cam_name.text(g_m2m[a]["alias"]);
+				cam_name.addClass("float_right");
+				cam_name.addClass("sidebar_area_name");
+				cam_icon_name.append(cam_name);
+
+				//////////////// add fps dropdown ////////////////////
+				var fps_select=$("<select></select>");
+				fps_select.attr({
+					"id": g_m2m[a]["mid"]+"_fps_select",
+					"class":"sidebar_select"
+				});
+				// load from message
+				var default_t=parseFloat(g_m2m[a]["frame_dist"]);
+				if(!$.isNumeric(default_t)){
+					default_t=1/2;
+				};
+				// create field
+				var t=1/16;
+				var fps_text;
+				for(var i=0; i<12; i++) {
+					if(1/t >= 1){
+						fps_text = 1/t+" fps (a frame every "+Math.round(t*100)/100+" sec)";
+					} else {
+						fps_text = "1/"+t+" fps (a frame every "+t+" sec)";
+					};
+					// set selected option for the 2fps option
+					if(t==default_t){
+						fps_select.append($('<option></option>').val(t).html(fps_text).prop('selected', true));
+					} else {
+						fps_select.append($('<option></option>').val(t).html(fps_text));
+					};
+					// calc the next framerate
+					if(t<1){
+						t*=2;
+					} else {
+						t+=1;
+					}
+				};
+				fps_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+
+				field.append(fps_select);
+				//////////////// add fps dropdown ////////////////////
+
+				///////////////// quality selector //////////////////////
+				var qual_select=$("<select></select>");
+				qual_select.attr({
+					"id": g_m2m[a]["mid"]+"_qual_select",
+					"class":"sidebar_select"
+				});
+				var hd_sel=true;
+				var vga_sel=false;
+				if(g_m2m[a]["resolution"]!="HD"){
+					hd_sel=false;
+					vga_sel=true;
+				}
+				qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
+				qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
+				qual_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+				field.append(qual_select);
+				///////////////// quality selector //////////////////////
+
+				/////////// alarm while streaming selector //////////////////
+				var alarm_while_stream_select=$("<select></select>");
+				alarm_while_stream_select.attr({
+					"id": g_m2m[a]["mid"]+"_alarm_while_stream_select",
+					"class":"sidebar_select"
+				});
+
+				var no_alarm_sel=true;
+				var alarm_sel=false;
+				if(g_m2m[a]["alarm_while_streaming"]==1 || g_m2m[a]["alarm_while_streaming"]=="alarm"){
+					no_alarm_sel=false;
+					alarm_sel=true;
+				}
+				alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
+				alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
+				alarm_while_stream_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+				field.append(alarm_while_stream_select);
+				/////////// alarm while streaming selector //////////////////
+
+				/////////// areas switch //////////////////
+				var area_select=$("<select></select>");
+				area_select.attr({
+					"id": g_m2m[a]["mid"]+"_area_select",
+					"class":"sidebar_select"
+				});
+				
+				for(var i=0; i<g_areas.length; i++){
+					sel=false;
+					if(g_m2m[a]["area"]==g_areas[i]["area"]){
+						sel=true;
+					}
+					area_select.append($('<option></option>').val(g_areas[i]["id"]).html(g_areas[i]["area"]).prop('selected', sel));
+				}
+				area_select.change(function(){
+					var mid_int=g_m2m[a]["mid"];
+					return function(){
+						update_cam_parameter(mid_int);
+					}
+				}());
+				field.append(area_select);
+				/////////// areas switch //////////////////
+
+			}; // for each camera
+		}; // camera box
+		/////////////////////// CAMERA BOX ////////////////////
+
+		/////////////////////////////////////////////////////
+		/////////////////////// AREAS BOX ////////////////////
+		/////////////////////////////////////////////////////
+		// add m2m count to each area
+		for(var a=0;a<g_areas.length;a++){
+			var c=0;
+			for(var i=0; i<g_m2m.length; i++){
+				if(g_m2m[i]["area"]==g_areas[a]["area"]){
+					c++;
+				}
+			};
+			g_areas[a]["m2m_count"]=c;
+		};
+			
+		// start showing the areas
+		var field=$("#areas_box");
+		if(field.length){
+			field.text("");
+			for(var a=0;a<g_areas.length;a++){
+				console.log(g_areas[a]);
+				add_area_entry(field,g_areas[a]);
+			}
+			// prepare vars
+			m_area={};
+			m_area["area"]="";				
+			m_area["id"]="-1";
+			m_area["latitude"]="52.479761";				
+			m_area["longitude"]="62.185661";				
+			m_area["m2m_count"]=0;				
+			// run it one more time
+			add_area_entry(field,m_area);
 		}; // area box
 		/////////////////////// AREAS BOX ////////////////////
 	};
@@ -2837,6 +2847,18 @@ function update_cam_parameter(mid){
 		console.log(cmd_data);
 		con.send(JSON.stringify(cmd_data));
 	}
+};
+
+/////////////////////////////////////////// UPDATE_GEOFENCING //////////////////////////////////////////
+// triggered by: 	user changed values in sidebar for geofencing
+// arguemnts:	 	name of area + value for geofencing
+// what it does: 	gathers all info for the cam and send it to the server
+// why: 	 	to change rm behaviour
+/////////////////////////////////////////// UPDATE_GEOFENCING //////////////////////////////////////////
+function update_rule_geo(area_name,geo_fencing_on_off){
+	var cmd_data = { "cmd":"update_rule_geo", "name":area_name, "geo":geo_fencing_on_off };
+	console.log(cmd_data);
+	con.send(JSON.stringify(cmd_data));
 };
 
 /////////////////////////////////////////// UPDATE_AREA //////////////////////////////////////////
