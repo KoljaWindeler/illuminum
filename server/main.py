@@ -168,87 +168,8 @@ def recv_m2m_msg_handle(data,m2m):
 
 				# check parameter
 				if(h.hexdigest()==enc.get("client_pw")):
-					m2m.logged_in=1
-					m2m.mid=enc.get("mid")
-					m2m.state=enc.get("state")
-					m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
-					msg["ok"]=1 # logged in
-
-					# get area and account based on database value for this mid
-					m2m.account=db_r["account"]
-					m2m.area=db_r["area"]
-					m2m.alias=db_r["alias"]
-					m2m.longitude=db_r["longitude"]
-					m2m.latitude=db_r["latitude"]
-					m2m.brightness_pos=db_r["brightness_pos"]
-					m2m.color_pos=db_r["color_pos"]
-					m2m.alarm_ws=db_r["alarm_ws"]
-					m2m.frame_dist=float(db_r["frame_dist"])
-					m2m.alarm_while_streaming=db_r["alarm_while_streaming"]
-					m2m.resolution=db_r["resolution"]
-
-					
-					msg["alias"]=m2m.alias		# this goes to the m2m
-					msg["mRed"]=db_r["mRed"]
-					msg["mGreen"]=db_r["mGreen"]
-					msg["mBlue"]=db_r["mBlue"]
-					msg["alarm_while_streaming"]=db_r["alarm_while_streaming"]
-					
-
-					# add rules to the rule manager for this area if it wasn there before
-					# first check if the account is known to the rule manager at all and add it if not
-					#rint("### rm debug ###")
-					#rm.print_all()
-					#rint("### rm debug ###")
-					if(not(rm.is_account(m2m.account))):
-						#rint("account did not exist, adding")
-						new_rule_account=rule_account(m2m.account)
-						rm.add_account(new_rule_account)
-
-					# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
-					if(not(rm.is_area_in_account(m2m.account,m2m.area))):
-						#rint("area did not exist, adding")
-						new_area=area(m2m.area,m2m.account,db) # will load rule set on its own from the database
-						rm.add_area_to_account(m2m.account,new_area)
-
-						# if the area wasn in the rule manager we have to
-						# check the state, as there could be a time based trigger that wasn executed
-						# lets do it for all areas for this account (kind of a waste but its is very quick)
-						#rint("### rm debug ###")
-						#rm.print_all()
-						#rint("### rm debug ###")
-						#rint("checking for this account")
-						acc=rm.get_account(m2m.account)
-						if(acc!=0):
-							for b in acc.areas:
-								detection_state=b.check_rules(1) 	# get the state, check and use db
-								db.update_det("m2m",m2m.account,m2m.area,detection_state)
-								#rint("area "+str(b.area)+" should be")
-								#rint(detection_state)
-
-					# get detecion state based on db
-					db_r2=db.get_state(m2m.area,m2m.account)
-					m2m.detection=int(db_r2["state"])
-					msg["detection"]=m2m.detection
-
-					# search for all (active and logged-in) viewers for this client (same account)
-					info_viewer=0
-					#rint("my m2m account is "+m2m.account)
-					for viewer in server_ws.clients:
-						#rint("this client has account "+viewer.account)
-						if(viewer.account==m2m.account):
-							# introduce them to each other
-							connect_ws_m2m(m2m,viewer,1)
-							info_viewer+=1
-							# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
-					p.m2m_login(m2m,info_viewer)
-						
-					try:
-						ip=m2m.conn.getpeername()[0]
-					except:
-						ip="???"
-					db.update_last_seen_m2m(m2m.mid,ip)
-						
+					# this will set all the parameter for the m2m, makes sure that the rulemanager is loaded etc
+					set_m2m_parameter(m2m,enc,db_r,msg)
 				else:
 					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get('mid'))+"' log-in: failed","l")
 					msg["ok"]=-2 # not logged in
@@ -885,7 +806,7 @@ def recv_ws_msg_handle(data,ws):
 						msg["cmd"]="update_parameter"
 						msg["qual"]=m2m.resolution	
 						msg["alarm_while_streaming"]=m2m.alarm_while_streaming
-						msg["interval"]=in_frame_dist
+						msg["interval"]=m2m.frame_dist
 						msg_q_m2m.append((msg,m2m))
 					break;
 
@@ -1133,6 +1054,102 @@ def snd_ws_msg_dq_handle():
 #**************************************** Common  **************************************#
 #***************************************************************************************#
 # common function more than one of ws or m2m uses
+
+#******************************************************#
+# set parameter for m2m client
+def set_m2m_parameter(m2m,enc,db_r,msg):
+	global rm
+	global db
+
+	m2m.logged_in=1
+	m2m.mid=enc.get("mid")
+	m2m.state=enc.get("state")
+	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
+	msg["ok"]=1 # logged in
+
+	# get area and account based on database value for this mid
+	m2m.account=db_r["account"]
+	m2m.area=db_r["area"]
+	m2m.alias=db_r["alias"]
+	m2m.longitude=db_r["longitude"]
+	m2m.latitude=db_r["latitude"]
+	m2m.brightness_pos=db_r["brightness_pos"]
+	m2m.color_pos=db_r["color_pos"]
+	m2m.alarm_ws=db_r["alarm_ws"]
+	m2m.frame_dist=float(db_r["frame_dist"])
+	m2m.alarm_while_streaming=db_r["alarm_while_streaming"]
+	m2m.resolution=db_r["resolution"]
+
+					
+	msg["alias"]=m2m.alias		# this goes to the m2m
+	msg["mRed"]=db_r["mRed"]
+	msg["mGreen"]=db_r["mGreen"]
+	msg["mBlue"]=db_r["mBlue"]
+	msg["alarm_while_streaming"]=db_r["alarm_while_streaming"]	# TODO remove me!
+			
+	# send a second message to set the parameter, don't want to double it in the login	
+	msg2={}
+	msg2["cmd"]="update_parameter"
+	msg2["qual"]=m2m.resolution	
+	msg2["alarm_while_streaming"]=m2m.alarm_while_streaming
+	msg2["interval"]=m2m.frame_dist
+	msg_q_m2m.append((msg2,m2m))
+
+
+	# add rules to the rule manager for this area if it wasn there before
+	# first check if the account is known to the rule manager at all and add it if not
+	#rint("### rm debug ###")
+	#rm.print_all()
+	#rint("### rm debug ###")
+	if(not(rm.is_account(m2m.account))):
+		#rint("account did not exist, adding")
+		new_rule_account=rule_account(m2m.account)
+		rm.add_account(new_rule_account)
+
+	# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
+	if(not(rm.is_area_in_account(m2m.account,m2m.area))):
+		#rint("area did not exist, adding")
+		new_area=area(m2m.area,m2m.account,db) # will load rule set on its own from the database
+		rm.add_area_to_account(m2m.account,new_area)
+
+		# if the area wasn in the rule manager we have to
+		# check the state, as there could be a time based trigger that wasn executed
+		# lets do it for all areas for this account (kind of a waste but its is very quick)
+		#rint("### rm debug ###")
+		#rm.print_all()
+		#rint("### rm debug ###")
+		#rint("checking for this account")
+		acc=rm.get_account(m2m.account)
+		if(acc!=0):
+			for b in acc.areas:
+				detection_state=b.check_rules(1) 	# get the state, check and use db
+				db.update_det("m2m",m2m.account,m2m.area,detection_state)
+				#rint("area "+str(b.area)+" should be")
+				#rint(detection_state)
+
+	# get detecion state based on db
+	db_r2=db.get_state(m2m.area,m2m.account)
+	m2m.detection=int(db_r2["state"])
+	msg["detection"]=m2m.detection
+
+	# search for all (active and logged-in) viewers for this client (same account)
+	info_viewer=0
+	#rint("my m2m account is "+m2m.account)
+	for viewer in server_ws.clients:
+		#rint("this client has account "+viewer.account)
+		if(viewer.account==m2m.account):
+			# introduce them to each other
+			connect_ws_m2m(m2m,viewer,1)
+			info_viewer+=1
+			# we could send a message to the box to tell the if there is a visitor logged in ... but they don't care
+	p.m2m_login(m2m,info_viewer)
+						
+	try:
+		ip=m2m.conn.getpeername()[0]
+	except:
+		ip="???"
+	db.update_last_seen_m2m(m2m.mid,ip)
+
 
 #******************************************************#
 # when ever a websocket or a m2m device signs-on this function will be called
