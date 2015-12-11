@@ -919,7 +919,7 @@ def recv_ws_msg_handle(data,ws):
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
 			msg_q_ws.append((msg,ws))						
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted area  '"+enc.get("id")+"'","d")
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted area  '"+str(enc.get("id"))+"'","d")
 
 		## get IDs of open alerts
 		elif(enc.get("cmd")=="get_alert_ids"):
