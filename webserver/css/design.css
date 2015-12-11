@@ -87,8 +87,15 @@ a.button:active{
 	opacity:1
 }
 
+
+.material-icons.md-dark.md-inactive { color: rgba(0, 0, 0, 0.26); }
+
 div.float_left, img.float_left {
 	float: left;
+}
+
+div.float_right, img.float_right {
+	float: right;
 }
 
 div.inline_block {
@@ -104,6 +111,10 @@ div.center, img.center {
 	text-align: center!important;
 	margin-left: auto;
 	margin-right: auto;	
+}
+
+div.right {
+	text-align: right;
 }
 
 div.center_hor {
@@ -427,6 +438,15 @@ div.setup_controll_color{
 }
 /**************************************** m2m setup scroller *****************************************/
 /******************************************** MENU ***************************************************/
+select.sidebar_select{
+	width: 85%;
+	margin: 0 auto;  /* setzt den block mittig */
+	height: 30px;
+	clear: both;
+	margin-top: 5px;
+	display: block;
+}
+
 div.menu{
 	position:fixed;
 	background: rgba(143, 152, 162, 1.0);
@@ -495,6 +515,25 @@ div.hamb_l {
     height: 2px;
     margin-top: 3px;
     width: 90%;
+}
+
+div.sidebar_area_entry {
+	width:94%;
+	margin-left:3%;
+	margin-right: 3%;
+	margin-top: 10px;
+}
+
+div.sidebar_area_map {
+	margin-left: 1%;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	margin-right: 3%;
+}
+
+i.sidebar_icons {
+	cursor:pointer;
+	margin-right: 10px;
 }
 /******************************************** MENU ***************************************************/
 /*********************************** different resolutions *******************************************/
