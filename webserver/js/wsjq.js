@@ -2394,6 +2394,16 @@ function parse_sidebar_info(msg){
 		/////////////////////// CAMERA BOX ////////////////////
 
 		/////////////////////// AREAS BOX ////////////////////
+		for(var a=0;a<g_areas.length;a++){
+			var c=0;
+			for(var i=0; i<g_m2m.length; i++){
+				if(g_m2m[i]["area"]==g_areas[a]["area"]){
+					c++;
+				}
+			};
+			g_areas[a]["m2m_count"]=c;
+		};
+			
 		var field=$("#areas_box");
 		if(field.length){
 			field.text("");
@@ -2403,6 +2413,7 @@ function parse_sidebar_info(msg){
 					m_area["id"]=-1;
 					m_area["latitude"]="10.0";				
 					m_area["longitude"]="52.0";				
+					m_area["m2m_count"]=0;				
 				} else {
 					m_area=g_areas[a];
 				};
@@ -2414,6 +2425,12 @@ function parse_sidebar_info(msg){
 					area.hide();
 				}
 				field.append(area);
+
+				var area_num_m2m=$("<div></div>");
+				area_num_m2m.attr("id","m_"+m_area["id"]+"_num_m2m");
+				area_num_m2m.text(m_area["m2m_count"]);
+				area_num_m2m.hide();
+				field.append(area_num_m2m);
 
 				var area_name_edit=$("<input></input>");
 				area_name_edit.attr("id","m_"+m_area["id"]+"_name_edit");
@@ -2459,21 +2476,25 @@ function parse_sidebar_info(msg){
 					var int_area_save=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 					return function(){
 						var map=$("#m_"+int_area_save+"_map");
+						var discard=$("#m_"+int_area_save+"_map_disc");
 						var lng=$("#m_"+int_area_save+"_map_lng");
 						var lat=$("#m_"+int_area_save+"_map_lat");
 						var save=$("#m_"+int_area_save+"_map_save");
 						var edit=$("#m_"+int_area_save+"_map_edit");
+						var remove = $("#m_"+int_area_save+"_map_rem");
 						var name=$("#m_"+int_area_save+"_name");
 						var name_edit=$("#m_"+int_area_save+"_name_edit");
 						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
 							map.hide();
 							lng.hide();
+							discard.hide();
 							lat.hide();
 							save.hide();
 							name_edit.hide();
 							name.text(name_edit.val());
 							name.show();
 							edit.show();
+							remove.show();
 							update_area(int_area_save, name_edit.val(), lat.val(), lng.val());
 						};
 						if(int_area_save==-1){
@@ -2502,16 +2523,24 @@ function parse_sidebar_info(msg){
 						var save = $("#m_"+int_area_edit+"_map_save");
 						var edit = $("#m_"+int_area_edit+"_map_edit");
 						var name = $("#m_"+int_area_edit+"_name");
+						var discard=$("#m_"+int_area_edit+"_map_disc");
+						var remove = $("#m_"+int_area_edit+"_map_rem");
 						var name_edit = $("#m_"+int_area_edit+"_name_edit");
 						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
 							map.show();
 							lng.show();
+							discard.show();
 							lat.show();
 							save.show();
 							name_edit.show();
 							name.hide();
 							edit.hide();
+							remove.hide();
 							show_map(parseFloat(lat.val()),parseFloat(lng.val()),map,lat,lng);
+							$("#menu").animate({
+								scrollTop: name_edit.offset().top-($(window).height()/20)
+							},1000);
+
 						} else {
 							alert("ele not found "+int_area_edit+":"+map.length +","+ lng.length +","+ lat.length +","+ save.length +","+ edit.length);
 						}
@@ -2525,16 +2554,62 @@ function parse_sidebar_info(msg){
 				area_remove.attr("type","submit");
 				area_remove.text("remove");
 				area_remove.addClass("button");
+				if(m_area["m2m_count"]>0){
+					area_remove.addClass("button_deactivated");
+				};
 				if(m_area["id"]==-1){
 					area_remove.hide();
 				};
 				area_remove.click(function(){
 					var int_area_remove=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+					var int_area_m2m_count=m_area["m2m_count"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 					return function(){
-						alert("not yet implemented "+int_area_remove);
+						if(int_area_m2m_count==0){
+							if( confirm('Are you sure to delete this area?')){
+								remove_area(int_area_remove);
+								request_all_areas();
+							};
+						} else {
+							alert("You can not delete this area, it has still "+int_area_m2m_count+" cams in it");
+						};
 					};
 				}());
 				field.append(area_remove);
+
+				// the discard button
+				var area_discard=$("<a></a>");
+				area_discard.attr("id","m_"+m_area["id"]+"_map_disc");
+				area_discard.text("discard");
+				area_discard.addClass("button");
+				area_discard.hide();
+				area_discard.click(function(){
+					var int_area_discard=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+					return function(){
+						var map=$("#m_"+int_area_discard+"_map");
+						var lng=$("#m_"+int_area_discard+"_map_lng");
+						var lat=$("#m_"+int_area_discard+"_map_lat");
+						var save=$("#m_"+int_area_discard+"_map_save");
+						var edit=$("#m_"+int_area_discard+"_map_edit");
+						var remove = $("#m_"+int_area_discard+"_map_rem");
+						var name=$("#m_"+int_area_discard+"_name");
+						var name_edit=$("#m_"+int_area_discard+"_name_edit");
+						var discard=$("#m_"+int_area_discard+"_map_disc");
+						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
+							map.hide();
+							lng.hide();
+							lat.hide();
+							save.hide();
+							name_edit.hide();
+							name.text(name_edit.val());
+							name.show();
+							edit.show();
+							discard.hide();
+							remove.show();
+						};
+						
+					};
+				}());
+				field.append(area_discard);
 
 				// the map itsself
 				var area_map=$("<div></div>");
@@ -2549,6 +2624,18 @@ function parse_sidebar_info(msg){
 		}; // area box
 		/////////////////////// AREAS BOX ////////////////////
 	};
+};
+
+/////////////////////////////////////////// REMOVE AREA //////////////////////////////////////////
+// triggered by: 	user click
+// arguemnts:	 	id of area
+// what it does: 	send msg to server
+// why: 	 	clean account
+/////////////////////////////////////////// REMOVE AREA //////////////////////////////////////////
+function remove_area(id){
+	var cmd_data = { "cmd":"remove_area", "id":id};
+	console.log(cmd_data);
+	con.send(JSON.stringify(cmd_data));
 };
 
 /////////////////////////////////////////// UPDATE_CAM_PARAMETER //////////////////////////////////////////
