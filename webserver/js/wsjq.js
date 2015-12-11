@@ -19,6 +19,7 @@ var g_pw="";//"hui";
 // big picture info
 var g_areas=[];
 var g_m2m=[];
+var g_rules=[];
 
 // run as son as everything is loaded
 $(function(){
@@ -243,7 +244,13 @@ function parse_msg(msg_dec){
 	// parse incoming cams for sidebar
 	else if(msg_dec["cmd"]=="get_cams"){
 		parse_sidebar_info(msg_dec);
+	}
+
+	// parse incoming rules for sidebar
+	else if(msg_dec["cmd"]=="get_rules"){
+		parse_sidebar_info(msg_dec);
 	};
+
 
 }
 
@@ -2079,12 +2086,9 @@ function add_menu(){
 	menu.append(box);	
 	//////////////// user setup //////////////////
 
-	//////////////// logout setup //////////////////
-	var title=$("<div></div>");
-	title.addClass("menu_spacer");
-	title.addClass("inline_block");
-	title.click(function(){
-		return function(){
+
+	//////////////// logout //////////////////
+	var f=function(){
 			g_user="nongoodlogin";
 			g_pw="nongoodlogin";
 			c_set_login(g_user,g_pw);
@@ -2094,34 +2098,10 @@ function add_menu(){
 
 			// hide menu
 			rem_menu();
-		}
-	}());
-	menu.append(title);	
+	};
+	add_sidebar_entry(menu,f,"log-out","vpn_key");
+	//////////////// logout //////////////////
 
-	// insert name + icon block
-	var title_name_icon=$("<div></div>");
-	title_name_icon.addClass("float_left");
-	title_name_icon.addClass("menu_spacer_name");
-	title_name_icon.addClass("inline_block");
-	title.append(title_name_icon);
-
-	// insert name into title
-	var title_name=$("<div></div>");
-	title_name.text("logout");
-	title_name.addClass("menu_spacer_name");
-	title_name.addClass("float_right");
-	title_name.attr("id","logouts_title");
-	title_name_icon.append(title_name);
-
-	// insert sym into title
-	var title_sym=$("<i></i>");
-	title_sym.text("vpn_key");
-	title_sym.addClass("material-icons");
-	title_sym.addClass("float_left");
-	title_name_icon.append(title_sym);
-	//////////////// logout setup //////////////////
-
-	
 	// debug
 	/*listentry=$("<li></li>");
 	var t=$("<div></div>");
@@ -2233,7 +2213,7 @@ function toggle_menu(){
 		} else {
 			/////////// SHOW THE MENU //////////
 			// request required info
-			//request_all_rules();
+			request_all_rules();
 			request_all_cams();
 			request_all_areas();
 			// show menu
@@ -2275,6 +2255,18 @@ function request_all_areas(){
 // what it does: 
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
+function request_all_rules(){
+	var cmd_data = { "cmd":"get_rules"};
+	con.send(JSON.stringify(cmd_data));
+	g_rules=[];
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
 function request_all_cams(){
 	var cmd_data = { "cmd":"get_cams"};
 	con.send(JSON.stringify(cmd_data));
@@ -2299,9 +2291,93 @@ function parse_sidebar_info(msg){
 		for(var i=0;i<msg["m2m"].length;i++){
 			g_m2m[i]=msg["m2m"][i];
 		};
+	} else if(msg["cmd"]=="get_rules"){
+		var i=0;
+		for(var a in msg["rules"]){
+			g_rules[i]=msg["rules"][i+1];
+			i++;
+		};
 	};
 
-	if(g_areas.length && g_m2m.length){
+	if(g_areas.length && g_m2m.length && g_rules.length){
+		/////////////////////// RM BOX ////////////////////
+		var field=$("#rm_box");
+		if(field.length){
+			field.text("");
+			// go through all areas
+			for(var a=0;a<g_areas.length;a++){
+				g_areas[a]["rules"]=[];
+				g_areas[a]["subrules"]=[];
+				// join rules and adreas
+				for(var b=0;b<g_rules.length;b++){
+					if(g_rules[b]["name"]==g_areas[a]["area"]){
+						g_areas[a]["rules"]=g_rules[b]["rules"];
+						g_areas[a]["subrules"]=g_rules[b]["subrules"];
+					};
+				};
+
+				///// create header /////
+				var area_header=$("<div></div>");
+				area_header.addClass("sidebar_area_entry");
+				area_header.addClass("inline_block");
+				field.append(area_header);
+
+				// create area div
+				var area_icon_name=$("<div></div>");
+				area_icon_name.addClass("float_left");
+				area_icon_name.addClass("inline_block");
+				area_header.append(area_icon_name);				
+
+				// add icon
+				var area_icon=$("<i></i>");
+				area_icon.addClass("material-icons");
+				area_icon.addClass("float_left");
+				area_icon.text("home");
+				area_icon_name.append(area_icon);
+			
+				// first the name
+				var area_name=$("<div></div>");
+				area_name.text(g_areas[a]["area"]);
+				area_name.addClass("float_right");
+				area_name.addClass("sidebar_area_name");
+				area_icon_name.append(area_name);
+				///// create header /////
+
+				///// now the ruels /////
+				var nobody_at_my_geo_area_active=false;
+				for(var b=0;b<g_areas[a]["rules"].length;b++){
+					var rm_rule=$("<div></div>");
+					if(g_areas[a]["rules"][b][1]=="nobody_at_my_geo_area"){
+						nobody_at_my_geo_area_active=true;
+					} else {
+						rm_rule.text(g_areas[a]["rules"][b][1]+","+g_areas[a]["rules"][b][2]+","+g_areas[a]["rules"][b][3]);
+					};
+					//rm_header.append(rm_rule);
+				};
+
+				///////// GPS /////////
+				var geo_select=$("<select></select>");
+				geo_select.attr({
+					"id": g_areas[a]["area"]+"_geo_area",
+					"class":"sidebar_select"
+				});
+				geo_select.append($('<option></option>').val("1").html("geofencing active").prop('selected', nobody_at_my_geo_area_active));
+				geo_select.append($('<option></option>').val("0").html("no geofencing").prop('selected', !nobody_at_my_geo_area_active));
+				geo_select.change(function(){
+					var int_id=g_areas[a]["area"];
+					return function(){
+						var geo_fencing=$("#"+int_id+"_geo_area");
+						if(geo_fencing.length){
+							alert("to be implemented, but area "+int_id+" is set to "+geo_fencing.val());
+						};
+					}
+				}());
+				field.append(geo_select);
+				///////// GPS /////////
+			};
+		};
+		/////////////////////// RM BOX ////////////////////
+
 		/////////////////////// CAMERA BOX ////////////////////
 		// populate the camera box
 		var field=$("#cameras_box");
@@ -2335,12 +2411,6 @@ function parse_sidebar_info(msg){
 				cam_name.addClass("sidebar_area_name");
 				cam_icon_name.append(cam_name);
 
-/*				var cam=$("<div></div>");
-				cam.addClass("sidebar_area_entry");
-				cam.attr("id","m_"+g_m2m[a]["mid"]);
-				cam.text(g_m2m[a]["alias"]);
-				field.append(cam);
-*/		
 				//////////////// add fps dropdown ////////////////////
 				var fps_select=$("<select></select>");
 				fps_select.attr({
@@ -2597,6 +2667,7 @@ function parse_sidebar_info(msg){
 							edit.show();
 							remove.show();
 							update_area(int_area_save, name_edit.val(), lat.val(), lng.val());
+							request_all_rules();
 						};
 						if(int_area_save==-1){
 							request_all_areas();
@@ -3057,7 +3128,12 @@ function add_login(msg){
 			if($("#login_form").context.activeElement.value=="register"){
 				show_register();				
 			} else {
-				send_login($("#login").val(),$("#pw").val());
+				if($("#pw").val()==""){
+					$("#pw").focus();
+					event.preventDefault();
+				} else {
+					send_login($("#login").val(),$("#pw").val());
+				};
 			};
 		}
 	}());		
