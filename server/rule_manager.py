@@ -236,13 +236,13 @@ class rule_account:
 					p.rint("||"+p.bcolors.WARNING+"+ Area "+str(i)+"/"+str(len(self.areas)-1)+p.bcolors.ENDC,"r")  # -1 for ghost area
 					a.print_rules()
 				else:
-					ret_dict[a.area]=a.print_rules(dict=1)
+					ret_dict[i]=a.print_rules(dict=1)
 				i+=1
 		if(m_dict!=1):
 			p.rint("|","r")
 			p.rint("|+ my next timebased trigger event is at '"+str(self.next_ts)+"'","r")
 		else:
-			print(ret_dict)
+			return ret_dict
 	
 #*************************************#
 # an area is the third animal or second from the bottom
@@ -420,6 +420,7 @@ class area:
 	def print_rules(self,bars=1,account_info=1,print_out=1,formating=1,header=1,dict=0):
 		if(dict):
 			ret_dict={}
+			ret_dict["name"]=self.area
 			ret_dict["rules"]=[]
 			ret_dict["subrules"]=[]
 			header=0
@@ -456,7 +457,7 @@ class area:
 			## marker
 			txt=self.explain_rule(r,g,i)
 			if(dict):
-				ret_dict["rules"].append((r.id,txt,g))
+				ret_dict["rules"].append((r.id,r.conn,r.arg1,r.arg2,g))
 			else:
 				ret+=txt
 			## marker

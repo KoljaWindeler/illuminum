@@ -1014,6 +1014,12 @@ def recv_ws_msg_handle(data,ws):
 				msg["m2m"]=all_m2m4account
 			msg_q_ws.append((msg,ws))
 
+		## get all rules for acocunt
+		elif(enc.get("cmd")=="get_rules"):
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["rules"]=rm.get_account(ws.account).print_account(m_dict=1)
+			msg_q_ws.append((msg,ws))
 
 		## unsupported cmd, for WS
 		else:
