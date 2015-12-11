@@ -300,7 +300,8 @@ class area:
 	def append_rule(self, conn,arg1,arg2):
 		if(self.db!=""):
 			id=self.db.append_rule(self.account,self.area,conn,arg1,arg2)
-		self.add_rule(id,conn,arg1,arg2)
+		if(type(id) is int): 
+			self.add_rule(id,conn,arg1,arg2)
 	#############################################################
 	def add_rule(self, id, conn, arg1, arg2):
 		self.rules.append(rule(id,conn,arg1,arg2))
