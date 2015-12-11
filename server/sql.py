@@ -677,10 +677,6 @@ class sql:
 		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
-				## very very bad, but db is reversed
-				temp = latitude
-				latitude = longitude
-				longitude = temp
 				req = "SELECT COUNT(*) FROM  `alert`.`area_state`  WHERE  `id`=%s"
 				cursor.execute(req, str(id))
 				result = cursor.fetchone()
@@ -699,3 +695,20 @@ class sql:
 			ret = -1
 
 		return ret
+	#############################################################
+	def remove_area(self, id):
+		ret = -1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "DELETE FROM `area_state` WHERE `id`=%s"
+				cursor.execute(req, (str(id),) )
+				self.connection.commit()
+			ret = 0
+		except:
+			self.he()
+			ret = -1
+
+		return ret
+	
+
