@@ -2280,7 +2280,7 @@ function parse_sidebar_info(msg){
 				var fps_select=$("<select></select>");
 				fps_select.attr({
 					"id": g_m2m[a]["mid"]+"_fps_select",
-					"class":"setup_controll_scroller"
+					"class":"sidebar_select"
 				});
 				// load from message
 				var default_t=parseFloat(g_m2m[a]["frame_dist"]);
@@ -2323,7 +2323,7 @@ function parse_sidebar_info(msg){
 				var qual_select=$("<select></select>");
 				qual_select.attr({
 					"id": g_m2m[a]["mid"]+"_qual_select",
-					"class":"setup_controll_scroller"
+					"class":"sidebar_select"
 				});
 				var hd_sel=true;
 				var vga_sel=false;
@@ -2346,7 +2346,7 @@ function parse_sidebar_info(msg){
 				var alarm_while_stream_select=$("<select></select>");
 				alarm_while_stream_select.attr({
 					"id": g_m2m[a]["mid"]+"_alarm_while_stream_select",
-					"class":"setup_controll_scroller"
+					"class":"sidebar_select"
 				});
 
 				var no_alarm_sel=true;
@@ -2370,7 +2370,7 @@ function parse_sidebar_info(msg){
 				var area_select=$("<select></select>");
 				area_select.attr({
 					"id": g_m2m[a]["mid"]+"_area_select",
-					"class":"setup_controll_scroller"
+					"class":"sidebar_select"
 				});
 				
 				for(var i=0; i<g_areas.length; i++){
@@ -2393,7 +2393,10 @@ function parse_sidebar_info(msg){
 		}; // camera box
 		/////////////////////// CAMERA BOX ////////////////////
 
+		/////////////////////////////////////////////////////
 		/////////////////////// AREAS BOX ////////////////////
+		/////////////////////////////////////////////////////
+		// add m2m count to each area
 		for(var a=0;a<g_areas.length;a++){
 			var c=0;
 			for(var i=0; i<g_m2m.length; i++){
@@ -2404,10 +2407,12 @@ function parse_sidebar_info(msg){
 			g_areas[a]["m2m_count"]=c;
 		};
 			
+		// start showing the areas
 		var field=$("#areas_box");
 		if(field.length){
 			field.text("");
 			for(var a=0;a<g_areas.length+1;a++){
+				// prepare vars
 				if(a==g_areas.length){
 					m_area["area"]="";				
 					m_area["id"]=-1;
@@ -2417,20 +2422,28 @@ function parse_sidebar_info(msg){
 				} else {
 					m_area=g_areas[a];
 				};
-
-				var area=$("<div></div>");
-				area.attr("id","m_"+m_area["id"]+"_name");
-				area.text(m_area["area"]);
+				
+				// create header entry
+				var area_entry=$("<div></div>");
+				area_entry.addClass("sidebar_area_entry");
+				area_entry.addClass("inline_block");
+				field.append(area_entry);
+				
+				// first the name
+				var area_name=$("<div></div>");
+				area_name.attr("id","m_"+m_area["id"]+"_name");
+				area_name.text(m_area["area"]);
+				area_name.addClass("float_left");
 				if(m_area["id"]==-1){
-					area.hide();
+					area_name.hide();
 				}
-				field.append(area);
+				area_entry.append(area_name);
 
 				var area_num_m2m=$("<div></div>");
 				area_num_m2m.attr("id","m_"+m_area["id"]+"_num_m2m");
 				area_num_m2m.text(m_area["m2m_count"]);
 				area_num_m2m.hide();
-				field.append(area_num_m2m);
+				area_entry.append(area_num_m2m);
 
 				var area_name_edit=$("<input></input>");
 				area_name_edit.attr("id","m_"+m_area["id"]+"_name_edit");
@@ -2446,32 +2459,36 @@ function parse_sidebar_info(msg){
 					});
 				};
 
-				field.append(area_name_edit);
+				area_entry.append(area_name_edit);
 
 				var area_lat=$("<input></input>");
 				area_lat.attr("id","m_"+m_area["id"]+"_map_lat");
 				area_lat.attr("type","text");
 				area_lat.val(m_area["latitude"]); 
 				area_lat.hide();
-				field.append(area_lat);
+				area_entry.append(area_lat);
 
 				var area_lng=$("<input></input>");
 				area_lng.attr("id","m_"+m_area["id"]+"_map_lng");
 				area_lng.val(m_area["longitude"]);
 				area_lng.attr("type","text");
 				area_lng.hide();
-				field.append(area_lng);
+				area_entry.append(area_lng);
+
+
+				var area_buttons=$("<div></div>");
+				area_buttons.addClass("float_right");
+				area_buttons.addClass("inline_block");
+				area_entry.append(area_buttons);
+
 
 				// the save button
-				var area_save=$("<a></a>");
+				var area_save=$("<i></i>");
 				area_save.attr("id","m_"+m_area["id"]+"_map_save");
 				area_save.attr("type","submit");
-				area_save.addClass("button");
-				if(m_area["id"]!=-1){
-					area_save.text("save");
-				} else {
-					area_save.text("create");
-				};
+				area_save.addClass("material-icons");
+				area_save.addClass("sidebar_icons");
+				area_save.text("save");
 				area_save.click(function(){
 					var int_area_save=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 					return function(){
@@ -2503,15 +2520,17 @@ function parse_sidebar_info(msg){
 					};
 				}());
 				area_save.hide();
-				field.append(area_save);
+				area_buttons.append(area_save);
 
 				// the edit area button
-				var area_map_edit=$("<a></a>");
+				var area_map_edit=$("<i></i>");
 				area_map_edit.attr("id","m_"+m_area["id"]+"_map_edit");
+				area_map_edit.addClass("material-icons");
+				area_map_edit.addClass("sidebar_icons");
 				if(m_area["id"]!=-1){
-					area_map_edit.text("Edit");
+					area_map_edit.text("mode_edit");
 				} else {
-					area_map_edit.text("Locate");
+					area_map_edit.text("location_searching");
 				}
 				area_map_edit.addClass("button");
 				area_map_edit.click(function(){
@@ -2528,9 +2547,9 @@ function parse_sidebar_info(msg){
 						var name_edit = $("#m_"+int_area_edit+"_name_edit");
 						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
 							map.show();
-							lng.show();
+							//lng.show();
+							//lat.show();
 							discard.show();
-							lat.show();
 							save.show();
 							name_edit.show();
 							name.hide();
@@ -2546,16 +2565,17 @@ function parse_sidebar_info(msg){
 						}
 					};
 				}());
-				field.append(area_map_edit);
+				area_buttons.append(area_map_edit);
 
 				// the remove button
-				var area_remove=$("<a></a>");
+				var area_remove=$("<i></i>");
 				area_remove.attr("id","m_"+m_area["id"]+"_map_rem");
-				area_remove.attr("type","submit");
-				area_remove.text("remove");
-				area_remove.addClass("button");
+				area_remove.text("delete");
+				area_remove.addClass("material-icons");
+				area_remove.addClass("sidebar_icons");
 				if(m_area["m2m_count"]>0){
-					area_remove.addClass("button_deactivated");
+					area_remove.addClass("md-dark");
+					area_remove.addClass("md-inactive");
 				};
 				if(m_area["id"]==-1){
 					area_remove.hide();
@@ -2574,13 +2594,14 @@ function parse_sidebar_info(msg){
 						};
 					};
 				}());
-				field.append(area_remove);
+				area_buttons.append(area_remove);
 
 				// the discard button
-				var area_discard=$("<a></a>");
+				var area_discard=$("<i></i>");
 				area_discard.attr("id","m_"+m_area["id"]+"_map_disc");
-				area_discard.text("discard");
-				area_discard.addClass("button");
+				area_discard.text("clear");
+				area_discard.addClass("sidebar_icons");
+				area_discard.addClass("material-icons");
 				area_discard.hide();
 				area_discard.click(function(){
 					var int_area_discard=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
@@ -2599,21 +2620,27 @@ function parse_sidebar_info(msg){
 							lng.hide();
 							lat.hide();
 							save.hide();
-							name_edit.hide();
-							name.text(name_edit.val());
-							name.show();
+							if(int_area_discard!=-1){	
+								name_edit.hide();
+								name.show();
+							} else {
+								name_edit.val("Enter area name");
+							};
 							edit.show();
 							discard.hide();
-							remove.show();
+							if(int_area_discard!=-1){
+								remove.show();
+							};
 						};
 						
 					};
 				}());
-				field.append(area_discard);
+				area_buttons.append(area_discard);
 
 				// the map itsself
 				var area_map=$("<div></div>");
 				area_map.attr("id","m_"+m_area["id"]+"_map");
+				area_map.addClass("sidebar_area_map");
 				area_map.css("height",350);
 				area_map.hide();
 				field.append(area_map);
