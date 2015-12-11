@@ -22,6 +22,8 @@ var g_m2m=[];
 
 // run as son as everything is loaded
 $(function(){
+	$('head').append('<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" type="text/css" />');
+	
 	c_set_callback();
 	var l=$("<div></div>");
 	l.addClass("center_hor").addClass("center").attr("id","welcome_loading");
@@ -2017,54 +2019,29 @@ function add_menu(){
 	menu.attr("id","menu");
 	menu.addClass("menu");
 	
-	//////////////// rulemanager //////////////////
-	var title=$("<div></div>");
-	title.addClass("menu_spacer");
-	title.text("+ rule-manager");
-	title.attr("id","rm_title");
-	title.click(function(){
+	//////////////// rm setup //////////////////
+	var f=function(){
 		var box=$("#rm_box");
 		if(box.length){
 			box.toggle();	
-			var title=$("#rm_title");
-			if(title.length){
-				if(box.is(":visible")){
-					title.text(title.text().replace("+","-"));
-				} else {
-					title.text(title.text().replace("-","+"));
-				};
-			};
 		}
-	});
-	menu.append(title);
+	};
+	add_sidebar_entry(menu,f,"rules","style");
 	var box=$("<div></div>");
 	box.attr("id","rm_box");
 	box.text("here is a lot of content needed, like a the current rm stuff per area and an area where we can add new rules");
 	box.hide();
 	menu.append(box);	
-	//////////////// rulemanager //////////////////
-
+	//////////////// rm setup //////////////////
 
 	//////////////// area setup //////////////////
-	var title=$("<div></div>");
-	title.addClass("menu_spacer");
-	title.text("+ areas");
-	title.attr("id","areas_title");
-	title.click(function(){
+	var f=function(){
 		var box=$("#areas_box");
 		if(box.length){
 			box.toggle();	
-			var title=$("#areas_title");
-			if(title.length){
-				if(box.is(":visible")){
-					title.text(title.text().replace("+","-"));
-				} else {
-					title.text(title.text().replace("-","+"));
-				};
-			};
 		}
-	});
-	menu.append(title);
+	};
+	add_sidebar_entry(menu,f,"areas","home");
 	var box=$("<div></div>");
 	box.attr("id","areas_box");
 	box.text("here is a lot of content needed, like a list of all aereas, how to set the coordiantes per cam and how to create and delete them");
@@ -2072,27 +2049,14 @@ function add_menu(){
 	menu.append(box);	
 	//////////////// area setup //////////////////
 
-
 	//////////////// camera setup //////////////////
-	var title=$("<div></div>");
-	title.addClass("menu_spacer");
-	title.text("+ cameras");
-	title.attr("id","cameras_title");
-	title.click(function(){
+	var f=function(){
 		var box=$("#cameras_box");
 		if(box.length){
 			box.toggle();	
-			var title=$("#cameras_title");
-			if(title.length){
-				if(box.is(":visible")){
-					title.text(title.text().replace("+","-"));
-				} else {
-					title.text(title.text().replace("-","+"));
-				};
-			};
 		}
-	});
-	menu.append(title);
+	};
+	add_sidebar_entry(menu,f,"cameras","camera_enhance");
 	var box=$("<div></div>");
 	box.attr("id","cameras_box");
 	box.text("here is a lot of content needed, like a list of all cameras, if they stream in HD or vga, if there should be alerts during stream, what area thez belog to");
@@ -2100,12 +2064,25 @@ function add_menu(){
 	menu.append(box);	
 	//////////////// camera setup //////////////////
 
-	
-	//////////////// logout //////////////////
+	//////////////// user setup //////////////////
+	var f=function(){
+		var box=$("#users_box");
+		if(box.length){
+			box.toggle();	
+		}
+	};
+	add_sidebar_entry(menu,f,"users","group");
+	var box=$("<div></div>");
+	box.attr("id","users_box");
+	box.text("here is a lot of content needed, like a list of all users, if they stream in HD or vga, if there should be alerts during stream, what area thez belog to");
+	box.hide();
+	menu.append(box);	
+	//////////////// user setup //////////////////
+
+	//////////////// logout setup //////////////////
 	var title=$("<div></div>");
 	title.addClass("menu_spacer");
-	title.addClass("menu_spacer_last");
-	title.text("log-out");
+	title.addClass("inline_block");
 	title.click(function(){
 		return function(){
 			g_user="nongoodlogin";
@@ -2119,9 +2096,32 @@ function add_menu(){
 			rem_menu();
 		}
 	}());
-	menu.append(title);
-	//////////////// logout //////////////////
+	menu.append(title);	
 
+	// insert name + icon block
+	var title_name_icon=$("<div></div>");
+	title_name_icon.addClass("float_left");
+	title_name_icon.addClass("menu_spacer_name");
+	title_name_icon.addClass("inline_block");
+	title.append(title_name_icon);
+
+	// insert name into title
+	var title_name=$("<div></div>");
+	title_name.text("logout");
+	title_name.addClass("menu_spacer_name");
+	title_name.addClass("float_right");
+	title_name.attr("id","logouts_title");
+	title_name_icon.append(title_name);
+
+	// insert sym into title
+	var title_sym=$("<i></i>");
+	title_sym.text("vpn_key");
+	title_sym.addClass("material-icons");
+	title_sym.addClass("float_left");
+	title_name_icon.append(title_sym);
+	//////////////// logout setup //////////////////
+
+	
 	// debug
 	/*listentry=$("<li></li>");
 	var t=$("<div></div>");
@@ -2167,6 +2167,43 @@ function add_menu(){
 	hamb.insertAfter("#clients");
 	/******* add menu ******/
 };
+
+/////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
+// triggered by:	add_menu()
+// arguemnts:	 	
+// what it does: 	shows an entry
+// why: 	 	GUI
+/////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
+function add_sidebar_entry(menu,f,text,icon){
+	//////////////// add title //////////////////
+	var title=$("<div></div>");
+	title.addClass("menu_spacer");
+	title.addClass("inline_block");
+	title.click(f);
+	menu.append(title);	
+
+	// insert name + icon block
+	var title_name_icon=$("<div></div>");
+	title_name_icon.addClass("float_left");
+	title_name_icon.addClass("menu_spacer_name");
+	title_name_icon.addClass("inline_block");
+	title.append(title_name_icon);
+
+	// insert name into title
+	var title_name=$("<div></div>");
+	title_name.text(text);
+	title_name.addClass("menu_spacer_name");
+	title_name.addClass("float_right");
+	title_name.attr("id","users_title");
+	title_name_icon.append(title_name);
+
+	// insert sym into title
+	var title_sym=$("<i></i>");
+	title_sym.text(icon);
+	title_sym.addClass("material-icons");
+	title_sym.addClass("float_left");
+	title_name_icon.append(title_sym);
+}
 
 /////////////////////////////////////////// TOGGLE_MENU //////////////////////////////////////////
 // triggered by:	user click
@@ -2444,8 +2481,8 @@ function parse_sidebar_info(msg){
 				if(a==g_areas.length){
 					m_area["area"]="";				
 					m_area["id"]=-1;
-					m_area["latitude"]="10.0";				
-					m_area["longitude"]="52.0";				
+					m_area["latitude"]="52.479761";				
+					m_area["longitude"]="62.185661";				
 					m_area["m2m_count"]=0;				
 				} else {
 					m_area=g_areas[a];
