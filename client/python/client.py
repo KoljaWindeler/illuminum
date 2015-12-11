@@ -370,8 +370,6 @@ def parse_incoming_msg(con):
 					light.l.d_g = enc.get("mGreen",0)
 					light.l.d_b = enc.get("mBlue",0)
 
-					cam.alarm_while_streaming = enc.get("alarm_while_streaming",1)
-
 					print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
 					print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("detection")))
 					trigger.s.set_detection(int(enc.get("detection")))
