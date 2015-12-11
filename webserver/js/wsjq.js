@@ -2271,11 +2271,39 @@ function parse_sidebar_info(msg){
 		if(field.length){
 			field.text("");
 			for(var a=0;a<g_m2m.length;a++){
-				var cam=$("<div></div>");
+
+				// create header
+				var cam_header=$("<div></div>");
+				cam_header.addClass("sidebar_area_entry");
+				cam_header.addClass("inline_block");
+				field.append(cam_header);
+
+				// create cam div
+				var cam_icon_name=$("<div></div>");
+				cam_icon_name.addClass("float_left");
+				cam_icon_name.addClass("inline_block");
+				cam_header.append(cam_icon_name);				
+
+				// add icon
+				var cam_icon=$("<i></i>");
+				cam_icon.addClass("material-icons");
+				cam_icon.addClass("float_left");
+				cam_icon.text("camera_enhance");
+				cam_icon_name.append(cam_icon);
+			
+				// first the name
+				var cam_name=$("<div></div>");
+				cam_name.text(g_m2m[a]["alias"]);
+				cam_name.addClass("float_right");
+				cam_name.addClass("sidebar_area_name");
+				cam_icon_name.append(cam_name);
+
+/*				var cam=$("<div></div>");
+				cam.addClass("sidebar_area_entry");
 				cam.attr("id","m_"+g_m2m[a]["mid"]);
 				cam.text(g_m2m[a]["alias"]);
 				field.append(cam);
-		
+*/		
 				//////////////// add fps dropdown ////////////////////
 				var fps_select=$("<select></select>");
 				fps_select.attr({
@@ -2428,16 +2456,34 @@ function parse_sidebar_info(msg){
 				area_entry.addClass("sidebar_area_entry");
 				area_entry.addClass("inline_block");
 				field.append(area_entry);
-				
+
+				// create home div
+				var area_icon_name=$("<div></div>");
+				area_icon_name.addClass("float_left");
+				area_icon_name.addClass("inline_block");
+				area_entry.append(area_icon_name);				
+
+				// add icon
+				var area_icon=$("<i></i>");
+				area_icon.addClass("material-icons");
+				area_icon.addClass("float_left");
+				area_icon.text("home");
+				if(m_area["id"]==-1){
+					area_icon.text("add");
+				};
+				area_icon_name.append(area_icon);
+			
 				// first the name
 				var area_name=$("<div></div>");
 				area_name.attr("id","m_"+m_area["id"]+"_name");
 				area_name.text(m_area["area"]);
-				area_name.addClass("float_left");
+				area_name.addClass("float_right");
+				area_name.addClass("sidebar_area_name");
 				if(m_area["id"]==-1){
 					area_name.hide();
 				}
-				area_entry.append(area_name);
+				area_icon_name.append(area_name);
+
 
 				var area_num_m2m=$("<div></div>");
 				area_num_m2m.attr("id","m_"+m_area["id"]+"_num_m2m");
@@ -2448,6 +2494,7 @@ function parse_sidebar_info(msg){
 				var area_name_edit=$("<input></input>");
 				area_name_edit.attr("id","m_"+m_area["id"]+"_name_edit");
 				area_name_edit.val(m_area["area"]);
+				area_name_edit.addClass("sidebar_area_name");
 				if(m_area["id"]!=-1){
 					area_name_edit.hide();
 				} else {

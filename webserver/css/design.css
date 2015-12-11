@@ -517,6 +517,18 @@ div.hamb_l {
     width: 90%;
 }
 
+div.sidebar_area_name {
+	margin-left:5px;
+	margin-top: 3px;
+}
+
+input.sidebar_area_name {
+	margin-left:5px;
+	margin-top: 0px;
+	width: 50%;
+	height: 20px;
+}
+
 div.sidebar_area_entry {
 	width:94%;
 	margin-left:3%;
