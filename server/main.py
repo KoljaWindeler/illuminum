@@ -824,9 +824,27 @@ def recv_ws_msg_handle(data,ws):
 
 		## set updated area parameter
 		elif(enc.get("cmd")=="update_area"):
+			area_id=enc.get("id","0")
+			area_old_name=""
+			# 1. get old name of area id
+			areas=db.get_areas_for_account(ws.account)
+			for a in areas:
+				if(str(a["id"])==str(area_id)):
+					area_old_name=a["area"]
+					break
+
+			# 2. save new parameter
+			for m2m in server_m2m.clients:
+				if(m2m.area==area_old_name):
+					# it might sound rough, but we have to reloader all the rules, 
+					# change the area, inform all clients. If we just disconnect to box
+					# it will redial in in 3 sec and everything will run on its own
+					server_m2m.disconnect(m2m)
+
+			# 3. update database
 			db.update_area(enc.get("id",0), enc.get("name",""), enc.get("latitude","0.0"), enc.get("longitude","0.0"), ws.account)
 
-			# send ok response to ws
+			# 4. send ok response to ws
 			msg={}
 			msg["cmd"]=enc.get("cmd")
 			msg["ok"]=1
@@ -893,6 +911,15 @@ def recv_ws_msg_handle(data,ws):
 			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] checking as somebody moved for this account","r")
 			rm_check_rules(ws.account,ws.login,1)	# check and use db
 			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(time.time()-t),"r")
+
+		## remove an area
+		elif(enc.get("cmd")=="remove_area"):
+			db.remove_area(enc.get("id"));
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=1
+			msg_q_ws.append((msg,ws))						
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted area  '"+enc.get("id")+"'","d")
 
 		## get IDs of open alerts
 		elif(enc.get("cmd")=="get_alert_ids"):
