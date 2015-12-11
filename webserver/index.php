@@ -19,6 +19,7 @@ if(!empty($output[0])){	// python serer is running add everything
 		<script src="js/fancyBox/jquery.fancybox.pack.js"></script>
 
 		<link rel="stylesheet" href="css/jquery-ui.css"/>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 		<link rel="stylesheet" href="js/fancyBox/jquery.fancybox.css" type="text/css" media="screen" />';
 	// add ws display stuff
 	$body.='<br>';
