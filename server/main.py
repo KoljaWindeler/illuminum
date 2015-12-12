@@ -1027,18 +1027,6 @@ def recv_ws_msg_handle(data,ws):
 			msg={}
 			msg["ok"]=-1
 
-			# 1. check that account is online or add it
-			if(not(rm.is_account(ws.account))):
-				#rint("account did not exist, adding")
-				new_rule_account=rule_account(ws.account)
-				rm.add_account(new_rule_account)
-
-			# 2. then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
-			if(not(rm.is_area_in_account(ws.account,t_area))):
-				#rint("area did not exist, adding")
-				new_area=area(t_area,ws.account,db) # will load rule set on its own from the database
-				rm.add_area_to_account(ws.account,new_area)
-
 			# 3. no go, get it
 			rules=rm.get_account(ws.account).get_area(t_area).rules
 
@@ -1049,28 +1037,26 @@ def recv_ws_msg_handle(data,ws):
 					id=rule.id
 					break
 			
-			print(str(id)+"/"+str(enc.get("geo","0")))
-
-			# add rule, only if not existing
+			# 5.1. add rule, only if not existing
 			if(str(enc.get("geo","0"))==str("1") and id==-1):
 				rm.get_account(ws.account).get_area(t_area).append_rule("nobody_at_my_geo_area",0,0)
 				msg["ok"]=1
-			# remove rule, only if existing
+			# 5.2. remove rule, only if existing
 			elif(str(enc.get("geo","1"))==str("0") and id!=-1):
 				rm.get_account(ws.account).get_area(t_area).rm_rule(id)
 				msg["ok"]=1
 
-			# send response
+			# 6. send response
 			msg["cmd"]=enc.get("cmd")
 			msg_q_ws.append((msg,ws))
 		
-			# resend rules to refresh user dash
+			# 7. resend rules to refresh user dash
 			msg={}
 			msg["cmd"]="get_rules"
 			msg["rules"]=rm.get_account(ws.account).print_account(m_dict=1)
 			msg_q_ws.append((msg,ws))
 
-			# rescan all rules to update booble
+			# 8. rescan all rules to update booble
 			rm_check_rules(ws.account,ws.login,0)
 
 
@@ -1552,7 +1538,7 @@ db=sql()
 db.connect()
 
 # our rule set maanger for all clients. Argument is the callback function
-rm = rule_manager()
+rm = rule_manager(db)
 
 # debug timing
 debug_in=debug("in")

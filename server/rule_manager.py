@@ -85,14 +85,12 @@ import time, datetime, p, calendar
 # it can also check/add a area to an account
 #*************************************#
 class rule_manager:
-	def __init__(self):
+	def __init__(self,db=""):
 		self.data = []
-	
-		# create one empty backup entry
-		new_rule_account=rule_account("")
-		self.add_account(new_rule_account)
+		self.db=db
 	#############################################################	
 	def add_account(self, account):
+		account.db=self.db
 		self.data.append(account)
 	#############################################################	
 	def is_account(self, account):
@@ -150,14 +148,15 @@ class rule_manager:
 					p_rule.state=0
 					break
 	#############################################################
-	def get_account(self,account):
+	def get_account(self,account,create=1):
 		for a in self.data:
 			if(a.account==account):
 				return a
-		# if we haven't return now, we haven't found the account, return backup
-		for a in self.data:
-			if(a.account==""):
-				return a
+		# if we haven't return now, we haven't found the account, create new if allowed
+		if(create):
+			new_rule_account=rule_account(account)
+			self.add_account(new_rule_account)
+			return new_rule_account
 		# this should never happen
 		return 0	
 
@@ -173,12 +172,10 @@ class rule_account:
 		self.next_ts = -1
 		self.day_last_check=-1
 		self.areas = []
-
-		# create one empty backup entry
-		new_area=area("", account, "") # will load rule set on its own from the database
-		self.add_area(new_area)
+		self.db=""
 	#############################################################
 	def add_area(self, area):
+		area.db=self.db
 		self.areas.append(area)
 		self.update_next_ts()
 	#############################################################
@@ -211,16 +208,15 @@ class rule_account:
 				break
 		return 0
 	#############################################################
-	def get_area(self,area):
+	def get_area(self,area_name, create=1):
 		for a in self.areas:
-			if(a.area==area):
+			if(a.area==area_name):
 				return a
-				break
-		# if we reach this point, we haven't found the area, return the empty backup
-		for a in self.areas:
-			if(a.area==""):
-				return a
-				break
+		# if we reach this point, we haven't found the area, return a new one
+		if(create):
+			new_area=area(area_name, self.account) # will load rule set on its own from the database
+			self.add_area(new_area)
+			return new_area
 		return 0
 	#############################################################
 	def print_account(self,m_dict=0):
@@ -249,7 +245,7 @@ class rule_account:
 # it hold the rules, and sub_rules and can check them
 #*************************************#
 class area:
-	def __init__(self, area, account, db):
+	def __init__(self, area, account, db=""):
 		self.area = area
 		self.account = account
 		self.db = db
@@ -324,13 +320,13 @@ class area:
 		else:
 			db_rules=[]
 			db_sub_rules=[]
-		#print(db_rules)
+		#rint(db_rules)
 		# add them
 		for r in db_rules:
 			self.add_rule(r["id"],r["conn"],r["arg1"],r["arg2"])
 		for r in db_sub_rules:
 			self.add_sub_rule(r['id'],r['conn'],r['arg1'],r['arg2'])
-		# print for debugging
+		# rint for debugging
 		#self.print_rules()
 		return 0
 	#############################################################
