@@ -2155,252 +2155,447 @@ function add_menu(){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 function add_area_entry(field,m_area){
-				// create header entry
-				var area_entry=$("<div></div>");
-				area_entry.addClass("sidebar_area_entry");
-				area_entry.addClass("inline_block");
-				field.append(area_entry);
+	// create header entry
+	var area_entry=$("<div></div>");
+	area_entry.addClass("sidebar_area_entry");
+	area_entry.addClass("inline_block");
+	field.append(area_entry);
 
-				// create home div
-				var area_icon_name=$("<div></div>");
-				area_icon_name.addClass("float_left");
-				area_icon_name.addClass("inline_block");
-				area_entry.append(area_icon_name);				
+	// create home div
+	var area_icon_name=$("<div></div>");
+	area_icon_name.addClass("float_left");
+	area_icon_name.addClass("inline_block");
+	area_entry.append(area_icon_name);				
 
-				// add icon
-				var area_icon=$("<i></i>");
-				area_icon.addClass("material-icons");
-				area_icon.addClass("float_left");
-				area_icon.text("home");
-				if(m_area["id"]==-1){
-					area_icon.text("add");
+	// add icon
+	var area_icon=$("<i></i>");
+	area_icon.addClass("material-icons");
+	area_icon.addClass("float_left");
+	area_icon.text("home");
+	if(m_area["id"]==-1){
+		area_icon.text("add");
+	};
+	area_icon_name.append(area_icon);
+
+	// first the name
+	var area_name=$("<div></div>");
+	area_name.attr("id","m_"+m_area["id"]+"_name");
+	area_name.text(m_area["area"]);
+	area_name.addClass("float_right");
+	area_name.addClass("sidebar_area_name");
+	if(m_area["id"]==-1){
+		area_name.hide();
+	}
+	area_icon_name.append(area_name);
+
+
+	var area_num_m2m=$("<div></div>");
+	area_num_m2m.attr("id","m_"+m_area["id"]+"_num_m2m");
+	area_num_m2m.text(m_area["m2m_count"]);
+	area_num_m2m.hide();
+	area_entry.append(area_num_m2m);
+
+	var area_name_edit=$("<input></input>");
+	area_name_edit.attr("id","m_"+m_area["id"]+"_name_edit");
+	area_name_edit.val(m_area["area"]);
+	area_name_edit.addClass("sidebar_area_name");
+	if(m_area["id"]!=-1){
+		area_name_edit.hide();
+	} else {
+		area_name_edit.val("Enter area name");
+		area_name_edit.focus(function(){
+			if($(this).val()=="Enter area name"){
+				$(this).val("");
+			}
+		});
+	};
+
+	area_entry.append(area_name_edit);
+
+	var area_lat=$("<input></input>");
+	area_lat.attr("id","m_"+m_area["id"]+"_map_lat");
+	area_lat.attr("type","text");
+	area_lat.val(m_area["latitude"]); 
+	area_lat.hide();
+	area_entry.append(area_lat);
+
+	var area_lng=$("<input></input>");
+	area_lng.attr("id","m_"+m_area["id"]+"_map_lng");
+	area_lng.val(m_area["longitude"]);
+	area_lng.attr("type","text");
+	area_lng.hide();
+	area_entry.append(area_lng);
+
+
+	var area_buttons=$("<div></div>");
+	area_buttons.addClass("float_right");
+	area_buttons.addClass("inline_block");
+	area_entry.append(area_buttons);
+
+
+	// the save button
+	var area_save=$("<i></i>");
+	area_save.attr("id","m_"+m_area["id"]+"_map_save");
+	area_save.attr("type","submit");
+	area_save.addClass("material-icons");
+	area_save.addClass("sidebar_icons");
+	area_save.text("save");
+	area_save.click(function(){
+		var int_area_save=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			var map=$("#m_"+int_area_save+"_map");
+			var discard=$("#m_"+int_area_save+"_map_disc");
+			var lng=$("#m_"+int_area_save+"_map_lng");
+			var lat=$("#m_"+int_area_save+"_map_lat");
+			var save=$("#m_"+int_area_save+"_map_save");
+			var edit=$("#m_"+int_area_save+"_map_edit");
+			var remove = $("#m_"+int_area_save+"_map_rem");
+			var name=$("#m_"+int_area_save+"_name");
+			var name_edit=$("#m_"+int_area_save+"_name_edit");
+			if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
+				map.hide();
+				lng.hide();
+				discard.hide();
+				lat.hide();
+				save.hide();
+				name_edit.hide();
+				name.text(name_edit.val());
+				name.show();
+				edit.show();
+				remove.show();
+				update_area(int_area_save, name_edit.val(), lat.val(), lng.val());
+				request_all_rules();
+			};
+			if(int_area_save==-1){
+				request_all_areas();
+			}; 
+		};
+	}());
+	area_save.hide();
+	area_buttons.append(area_save);
+
+	// the edit area button
+	var area_map_edit=$("<i></i>");
+	area_map_edit.attr("id","m_"+m_area["id"]+"_map_edit");
+	area_map_edit.addClass("material-icons");
+	area_map_edit.addClass("sidebar_icons");
+	if(m_area["id"]!=-1){
+		area_map_edit.text("mode_edit");
+	} else {
+		area_map_edit.text("location_searching");
+	}
+	area_map_edit.addClass("button");
+	area_map_edit.click(function(){
+		var int_area_edit=m_area["id"];
+		return function(){
+			var map = $("#m_"+int_area_edit+"_map");
+			var lng = $("#m_"+int_area_edit+"_map_lng");
+			var lat = $("#m_"+int_area_edit+"_map_lat");
+			var save = $("#m_"+int_area_edit+"_map_save");
+			var edit = $("#m_"+int_area_edit+"_map_edit");
+			var name = $("#m_"+int_area_edit+"_name");
+			var discard=$("#m_"+int_area_edit+"_map_disc");
+			var remove = $("#m_"+int_area_edit+"_map_rem");
+			var name_edit = $("#m_"+int_area_edit+"_name_edit");
+			if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
+				map.show();
+				//lng.show();
+				//lat.show();
+				discard.show();
+				save.show();
+				name_edit.show();
+				name.hide();
+				edit.hide();
+				remove.hide();
+				show_map(parseFloat(lat.val()),parseFloat(lng.val()),map,lat,lng);
+				$("#menu").animate({
+					scrollTop: name_edit.offset().top-($(window).height()/20)
+				},1000);
+
+			} else {
+				alert("ele not found "+int_area_edit+":"+map.length +","+ lng.length +","+ lat.length +","+ save.length +","+ edit.length);
+			}
+		};
+	}());
+	area_buttons.append(area_map_edit);
+
+	// the remove button
+	var area_remove=$("<i></i>");
+	area_remove.attr("id","m_"+m_area["id"]+"_map_rem");
+	area_remove.text("delete");
+	area_remove.addClass("material-icons");
+	area_remove.addClass("sidebar_icons");
+	if(m_area["m2m_count"]>0){
+		area_remove.addClass("md-dark");
+		area_remove.addClass("md-inactive");
+	};
+	if(m_area["id"]==-1){
+		area_remove.hide();
+	};
+	area_remove.click(function(){
+		var int_area_remove=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		var int_area_m2m_count=m_area["m2m_count"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			if(int_area_m2m_count==0){
+				if( confirm('Are you sure to delete this area?')){
+					remove_area(int_area_remove);
+					request_all_areas();
 				};
-				area_icon_name.append(area_icon);
+			} else {
+				alert("You can not delete this area, it has still "+int_area_m2m_count+" cams in it");
+			};
+		};
+	}());
+	area_buttons.append(area_remove);
+
+	// the discard button
+	var area_discard=$("<i></i>");
+	area_discard.attr("id","m_"+m_area["id"]+"_map_disc");
+	area_discard.text("clear");
+	area_discard.addClass("sidebar_icons");
+	area_discard.addClass("material-icons");
+	area_discard.hide();
+	area_discard.click(function(){
+		var int_area_discard=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			var map=$("#m_"+int_area_discard+"_map");
+			var lng=$("#m_"+int_area_discard+"_map_lng");
+			var lat=$("#m_"+int_area_discard+"_map_lat");
+			var save=$("#m_"+int_area_discard+"_map_save");
+			var edit=$("#m_"+int_area_discard+"_map_edit");
+			var remove = $("#m_"+int_area_discard+"_map_rem");
+			var name=$("#m_"+int_area_discard+"_name");
+			var name_edit=$("#m_"+int_area_discard+"_name_edit");
+			var discard=$("#m_"+int_area_discard+"_map_disc");
+			if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
+				map.hide();
+				lng.hide();
+				lat.hide();
+				save.hide();
+				if(int_area_discard!=-1){	
+					name_edit.hide();
+					name.show();
+				} else {
+					name_edit.val("Enter area name");
+				};
+				edit.show();
+				discard.hide();
+				if(int_area_discard!=-1){
+					remove.show();
+				};
+			};
 			
-				// first the name
-				var area_name=$("<div></div>");
-				area_name.attr("id","m_"+m_area["id"]+"_name");
-				area_name.text(m_area["area"]);
-				area_name.addClass("float_right");
-				area_name.addClass("sidebar_area_name");
-				if(m_area["id"]==-1){
-					area_name.hide();
-				}
-				area_icon_name.append(area_name);
+		};
+	}());
+	area_buttons.append(area_discard);
 
+	// the map itsself
+	var area_map=$("<div></div>");
+	area_map.attr("id","m_"+m_area["id"]+"_map");
+	area_map.addClass("sidebar_area_map");
+	area_map.css("height",350);
+	area_map.hide();
+	field.append(area_map);
 
-				var area_num_m2m=$("<div></div>");
-				area_num_m2m.attr("id","m_"+m_area["id"]+"_num_m2m");
-				area_num_m2m.text(m_area["m2m_count"]);
-				area_num_m2m.hide();
-				area_entry.append(area_num_m2m);
-
-				var area_name_edit=$("<input></input>");
-				area_name_edit.attr("id","m_"+m_area["id"]+"_name_edit");
-				area_name_edit.val(m_area["area"]);
-				area_name_edit.addClass("sidebar_area_name");
-				if(m_area["id"]!=-1){
-					area_name_edit.hide();
-				} else {
-					area_name_edit.val("Enter area name");
-					area_name_edit.focus(function(){
-						if($(this).val()=="Enter area name"){
-							$(this).val("");
-						}
-					});
-				};
-
-				area_entry.append(area_name_edit);
-
-				var area_lat=$("<input></input>");
-				area_lat.attr("id","m_"+m_area["id"]+"_map_lat");
-				area_lat.attr("type","text");
-				area_lat.val(m_area["latitude"]); 
-				area_lat.hide();
-				area_entry.append(area_lat);
-
-				var area_lng=$("<input></input>");
-				area_lng.attr("id","m_"+m_area["id"]+"_map_lng");
-				area_lng.val(m_area["longitude"]);
-				area_lng.attr("type","text");
-				area_lng.hide();
-				area_entry.append(area_lng);
-
-
-				var area_buttons=$("<div></div>");
-				area_buttons.addClass("float_right");
-				area_buttons.addClass("inline_block");
-				area_entry.append(area_buttons);
-
-
-				// the save button
-				var area_save=$("<i></i>");
-				area_save.attr("id","m_"+m_area["id"]+"_map_save");
-				area_save.attr("type","submit");
-				area_save.addClass("material-icons");
-				area_save.addClass("sidebar_icons");
-				area_save.text("save");
-				area_save.click(function(){
-					var int_area_save=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
-					return function(){
-						var map=$("#m_"+int_area_save+"_map");
-						var discard=$("#m_"+int_area_save+"_map_disc");
-						var lng=$("#m_"+int_area_save+"_map_lng");
-						var lat=$("#m_"+int_area_save+"_map_lat");
-						var save=$("#m_"+int_area_save+"_map_save");
-						var edit=$("#m_"+int_area_save+"_map_edit");
-						var remove = $("#m_"+int_area_save+"_map_rem");
-						var name=$("#m_"+int_area_save+"_name");
-						var name_edit=$("#m_"+int_area_save+"_name_edit");
-						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
-							map.hide();
-							lng.hide();
-							discard.hide();
-							lat.hide();
-							save.hide();
-							name_edit.hide();
-							name.text(name_edit.val());
-							name.show();
-							edit.show();
-							remove.show();
-							update_area(int_area_save, name_edit.val(), lat.val(), lng.val());
-							request_all_rules();
-						};
-						if(int_area_save==-1){
-							request_all_areas();
-						}; 
-					};
-				}());
-				area_save.hide();
-				area_buttons.append(area_save);
-
-				// the edit area button
-				var area_map_edit=$("<i></i>");
-				area_map_edit.attr("id","m_"+m_area["id"]+"_map_edit");
-				area_map_edit.addClass("material-icons");
-				area_map_edit.addClass("sidebar_icons");
-				if(m_area["id"]!=-1){
-					area_map_edit.text("mode_edit");
-				} else {
-					area_map_edit.text("location_searching");
-				}
-				area_map_edit.addClass("button");
-				area_map_edit.click(function(){
-					var int_area_edit=m_area["id"];
-					return function(){
-						var map = $("#m_"+int_area_edit+"_map");
-						var lng = $("#m_"+int_area_edit+"_map_lng");
-						var lat = $("#m_"+int_area_edit+"_map_lat");
-						var save = $("#m_"+int_area_edit+"_map_save");
-						var edit = $("#m_"+int_area_edit+"_map_edit");
-						var name = $("#m_"+int_area_edit+"_name");
-						var discard=$("#m_"+int_area_edit+"_map_disc");
-						var remove = $("#m_"+int_area_edit+"_map_rem");
-						var name_edit = $("#m_"+int_area_edit+"_name_edit");
-						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
-							map.show();
-							//lng.show();
-							//lat.show();
-							discard.show();
-							save.show();
-							name_edit.show();
-							name.hide();
-							edit.hide();
-							remove.hide();
-							show_map(parseFloat(lat.val()),parseFloat(lng.val()),map,lat,lng);
-							$("#menu").animate({
-								scrollTop: name_edit.offset().top-($(window).height()/20)
-							},1000);
-
-						} else {
-							alert("ele not found "+int_area_edit+":"+map.length +","+ lng.length +","+ lat.length +","+ save.length +","+ edit.length);
-						}
-					};
-				}());
-				area_buttons.append(area_map_edit);
-
-				// the remove button
-				var area_remove=$("<i></i>");
-				area_remove.attr("id","m_"+m_area["id"]+"_map_rem");
-				area_remove.text("delete");
-				area_remove.addClass("material-icons");
-				area_remove.addClass("sidebar_icons");
-				if(m_area["m2m_count"]>0){
-					area_remove.addClass("md-dark");
-					area_remove.addClass("md-inactive");
-				};
-				if(m_area["id"]==-1){
-					area_remove.hide();
-				};
-				area_remove.click(function(){
-					var int_area_remove=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
-					var int_area_m2m_count=m_area["m2m_count"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
-					return function(){
-						if(int_area_m2m_count==0){
-							if( confirm('Are you sure to delete this area?')){
-								remove_area(int_area_remove);
-								request_all_areas();
-							};
-						} else {
-							alert("You can not delete this area, it has still "+int_area_m2m_count+" cams in it");
-						};
-					};
-				}());
-				area_buttons.append(area_remove);
-
-				// the discard button
-				var area_discard=$("<i></i>");
-				area_discard.attr("id","m_"+m_area["id"]+"_map_disc");
-				area_discard.text("clear");
-				area_discard.addClass("sidebar_icons");
-				area_discard.addClass("material-icons");
-				area_discard.hide();
-				area_discard.click(function(){
-					var int_area_discard=m_area["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
-					return function(){
-						var map=$("#m_"+int_area_discard+"_map");
-						var lng=$("#m_"+int_area_discard+"_map_lng");
-						var lat=$("#m_"+int_area_discard+"_map_lat");
-						var save=$("#m_"+int_area_discard+"_map_save");
-						var edit=$("#m_"+int_area_discard+"_map_edit");
-						var remove = $("#m_"+int_area_discard+"_map_rem");
-						var name=$("#m_"+int_area_discard+"_name");
-						var name_edit=$("#m_"+int_area_discard+"_name_edit");
-						var discard=$("#m_"+int_area_discard+"_map_disc");
-						if(map.length && lng.length && lat.length && save.length && edit.length && name.length && name_edit.length){
-							map.hide();
-							lng.hide();
-							lat.hide();
-							save.hide();
-							if(int_area_discard!=-1){	
-								name_edit.hide();
-								name.show();
-							} else {
-								name_edit.val("Enter area name");
-							};
-							edit.show();
-							discard.hide();
-							if(int_area_discard!=-1){
-								remove.show();
-							};
-						};
-						
-					};
-				}());
-				area_buttons.append(area_discard);
-
-				// the map itsself
-				var area_map=$("<div></div>");
-				area_map.attr("id","m_"+m_area["id"]+"_map");
-				area_map.addClass("sidebar_area_map");
-				area_map.css("height",350);
-				area_map.hide();
-				field.append(area_map);
-
-				var spacer=$("<hr>");
-				field.append(spacer);
+	var spacer=$("<hr>");
+	field.append(spacer);
 }
 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function add_login_entry(field,m_login){
+	// create header entry
+	var login_entry=$("<div></div>");
+	login_entry.addClass("sidebar_area_entry");
+	login_entry.addClass("inline_block");
+	field.append(login_entry);
+
+	// create user div
+	var login_icon_name=$("<div></div>");
+	login_icon_name.addClass("float_left");
+	login_icon_name.addClass("inline_block");
+	login_entry.append(login_icon_name);				
+
+	// add icon
+	var login_icon=$("<i></i>");
+	login_icon.addClass("material-icons");
+	login_icon.addClass("float_left");
+	login_icon.text("person");
+	if(m_login["id"]==-1){
+		login_icon.text("add");
+	};
+	login_icon_name.append(login_icon);
+
+	// first the name
+	var login_name=$("<div></div>");
+	login_name.attr("id","u_"+m_login["id"]+"_name");
+	login_name.text(m_login["login"]);
+	login_name.addClass("float_right");
+	login_name.addClass("sidebar_area_name");
+	if(m_login["id"]==-1){
+		login_name.hide();
+	}
+	login_icon_name.append(login_name);
+
+	var login_name_edit=$("<input></input>");
+	login_name_edit.attr("id","u_"+m_login["id"]+"_name_edit");
+	login_name_edit.val(m_login["login"]);
+	login_name_edit.addClass("sidebar_login_name");
+	if(m_login["id"]!=-1){
+		login_name_edit.hide();
+	} else {
+		login_name_edit.val("Enter login name");
+		login_name_edit.focus(function(){
+			if($(this).val()=="Enter login name"){
+				$(this).val("");
+			}
+		});
+	};
+	login_entry.append(login_name_edit);
+
+	var login_pw1=$("<input></input>");
+	login_pw1.attr("id","u_"+m_login["id"]+"_pw1");
+	login_pw1.attr("type","password");
+	login_pw1.val(""); 
+	login_pw1.hide();
+	login_entry.append(login_pw1);
+
+	var login_pw2=$("<input></input>");
+	login_pw2.attr("id","u_"+m_login["id"]+"_pw1");
+	login_pw2.attr("type","password");
+	login_pw2.val(""); 
+	login_pw2.hide();
+	login_entry.append(login_pw2);
+
+	var login_buttons=$("<div></div>");
+	login_buttons.addClass("float_right");
+	login_buttons.addClass("inline_block");
+	login_entry.append(login_buttons);
+
+	// the save button
+	var login_save=$("<i></i>");
+	login_save.attr("id","u_"+m_login["id"]+"_save");
+	login_save.attr("type","submit");
+	login_save.addClass("material-icons");
+	login_save.addClass("sidebar_icons");
+	login_save.text("save");
+	login_save.click(function(){
+		var int_login_save=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			login_entry_button_state(int_login_id,"show");
+			//update_login(int_login_save, name_edit.val(), lat.val(), lng.val());
+			//request_all_rules();
+		};
+	}());
+	login_save.hide();
+	login_buttons.append(login_save);
+
+	// the edit login button
+	var login_map_edit=$("<i></i>");
+	login_map_edit.attr("id","u_"+m_login["id"]+"_edit");
+	login_map_edit.addClass("material-icons");
+	login_map_edit.addClass("sidebar_icons");
+	if(m_login["id"]!=-1){
+		login_map_edit.text("mode_edit");
+	} else {
+		login_map_edit.text("location_searching");
+	}
+	login_map_edit.addClass("button");
+	login_map_edit.click(function(){
+		var int_login_edit=m_login["id"];
+		return function(){
+			login_entry_button_state(int_login_id,"edit");
+		};
+	}());
+	login_buttons.append(login_map_edit);
+
+	// the remove button
+	var login_remove=$("<i></i>");
+	login_remove.attr("id","m_"+m_login["id"]+"_map_rem");
+	login_remove.text("delete");
+	login_remove.addClass("material-icons");
+	login_remove.addClass("sidebar_icons");
+	if(m_login["m2m_count"]>0){
+		login_remove.addClass("md-dark");
+		login_remove.addClass("md-inactive");
+	};
+	if(m_login["id"]==-1){
+		login_remove.hide();
+	};
+	login_remove.click(function(){
+		var int_login_id=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			if( confirm('Are you sure to delete this login?')){
+				remove_login(int_login_id);
+				request_all_logins();
+			};
+		};
+	}());
+	login_buttons.append(login_remove);
+
+	// the discard button
+	var login_discard=$("<i></i>");
+	login_discard.attr("id","m_"+m_login["id"]+"_map_disc");
+	login_discard.text("clear");
+	login_discard.addClass("sidebar_icons");
+	login_discard.addClass("material-icons");
+	login_discard.hide();
+	login_discard.click(function(){
+		var int_login_id=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			login_entry_button_state(int_login_id,"show");			
+		};
+	}());
+	login_buttons.append(login_discard);
+
+
+	var spacer=$("<hr>");
+	field.append(spacer);
+}
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function login_entry_button_state(m_login_id,state){
+	var save = $("#m_"+m_login_id+"_save");
+	var discard = $("#m_"+m_login_id+"_disc");
+	var edit = $("#m_"+m_login_id+"_edit");
+	var name_display = $("#m_"+m_login_id+"_name_display");
+	var name_edit = $("#m_"+m_login_id+"_name_edit");
+	var remove = $("#m_"+m_login_id+"_rem");
+	var admin = $("#m_"+m_login_id+"_admin");
+
+	save.hide();
+	discard.hide();
+	edit.hide();
+	name_display.hide();
+	name_edit.hide();
+	remove.hide();
+	admin.hide();
+
+	if(state=="show"){
+		if(m_login_id!=-1){
+			edit.show();
+			name_edit.show();
+			remove.show();
+		} else {
+			edit.show();
+			name_display.show();
+		}
+	} else if(state=="edit"){
+		save.show();
+		discard.show();
+		name_edit.show();
+		admin.show();
+	}
+};
 /////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
 // triggered by:	add_menu()
 // arguemnts:	 	
