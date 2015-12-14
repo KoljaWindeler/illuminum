@@ -20,6 +20,15 @@ var g_pw="";//"hui";
 var g_areas=[];
 var g_m2m=[];
 var g_rules=[];
+var g_logins=[];
+
+g_logins[0]=[];
+g_logins[0]["id"]=100;
+g_logins[0]["login"]="Kolja";
+
+g_logins[1]=[];
+g_logins[1]["id"]=101;
+g_logins[1]["login"]="Caro";
 
 // run as son as everything is loaded
 $(function(){
@@ -2076,6 +2085,7 @@ function add_menu(){
 		var box=$("#users_box");
 		if(box.length){
 			box.toggle();	
+			login_entry_button_state("-1","show");	// scale the text fields for the "new" entry = -1
 		}
 	};
 	add_sidebar_entry(menu,f,"users","group");
@@ -2101,15 +2111,6 @@ function add_menu(){
 	};
 	add_sidebar_entry(menu,f,"log-out","vpn_key");
 	//////////////// logout //////////////////
-
-	// debug
-	/*listentry=$("<li></li>");
-	var t=$("<div></div>");
-	t.attr("id","HB_fast");
-	t.text("hb_fast");
-	listentry.append(t);
-	list.append(listentry);
-	menu.append(list);*/
 
 	////////////// hidden data_fields /////////////
 	var h=$("<div></div>");
@@ -2146,6 +2147,221 @@ function add_menu(){
 	hamb.append(c);
 	hamb.insertAfter("#clients");
 	/******* add menu ******/
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function add_camera_entry(m_m2m,field){
+	// create header
+	var cam_header=$("<div></div>");
+	cam_header.addClass("sidebar_area_entry");
+	cam_header.addClass("inline_block");
+	field.append(cam_header);
+
+	// create cam div
+	var cam_icon_name=$("<div></div>");
+	cam_icon_name.addClass("float_left");
+	cam_icon_name.addClass("inline_block");
+	cam_header.append(cam_icon_name);				
+
+	// add icon
+	var cam_icon=$("<i></i>");
+	cam_icon.addClass("material-icons");
+	cam_icon.addClass("float_left");
+	cam_icon.text("camera_enhance");
+	cam_icon_name.append(cam_icon);
+			
+	// first the name
+	var cam_name=$("<div></div>");
+	cam_name.text(m_m2m["alias"]);
+	cam_name.addClass("float_right");
+	cam_name.addClass("sidebar_area_name");
+	cam_icon_name.append(cam_name);
+
+	//////////////// add fps dropdown ////////////////////
+	var fps_select=$("<select></select>");
+	fps_select.attr({
+		"id": m_m2m["mid"]+"_fps_select",
+		"class":"sidebar_select"
+	});
+	// load from message
+	var default_t=parseFloat(m_m2m["frame_dist"]);
+	if(!$.isNumeric(default_t)){
+		default_t=1/2;
+	};
+	// create field
+	var t=1/16;
+	var fps_text;
+	for(var i=0; i<12; i++) {
+		if(1/t >= 1){
+			fps_text = 1/t+" fps (a frame every "+Math.round(t*100)/100+" sec)";
+		} else {
+			fps_text = "1/"+t+" fps (a frame every "+t+" sec)";
+		};
+		// set selected option for the 2fps option
+		if(t==default_t){
+			fps_select.append($('<option></option>').val(t).html(fps_text).prop('selected', true));
+		} else {
+			fps_select.append($('<option></option>').val(t).html(fps_text));
+		};
+		// calc the next framerate
+		if(t<1){
+			t*=2;
+		} else {
+			t+=1;
+		}
+	};
+	fps_select.change(function(){
+		var mid_int=m_m2m["mid"];
+		return function(){
+			update_cam_parameter(mid_int);
+		}
+	}());
+
+	field.append(fps_select);
+	//////////////// add fps dropdown ////////////////////
+
+	///////////////// quality selector //////////////////////
+	var qual_select=$("<select></select>");
+	qual_select.attr({
+		"id": m_m2m["mid"]+"_qual_select",
+		"class":"sidebar_select"
+	});
+	var hd_sel=true;
+	var vga_sel=false;
+	if(m_m2m["resolution"]!="HD"){
+		hd_sel=false;
+		vga_sel=true;
+	}
+	qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
+	qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
+	qual_select.change(function(){
+		var mid_int=m_m2m["mid"];
+		return function(){
+			update_cam_parameter(mid_int);
+		}
+	}());
+	field.append(qual_select);
+	///////////////// quality selector //////////////////////
+
+	/////////// alarm while streaming selector //////////////////
+	var alarm_while_stream_select=$("<select></select>");
+	alarm_while_stream_select.attr({
+		"id": m_m2m["mid"]+"_alarm_while_stream_select",
+		"class":"sidebar_select"
+	});
+
+	var no_alarm_sel=true;
+	var alarm_sel=false;
+	if(m_m2m["alarm_while_streaming"]==1 || m_m2m["alarm_while_streaming"]=="alarm"){
+		no_alarm_sel=false;
+		alarm_sel=true;
+	}
+	alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
+	alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
+	alarm_while_stream_select.change(function(){
+		var mid_int=m_m2m["mid"];
+		return function(){
+			update_cam_parameter(mid_int);
+		}
+	}());
+	field.append(alarm_while_stream_select);
+	/////////// alarm while streaming selector //////////////////
+
+	/////////// areas switch //////////////////
+	var area_select=$("<select></select>");
+	area_select.attr({
+		"id": m_m2m["mid"]+"_area_select",
+		"class":"sidebar_select"
+	});
+				
+	for(var i=0; i<g_areas.length; i++){
+		sel=false;
+		if(m_m2m["area"]==g_areas[i]["area"]){
+			sel=true;
+		}
+		area_select.append($('<option></option>').val(g_areas[i]["id"]).html(g_areas[i]["area"]).prop('selected', sel));
+	}
+	area_select.change(function(){
+		var mid_int=m_m2m["mid"];
+		return function(){
+			update_cam_parameter(mid_int);
+		}
+	}());
+	field.append(area_select);
+	/////////// areas switch //////////////////
+}
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function add_rm_entry(field,m_rm_area){
+
+	///// create header /////
+	var area_header=$("<div></div>");
+	area_header.addClass("sidebar_area_entry");
+	area_header.addClass("inline_block");
+	field.append(area_header);
+
+	// create area div
+	var area_icon_name=$("<div></div>");
+	area_icon_name.addClass("float_left");
+	area_icon_name.addClass("inline_block");
+	area_header.append(area_icon_name);				
+
+	// add icon
+	var area_icon=$("<i></i>");
+	area_icon.addClass("material-icons");
+	area_icon.addClass("float_left");
+	area_icon.text("home");
+	area_icon_name.append(area_icon);
+			
+	// first the name
+	var area_name=$("<div></div>");
+	area_name.text(m_rm_area["area"]);
+	area_name.addClass("float_right");
+	area_name.addClass("sidebar_area_name");
+	area_icon_name.append(area_name);
+	///// create header /////
+
+	///// now the ruels /////
+	var nobody_at_my_geo_area_active=false;
+	for(var b=0;b<m_rm_area["rules"].length;b++){
+		var rm_rule=$("<div></div>");
+		if(m_rm_area["rules"][b][1]=="nobody_at_my_geo_area"){
+			nobody_at_my_geo_area_active=true;
+		} else {
+			rm_rule.text(m_rm_area["rules"][b][1]+","+m_rm_area["rules"][b][2]+","+m_rm_area["rules"][b][3]);
+		};
+		//rm_header.append(rm_rule);
+	};
+
+	///////// GPS /////////
+	var geo_select=$("<select></select>");
+	geo_select.attr({
+		"id": m_rm_area["area"]+"_geo_area",
+		"class":"sidebar_select"
+	});
+	geo_select.append($('<option></option>').val("1").html("geofencing active").prop('selected', nobody_at_my_geo_area_active));
+	geo_select.append($('<option></option>').val("0").html("no geofencing").prop('selected', !nobody_at_my_geo_area_active));
+	geo_select.change(function(){
+		var int_id=m_rm_area["area"];
+		return function(){
+			var geo_fencing=$("#"+int_id+"_geo_area");
+			if(geo_fencing.length){
+				update_rule_geo(int_id,geo_fencing.val());
+			};
+		}
+	}());
+	field.append(geo_select);
+	///////// GPS /////////
 };
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -2412,39 +2628,54 @@ function add_login_entry(field,m_login){
 	var login_entry=$("<div></div>");
 	login_entry.addClass("sidebar_area_entry");
 	login_entry.addClass("inline_block");
+	login_entry.attr("id","u_"+m_login["id"]+"_outer");
 	field.append(login_entry);
 
 	// create user div
-	var login_icon_name=$("<div></div>");
-	login_icon_name.addClass("float_left");
-	login_icon_name.addClass("inline_block");
-	login_entry.append(login_icon_name);				
+	var login_info=$("<div></div>");
+	login_info.addClass("float_left");
+	login_info.addClass("inline_block");
+	login_info.attr("id","u_"+m_login["id"]+"_info");
+	//login_entry.append(login_info);				
 
 	// add icon
 	var login_icon=$("<i></i>");
 	login_icon.addClass("material-icons");
 	login_icon.addClass("float_left");
+	login_icon.addClass("inline_block");
+	login_icon.css("vertical-align","top");
 	login_icon.text("person");
 	if(m_login["id"]==-1){
 		login_icon.text("add");
 	};
-	login_icon_name.append(login_icon);
+	//login_info.append(login_icon);
+	login_entry.append(login_icon);
+
+	// keep everything right - multi rows
+	var login_field_wrapper=$("<div></div>");
+	login_field_wrapper.attr("id","u_"+m_login["id"]+"_field_wrapper");
+	login_field_wrapper.addClass("inline_block");
+	login_field_wrapper.css("margin-top", "3px");
+	login_field_wrapper.css("width", "50%");
+	
+	login_entry.append(login_field_wrapper);
 
 	// first the name
 	var login_name=$("<div></div>");
-	login_name.attr("id","u_"+m_login["id"]+"_name");
+	login_name.attr("id","u_"+m_login["id"]+"_name_display");
+	login_name.css("margin-left", "5px");
 	login_name.text(m_login["login"]);
-	login_name.addClass("float_right");
-	login_name.addClass("sidebar_area_name");
 	if(m_login["id"]==-1){
 		login_name.hide();
 	}
-	login_icon_name.append(login_name);
+	login_field_wrapper.append(login_name);
 
 	var login_name_edit=$("<input></input>");
+	login_name_edit.addClass("inline_block");
+	login_name_edit.css("width", "100%");
+	login_name_edit.css("margin-left", "5px");
 	login_name_edit.attr("id","u_"+m_login["id"]+"_name_edit");
 	login_name_edit.val(m_login["login"]);
-	login_name_edit.addClass("sidebar_login_name");
 	if(m_login["id"]!=-1){
 		login_name_edit.hide();
 	} else {
@@ -2455,23 +2686,38 @@ function add_login_entry(field,m_login){
 			}
 		});
 	};
-	login_entry.append(login_name_edit);
+	login_field_wrapper.append(login_name_edit);
 
 	var login_pw1=$("<input></input>");
 	login_pw1.attr("id","u_"+m_login["id"]+"_pw1");
-	login_pw1.attr("type","password");
-	login_pw1.val(""); 
+	login_pw1.css("width", "100%");
+	login_pw1.css("margin-left", "5px");
+	login_pw1.attr("type","text");
+	login_pw1.focus(function(){
+		if($(this).val()=="Modify password" || $(this).val()=="Create password"){
+			$(this).attr("type","password");
+			$(this).val("");
+		}
+	});
 	login_pw1.hide();
-	login_entry.append(login_pw1);
+	login_field_wrapper.append(login_pw1);
 
 	var login_pw2=$("<input></input>");
-	login_pw2.attr("id","u_"+m_login["id"]+"_pw1");
-	login_pw2.attr("type","password");
-	login_pw2.val(""); 
+	login_pw2.attr("id","u_"+m_login["id"]+"_pw2");
+	login_pw2.css("margin-left", "5px");
+	login_pw2.css("width", "100%");
+	login_pw2.attr("type","text");
+	login_pw2.focus(function(){
+		if($(this).val()=="Confirm password" || $(this).val()=="Confirm new password"){
+			$(this).attr("type","password");
+			$(this).val("");
+		}
+	});
 	login_pw2.hide();
-	login_entry.append(login_pw2);
+	login_field_wrapper.append(login_pw2);
 
 	var login_buttons=$("<div></div>");
+	login_buttons.attr("id","u_"+m_login["id"]+"_buttons");
 	login_buttons.addClass("float_right");
 	login_buttons.addClass("inline_block");
 	login_entry.append(login_buttons);
@@ -2484,9 +2730,10 @@ function add_login_entry(field,m_login){
 	login_save.addClass("sidebar_icons");
 	login_save.text("save");
 	login_save.click(function(){
-		var int_login_save=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		var int_login_id=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 		return function(){
 			login_entry_button_state(int_login_id,"show");
+			alert("save has to be implemented");
 			//update_login(int_login_save, name_edit.val(), lat.val(), lng.val());
 			//request_all_rules();
 		};
@@ -2495,27 +2742,27 @@ function add_login_entry(field,m_login){
 	login_buttons.append(login_save);
 
 	// the edit login button
-	var login_map_edit=$("<i></i>");
-	login_map_edit.attr("id","u_"+m_login["id"]+"_edit");
-	login_map_edit.addClass("material-icons");
-	login_map_edit.addClass("sidebar_icons");
-	if(m_login["id"]!=-1){
-		login_map_edit.text("mode_edit");
+	var login_edit=$("<i></i>");
+	login_edit.attr("id","u_"+m_login["id"]+"_edit");
+	login_edit.addClass("material-icons");
+	login_edit.addClass("sidebar_icons");
+	if(m_login["id"]==-1){
+		login_edit.text("vpn_key");
 	} else {
-		login_map_edit.text("location_searching");
+		login_edit.text("mode_edit");
 	}
-	login_map_edit.addClass("button");
-	login_map_edit.click(function(){
-		var int_login_edit=m_login["id"];
+	login_edit.addClass("button");
+	login_edit.click(function(){
+		var int_login_id=m_login["id"];
 		return function(){
 			login_entry_button_state(int_login_id,"edit");
 		};
 	}());
-	login_buttons.append(login_map_edit);
+	login_buttons.append(login_edit);
 
 	// the remove button
 	var login_remove=$("<i></i>");
-	login_remove.attr("id","m_"+m_login["id"]+"_map_rem");
+	login_remove.attr("id","u_"+m_login["id"]+"_rem");
 	login_remove.text("delete");
 	login_remove.addClass("material-icons");
 	login_remove.addClass("sidebar_icons");
@@ -2530,8 +2777,10 @@ function add_login_entry(field,m_login){
 		var int_login_id=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 		return function(){
 			if( confirm('Are you sure to delete this login?')){
-				remove_login(int_login_id);
-				request_all_logins();
+				//remove_login(int_login_id);
+				//request_all_logins();
+				login_entry_button_state(int_login_id,"show");			
+				alert("remove has to be implemented");
 			};
 		};
 	}());
@@ -2539,7 +2788,7 @@ function add_login_entry(field,m_login){
 
 	// the discard button
 	var login_discard=$("<i></i>");
-	login_discard.attr("id","m_"+m_login["id"]+"_map_disc");
+	login_discard.attr("id","u_"+m_login["id"]+"_disc");
 	login_discard.text("clear");
 	login_discard.addClass("sidebar_icons");
 	login_discard.addClass("material-icons");
@@ -2552,7 +2801,6 @@ function add_login_entry(field,m_login){
 	}());
 	login_buttons.append(login_discard);
 
-
 	var spacer=$("<hr>");
 	field.append(spacer);
 }
@@ -2564,13 +2812,16 @@ function add_login_entry(field,m_login){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 function login_entry_button_state(m_login_id,state){
-	var save = $("#m_"+m_login_id+"_save");
-	var discard = $("#m_"+m_login_id+"_disc");
-	var edit = $("#m_"+m_login_id+"_edit");
-	var name_display = $("#m_"+m_login_id+"_name_display");
-	var name_edit = $("#m_"+m_login_id+"_name_edit");
-	var remove = $("#m_"+m_login_id+"_rem");
-	var admin = $("#m_"+m_login_id+"_admin");
+	var save = $("#u_"+m_login_id+"_save");
+	var discard = $("#u_"+m_login_id+"_disc");
+	var pw = $("#u_"+m_login_id+"_pw");
+	var pw1 = $("#u_"+m_login_id+"_pw1");
+	var pw2 = $("#u_"+m_login_id+"_pw2");
+	var edit = $("#u_"+m_login_id+"_edit");
+	var name_display = $("#u_"+m_login_id+"_name_display");
+	var name_edit = $("#u_"+m_login_id+"_name_edit");
+	var remove = $("#u_"+m_login_id+"_rem");
+	var admin = $("#u_"+m_login_id+"_admin");
 
 	save.hide();
 	discard.hide();
@@ -2579,22 +2830,45 @@ function login_entry_button_state(m_login_id,state){
 	name_edit.hide();
 	remove.hide();
 	admin.hide();
+	pw.hide();
+	pw1.hide();
+	pw2.hide();
 
 	if(state=="show"){
 		if(m_login_id!=-1){
 			edit.show();
-			name_edit.show();
+			name_display.show();
+			name_edit.val(name_display.text());
 			remove.show();
 		} else {
 			edit.show();
-			name_display.show();
+			name_edit.val("Enter login name");
+			name_edit.show();
 		}
 	} else if(state=="edit"){
+		pw1.attr("type","text");
+		pw2.attr("type","text");
+		if(m_login_id!=-1){
+			pw1.val("Modify password");
+			pw2.val("Confirm password");
+		} else {
+			pw1.val("Create password");
+			pw2.val("Confirm password");
+		}
 		save.show();
 		discard.show();
 		name_edit.show();
 		admin.show();
+		pw.show();
+		pw1.show();
+		pw2.show();
 	}
+
+	// scale text field to 92% of available width
+	var left=$("#u_"+m_login_id+"_field_wrapper").position().left;
+	var right=$("#u_"+m_login_id+"_buttons").position().left;
+	$("#u_"+m_login_id+"_field_wrapper").outerWidth((right-left)*0.92);
+
 };
 /////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
 // triggered by:	add_menu()
@@ -2728,6 +3002,7 @@ function request_all_cams(){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 function parse_sidebar_info(msg){
+	///////////////////////////////// Parse individual info and go one if all entries are set /////////////
 	if(msg["cmd"]=="get_areas"){
 		// save all areas as array in the global g_areas
 		g_areas=[];
@@ -2747,6 +3022,7 @@ function parse_sidebar_info(msg){
 			i++;
 		};
 	};
+	///////////////////////////////// Parse individual info and go one if all entries are set /////////////
 
 	if(g_areas.length && g_m2m.length && g_rules.length){
 		/////////////////////// RM BOX ////////////////////
@@ -2765,221 +3041,12 @@ function parse_sidebar_info(msg){
 					};
 				};
 
-				///// create header /////
-				var area_header=$("<div></div>");
-				area_header.addClass("sidebar_area_entry");
-				area_header.addClass("inline_block");
-				field.append(area_header);
-
-				// create area div
-				var area_icon_name=$("<div></div>");
-				area_icon_name.addClass("float_left");
-				area_icon_name.addClass("inline_block");
-				area_header.append(area_icon_name);				
-
-				// add icon
-				var area_icon=$("<i></i>");
-				area_icon.addClass("material-icons");
-				area_icon.addClass("float_left");
-				area_icon.text("home");
-				area_icon_name.append(area_icon);
-			
-				// first the name
-				var area_name=$("<div></div>");
-				area_name.text(g_areas[a]["area"]);
-				area_name.addClass("float_right");
-				area_name.addClass("sidebar_area_name");
-				area_icon_name.append(area_name);
-				///// create header /////
-
-				///// now the ruels /////
-				var nobody_at_my_geo_area_active=false;
-				for(var b=0;b<g_areas[a]["rules"].length;b++){
-					var rm_rule=$("<div></div>");
-					if(g_areas[a]["rules"][b][1]=="nobody_at_my_geo_area"){
-						nobody_at_my_geo_area_active=true;
-					} else {
-						rm_rule.text(g_areas[a]["rules"][b][1]+","+g_areas[a]["rules"][b][2]+","+g_areas[a]["rules"][b][3]);
-					};
-					//rm_header.append(rm_rule);
-				};
-
-				///////// GPS /////////
-				var geo_select=$("<select></select>");
-				geo_select.attr({
-					"id": g_areas[a]["area"]+"_geo_area",
-					"class":"sidebar_select"
-				});
-				geo_select.append($('<option></option>').val("1").html("geofencing active").prop('selected', nobody_at_my_geo_area_active));
-				geo_select.append($('<option></option>').val("0").html("no geofencing").prop('selected', !nobody_at_my_geo_area_active));
-				geo_select.change(function(){
-					var int_id=g_areas[a]["area"];
-					return function(){
-						var geo_fencing=$("#"+int_id+"_geo_area");
-						if(geo_fencing.length){
-							update_rule_geo(int_id,geo_fencing.val());
-						};
-					}
-				}());
-				field.append(geo_select);
-				///////// GPS /////////
+				add_rm_entry(field,g_areas[a]);
 			};
 		};
 		/////////////////////// RM BOX ////////////////////
 
-		/////////////////////// CAMERA BOX ////////////////////
-		// populate the camera box
-		var field=$("#cameras_box");
-		if(field.length){
-			field.text("");
-			for(var a=0;a<g_m2m.length;a++){
-
-				// create header
-				var cam_header=$("<div></div>");
-				cam_header.addClass("sidebar_area_entry");
-				cam_header.addClass("inline_block");
-				field.append(cam_header);
-
-				// create cam div
-				var cam_icon_name=$("<div></div>");
-				cam_icon_name.addClass("float_left");
-				cam_icon_name.addClass("inline_block");
-				cam_header.append(cam_icon_name);				
-
-				// add icon
-				var cam_icon=$("<i></i>");
-				cam_icon.addClass("material-icons");
-				cam_icon.addClass("float_left");
-				cam_icon.text("camera_enhance");
-				cam_icon_name.append(cam_icon);
-			
-				// first the name
-				var cam_name=$("<div></div>");
-				cam_name.text(g_m2m[a]["alias"]);
-				cam_name.addClass("float_right");
-				cam_name.addClass("sidebar_area_name");
-				cam_icon_name.append(cam_name);
-
-				//////////////// add fps dropdown ////////////////////
-				var fps_select=$("<select></select>");
-				fps_select.attr({
-					"id": g_m2m[a]["mid"]+"_fps_select",
-					"class":"sidebar_select"
-				});
-				// load from message
-				var default_t=parseFloat(g_m2m[a]["frame_dist"]);
-				if(!$.isNumeric(default_t)){
-					default_t=1/2;
-				};
-				// create field
-				var t=1/16;
-				var fps_text;
-				for(var i=0; i<12; i++) {
-					if(1/t >= 1){
-						fps_text = 1/t+" fps (a frame every "+Math.round(t*100)/100+" sec)";
-					} else {
-						fps_text = "1/"+t+" fps (a frame every "+t+" sec)";
-					};
-					// set selected option for the 2fps option
-					if(t==default_t){
-						fps_select.append($('<option></option>').val(t).html(fps_text).prop('selected', true));
-					} else {
-						fps_select.append($('<option></option>').val(t).html(fps_text));
-					};
-					// calc the next framerate
-					if(t<1){
-						t*=2;
-					} else {
-						t+=1;
-					}
-				};
-				fps_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-
-				field.append(fps_select);
-				//////////////// add fps dropdown ////////////////////
-
-				///////////////// quality selector //////////////////////
-				var qual_select=$("<select></select>");
-				qual_select.attr({
-					"id": g_m2m[a]["mid"]+"_qual_select",
-					"class":"sidebar_select"
-				});
-				var hd_sel=true;
-				var vga_sel=false;
-				if(g_m2m[a]["resolution"]!="HD"){
-					hd_sel=false;
-					vga_sel=true;
-				}
-				qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
-				qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
-				qual_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-				field.append(qual_select);
-				///////////////// quality selector //////////////////////
-
-				/////////// alarm while streaming selector //////////////////
-				var alarm_while_stream_select=$("<select></select>");
-				alarm_while_stream_select.attr({
-					"id": g_m2m[a]["mid"]+"_alarm_while_stream_select",
-					"class":"sidebar_select"
-				});
-
-				var no_alarm_sel=true;
-				var alarm_sel=false;
-				if(g_m2m[a]["alarm_while_streaming"]==1 || g_m2m[a]["alarm_while_streaming"]=="alarm"){
-					no_alarm_sel=false;
-					alarm_sel=true;
-				}
-				alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
-				alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
-				alarm_while_stream_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-				field.append(alarm_while_stream_select);
-				/////////// alarm while streaming selector //////////////////
-
-				/////////// areas switch //////////////////
-				var area_select=$("<select></select>");
-				area_select.attr({
-					"id": g_m2m[a]["mid"]+"_area_select",
-					"class":"sidebar_select"
-				});
-				
-				for(var i=0; i<g_areas.length; i++){
-					sel=false;
-					if(g_m2m[a]["area"]==g_areas[i]["area"]){
-						sel=true;
-					}
-					area_select.append($('<option></option>').val(g_areas[i]["id"]).html(g_areas[i]["area"]).prop('selected', sel));
-				}
-				area_select.change(function(){
-					var mid_int=g_m2m[a]["mid"];
-					return function(){
-						update_cam_parameter(mid_int);
-					}
-				}());
-				field.append(area_select);
-				/////////// areas switch //////////////////
-
-			}; // for each camera
-		}; // camera box
-		/////////////////////// CAMERA BOX ////////////////////
-
-		/////////////////////////////////////////////////////
 		/////////////////////// AREAS BOX ////////////////////
-		/////////////////////////////////////////////////////
 		// add m2m count to each area
 		for(var a=0;a<g_areas.length;a++){
 			var c=0;
@@ -3010,6 +3077,33 @@ function parse_sidebar_info(msg){
 			add_area_entry(field,m_area);
 		}; // area box
 		/////////////////////// AREAS BOX ////////////////////
+
+		/////////////////////// CAMERA BOX ////////////////////
+		// populate the camera box
+		var field=$("#cameras_box");
+		if(field.length){
+			field.text("");
+			for(var a=0;a<g_m2m.length;a++){
+				add_camera_entry(g_m2m[a],field);
+			}; // for each camera
+		}; // camera box
+		/////////////////////// CAMERA BOX ////////////////////
+
+		/////////////////////// USER /////////////////////
+		var field=$("#users_box");
+		if(field.length){
+			field.text("");
+			for(var a=0; a<g_logins.length; a++){
+				add_login_entry(field,g_logins[a]);
+			}
+			var last=[];
+			last["id"]=-1;
+			add_login_entry(field,last);
+			
+
+		};
+		/////////////////////// USER /////////////////////
+
 	};
 };
 
