@@ -22,14 +22,6 @@ var g_m2m=[];
 var g_rules=[];
 var g_logins=[];
 
-g_logins[0]=[];
-g_logins[0]["id"]=100;
-g_logins[0]["login"]="Kolja";
-
-g_logins[1]=[];
-g_logins[1]["id"]=101;
-g_logins[1]["login"]="Caro";
-
 // run as son as everything is loaded
 $(function(){
 	$('head').append('<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" type="text/css" />');
@@ -256,8 +248,25 @@ function parse_msg(msg_dec){
 	}
 
 	// parse incoming rules for sidebar
+	else if(msg_dec["cmd"]=="get_logins"){
+		parse_sidebar_info(msg_dec);
+	}
+
+	// parse incoming rules for sidebar
 	else if(msg_dec["cmd"]=="get_rules"){
 		parse_sidebar_info(msg_dec);
+	}
+
+	// response from server
+	else if(msg_dec["cmd"]=="update_login"){
+		$.fancybox.close();				
+
+		if(msg_dec["ok"]=="0"){
+			login_entry_button_state(msg_dec["id"],"show");
+			request_all_logins();
+		} else if(msg_dec["ok"]=="-2") {
+			alert("this username was already taken, choose another one");
+		}
 	};
 
 
@@ -2670,13 +2679,23 @@ function add_login_entry(field,m_login){
 	}
 	login_field_wrapper.append(login_name);
 
+	// the name changing field 
 	var login_name_edit=$("<input></input>");
 	login_name_edit.addClass("inline_block");
 	login_name_edit.css("width", "100%");
 	login_name_edit.css("margin-left", "5px");
 	login_name_edit.attr("id","u_"+m_login["id"]+"_name_edit");
 	login_name_edit.val(m_login["login"]);
-	if(m_login["id"]!=-1){
+	login_name_edit.keyup(function(e){
+		var m_id=m_login["id"];
+		if(e.keyCode == 13){
+			if(!$("#u_"+m_id+"_pw1").is(":visible")){
+				$("#u_"+m_id+"_edit").click();
+			}
+			$("#u_"+m_id+"_pw1").focus();
+		};
+	});
+	if(m_login["id"]!=-1){	// hide it as long as we ar not the "new"
 		login_name_edit.hide();
 	} else {
 		login_name_edit.val("Enter login name");
@@ -2688,11 +2707,18 @@ function add_login_entry(field,m_login){
 	};
 	login_field_wrapper.append(login_name_edit);
 
+	// first password field
 	var login_pw1=$("<input></input>");
 	login_pw1.attr("id","u_"+m_login["id"]+"_pw1");
 	login_pw1.css("width", "100%");
 	login_pw1.css("margin-left", "5px");
 	login_pw1.attr("type","text");
+	login_pw1.keyup(function(e){
+		var m_id=m_login["id"];
+		if(e.keyCode == 13){
+			$("#u_"+m_id+"_pw2").focus();
+		};
+	});
 	login_pw1.focus(function(){
 		if($(this).val()=="Modify password" || $(this).val()=="Create password"){
 			$(this).attr("type","password");
@@ -2702,11 +2728,18 @@ function add_login_entry(field,m_login){
 	login_pw1.hide();
 	login_field_wrapper.append(login_pw1);
 
+	// second password field
 	var login_pw2=$("<input></input>");
 	login_pw2.attr("id","u_"+m_login["id"]+"_pw2");
 	login_pw2.css("margin-left", "5px");
 	login_pw2.css("width", "100%");
 	login_pw2.attr("type","text");
+	login_pw2.keyup(function(e){
+		var m_id=m_login["id"];
+		if(e.keyCode == 13){
+			$("#u_"+m_id+"_save").click();
+		};
+	});
 	login_pw2.focus(function(){
 		if($(this).val()=="Confirm password" || $(this).val()=="Confirm new password"){
 			$(this).attr("type","password");
@@ -2716,6 +2749,7 @@ function add_login_entry(field,m_login){
 	login_pw2.hide();
 	login_field_wrapper.append(login_pw2);
 
+	// the aggregator for all the buttons
 	var login_buttons=$("<div></div>");
 	login_buttons.attr("id","u_"+m_login["id"]+"_buttons");
 	login_buttons.addClass("float_right");
@@ -2732,10 +2766,16 @@ function add_login_entry(field,m_login){
 	login_save.click(function(){
 		var int_login_id=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 		return function(){
-			login_entry_button_state(int_login_id,"show");
-			alert("save has to be implemented");
-			//update_login(int_login_save, name_edit.val(), lat.val(), lng.val());
-			//request_all_rules();
+			var name = $("#u_"+int_login_id+"_name_edit");
+			var pw1 = $("#u_"+int_login_id+"_pw1");
+			var pw2 = $("#u_"+int_login_id+"_pw2");
+			if(pw1.val()==""){
+				alert("you have to enter a non-empty password");
+			} else if(pw1.val()==pw2.val()){
+				update_login(int_login_id,name.val(),pw1.val());
+			} else {
+				alert("The password do not match!");
+			};
 		};
 	}());
 	login_save.hide();
@@ -2766,7 +2806,7 @@ function add_login_entry(field,m_login){
 	login_remove.text("delete");
 	login_remove.addClass("material-icons");
 	login_remove.addClass("sidebar_icons");
-	if(m_login["m2m_count"]>0){
+	if(g_logins.length<=1){
 		login_remove.addClass("md-dark");
 		login_remove.addClass("md-inactive");
 	};
@@ -2776,11 +2816,16 @@ function add_login_entry(field,m_login){
 	login_remove.click(function(){
 		var int_login_id=m_login["id"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 		return function(){
-			if( confirm('Are you sure to delete this login?')){
-				//remove_login(int_login_id);
-				//request_all_logins();
-				login_entry_button_state(int_login_id,"show");			
-				alert("remove has to be implemented");
+			if(g_logins.length>1){
+				if( confirm('Are you sure to delete this login?')){
+					//remove_login(int_login_id);
+					//request_all_logins();
+					login_entry_button_state(int_login_id,"show");			
+					remove_logins(int_login_id);
+					request_all_logins();
+				};
+			} else {
+				alert("You can not delete the last user");
 			};
 		};
 	}());
@@ -2863,7 +2908,6 @@ function login_entry_button_state(m_login_id,state){
 		pw1.show();
 		pw2.show();
 	}
-
 	// scale text field to 92% of available width
 	var left=$("#u_"+m_login_id+"_field_wrapper").position().left;
 	var right=$("#u_"+m_login_id+"_buttons").position().left;
@@ -2935,6 +2979,7 @@ function toggle_menu(){
 		} else {
 			/////////// SHOW THE MENU //////////
 			// request required info
+			request_all_logins();
 			request_all_rules();
 			request_all_cams();
 			request_all_areas();
@@ -2989,6 +3034,18 @@ function request_all_rules(){
 // what it does: 
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
+function request_all_logins(){
+	var cmd_data = { "cmd":"get_logins"};
+	con.send(JSON.stringify(cmd_data));
+	g_logins=[];
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
 function request_all_cams(){
 	var cmd_data = { "cmd":"get_cams"};
 	con.send(JSON.stringify(cmd_data));
@@ -3013,6 +3070,12 @@ function parse_sidebar_info(msg){
 		// save all cams as array 
 		for(var i=0;i<msg["m2m"].length;i++){
 			g_m2m[i]=msg["m2m"][i];
+		};
+	} else if(msg["cmd"]=="get_logins"){
+		// save all logins as array 
+		g_logins=[];
+		for(var i=0;i<msg["m2m"].length;i++){
+			g_logins[i]=msg["m2m"][i];
 		};
 	} else if(msg["cmd"]=="get_rules"){
 		var i=0;
@@ -3063,10 +3126,10 @@ function parse_sidebar_info(msg){
 		if(field.length){
 			field.text("");
 			for(var a=0;a<g_areas.length;a++){
-				console.log(g_areas[a]);
+				//onsole.log(g_areas[a]);
 				add_area_entry(field,g_areas[a]);
 			}
-			// prepare vars
+			// prepare vars for one empty new box
 			m_area={};
 			m_area["area"]="";				
 			m_area["id"]="-1";
@@ -3096,6 +3159,7 @@ function parse_sidebar_info(msg){
 			for(var a=0; a<g_logins.length; a++){
 				add_login_entry(field,g_logins[a]);
 			}
+			// add new entry to insert new entry
 			var last=[];
 			last["id"]=-1;
 			add_login_entry(field,last);
@@ -3162,6 +3226,20 @@ function update_area(id, name, latitude, longitude){
 	con.send(JSON.stringify(cmd_data));
 };
 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function update_login(id,name,pw){
+	// vertically and horizontally center box 
+	txt2fb(get_loading("loading_welcome","Loading ..."));
+
+	var cmd_data = { "cmd":"update_login", "id":id, "pw": CryptoJS.MD5(pw).toString(CryptoJS.enc.Hex), "name": name, "email":"qwe@qwe.qwe" };
+	console.log(cmd_data);
+	con.send(JSON.stringify(cmd_data));
+};
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 // triggered by: 
@@ -3169,7 +3247,18 @@ function update_area(id, name, latitude, longitude){
 // what it does: 
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
+function remove_logins(id){
+	var cmd_data = { "cmd":"remove_login", "id":id };
+	console.log(cmd_data);
+	con.send(JSON.stringify(cmd_data));
+};
 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
 function get_loading(id,text){
 	//console.log("adding get loading");
 	if(typeof(id) == "undefined"){
@@ -3284,6 +3373,7 @@ function resize_alert_pic(mid,data){
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function txt2fb(text){
+	text.find("div").addClass("loading_fb");
 	var fb=$("<a></a>");
 	fb.attr("id","txt2fb");
 	fb.attr("style","text-align:left;");
