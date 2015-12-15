@@ -88,7 +88,7 @@ def trigger_handle(event, data):
 		# avoid message on alarm if alarm_while_streaming=0 at various conditions
 		send_msg=1
 		if(_state>0 and _detection>0 and cam.alarm_while_streaming==0): 
-			if(cam.interval>0):				# no alarm while streaming
+			if(cam.webview_active==1):				# no alarm while streaming
 				send_msg=0
 			elif(time.time()-cam.last_picture_taken_ts<5):	# dead - time after streaming, 5 sec
 				send_msg=0
