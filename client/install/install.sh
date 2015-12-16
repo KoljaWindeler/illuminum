@@ -12,7 +12,7 @@ aptitude update
 echo "====================================================="
 echo "========= 2. Installing required packages ==========="
 echo "====================================================="
-aptitude install screen build-essential python3-dev git scons swig python3-openssl
+aptitude install screen build-essential python3-dev git scons swig python3-openssl python-setuptools
 
 
 echo "====================================================="
@@ -38,7 +38,21 @@ python3 setup.py install
 
 
 echo "====================================================="
-echo "=============== 6. building cam title ==============="
+echo "========= 6. Clone required lib for leds ============"
+echo "====================================================="
+cd /tmp/
+git clone https://github.com/Gadgetoid/WiringPi2-Python.git
+
+
+echo "====================================================="
+echo "============== 7. install lib ======================="
+echo "====================================================="
+cd WiringPi2-Python
+python3 setup.py install
+
+
+echo "====================================================="
+echo "=============== 8. building cam title ==============="
 echo "====================================================="
 cd $DIR/../gpucam/
 echo "Please enter a name for this cam (you hav max 10 chars):";
@@ -53,7 +67,7 @@ read line;
 if [ "$line" == "y" ];
 then
 	echo "====================================================="
-	echo "=================== 7. starting ====================="
+	echo "=================== 9. starting ====================="
 	echo "====================================================="
 	cd ..
 	./run.sh
