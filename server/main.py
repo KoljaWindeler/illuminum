@@ -394,8 +394,10 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### response on the previously send git update command ####
 		elif(enc.get("cmd")=="git_update"):
-			print(enc.get("cmd_return","no cmd_return"))
-			# 2do, analyse if that was a success
+			r = enc.get("cmd_result","no cmd_result"))
+			if(r.find("up-to-date")==-1 and r.find("Updating")==-1):
+				ignore = 1  # 2do, analyse if that was a success
+				p.err("git update response: "+r)
 			msg={}
 			msg["cmd"]="reboot"
 			msg_q_m2m.append((msg,m2m))
@@ -1115,7 +1117,7 @@ def recv_ws_msg_handle(data,ws):
 			msg["ok"]=-1
 
 			for cam in server_m2m.clients:
-				if(enc.get("mid")==cam.mid):
+				if(enc.get("mid")==cam.mid and cam.account==ws.account):
 					msg["ok"]=0
 					# send msg to m2m
 					msg2={}
@@ -1329,7 +1331,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 						detection=int(db_r2["state"])
 					else:
 						detection=-1
-						p.err("[A_RM  "+time.strftime("%H:%M:%S")+"] get_state return an int, being called at connect_ws_m2m","d")
+						p.err("[A_RM  "+time.strftime("%H:%M:%S")+"] get_state return an int, being called at connect_ws_m2m")
 
 
 					msg_ws2={}
@@ -1526,7 +1528,7 @@ def rm_check_rules(account,login,use_db):
 						p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+str(m2m.mid)+"' in area "+str(m2m.area)+" to '"+str(det_state[int(db_r2["state"])])+"'","a")
 						#break DO NOT! MIGHT HAVE MULTIPLE BOXES
 				else:
-					p.err("[A_RM  "+time.strftime("%H:%M:%S")+"] get_state return an int, being called at rm_check","d")
+					p.err("[A_RM  "+time.strftime("%H:%M:%S")+"] get_state return an int, being called at rm_check")
 
 				# step 9: even if the detection might have not changed, the rm might have. 
 				# send an updated state to all ws clients of this m2m box
