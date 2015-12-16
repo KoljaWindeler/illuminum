@@ -19,7 +19,7 @@ from select import select
 
 PORT=9879	
 
-MAX_CLIENTS=5
+MAX_CLIENTS=50
 
 _VALID_STATUS_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011, 3000, 3999, 4000, 4999]
 
@@ -88,6 +88,7 @@ def handle (client,addr):
 	t2=0
 
 	busy=1
+	client.last_comm=time.time()
 	#lock = threading.Lock()
 	while client.alive:
 		try:
