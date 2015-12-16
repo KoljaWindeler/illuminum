@@ -2194,6 +2194,21 @@ function add_camera_entry(m_m2m,field){
 	cam_name.addClass("sidebar_area_name");
 	cam_icon_name.append(cam_name);
 
+	var cam_update_button=$("<div></div>");
+	cam_update_button.addClass("float_right");
+	cam_update_button.click(function(){
+		var int_mid=m_m2m["mid"];
+		return function(){
+			git_update(int_mid);
+		};
+	}());
+//	if(parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"])){
+		cam_update_button.text("UPDATE ");
+//	} else {
+//		cam_update_button.hide(); 2do
+//	}
+	cam_icon_name.append(cam_update_button);
+
 	//////////////// add fps dropdown ////////////////////
 	var fps_select=$("<select></select>");
 	fps_select.attr({
@@ -3185,6 +3200,18 @@ function remove_area(id){
 	console.log(cmd_data);
 	con.send(JSON.stringify(cmd_data));
 };
+
+/////////////////////////////////////////// GIT_UPDATE //////////////////////////////////////////
+// triggered by: 	user clicked on update button
+// arguemnts:	 	mid of cam
+// what it does: 	just forward it to the server
+// why: 	 	to tritter the git update on the client side
+/////////////////////////////////////////// GIT_UPDATE //////////////////////////////////////////
+function git_update(mid){ 
+	var cmd_data = { "cmd":"git_update", "mid":mid};
+	console.log(cmd_data);
+	con.send(JSON.stringify(cmd_data));
+}
 
 /////////////////////////////////////////// UPDATE_CAM_PARAMETER //////////////////////////////////////////
 // triggered by: 	user changed values in sidebar for cam
