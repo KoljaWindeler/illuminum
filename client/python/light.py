@@ -5,14 +5,22 @@ import RPi.GPIO as GPIO
 import importlib
 
 LED_DEBUG=0
+with_neo=1
+with_pwm=1
 
 # import neopixel if posible
 try:
 	from neopixel import *
-	with_neo=1
 except:
 	with_neo=0
 	print("running without neopixel support")
+
+# import pwm if posible
+try:
+	import wiringpi2 as wiringpi 
+except:
+	with_pwm=0
+	print("running without pwm support")
 
 
 class led:
@@ -71,6 +79,9 @@ def start_light():
 		# Intialize the library (must be called once before other functions).
 		strip.begin()
 		strip.show()
+	if(with_pwm):
+		wiringpi.wiringPiSetupGpio()  
+		wiringpi.pinMode(18,2)		
 
 
 	while True:											# loop forever
@@ -124,10 +135,15 @@ def start_light():
 				#strip.setPixelColor(1,Color(0,255,0))		# set value
 				#strip.setPixelColor(2,Color(0,0,255))		# set value
 				#strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
+				# neo pixel
 				if(with_neo):
 					for i in range(0,LED_COUNT):
 						strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
 					strip.show()
+				# pwm controll on pin 18
+				if(with_pwm):
+					wiringpi.pwmWrite(18, l.c_r*4)
+					#rint(str(l.c_r*4))
 				time.sleep(0.8*l.ms_step/1000) # we can wait here a little while because we know that nothing will happen for us earlier than that anyway
 
 		else:
