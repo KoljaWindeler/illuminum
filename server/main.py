@@ -1,4 +1,4 @@
-import time,json,os,base64,hashlib,string,random
+import time,json,os,base64,hashlib,string,random, subprocess
 from clients import alert_event,webcam_viewer,det_state
 import server_m2m
 import server_ws
@@ -153,6 +153,8 @@ def recv_m2m_msg_handle(data,m2m):
 
 			# data base has to give us this values based on enc.get("mid")
 			db_r=db.get_data(enc.get("mid"))
+			if(db_r["area"]==""):
+				p.err("ALARM")
 			#rint("Ergebniss der datenbank:")
 			#rint(db_r)
 
@@ -170,6 +172,10 @@ def recv_m2m_msg_handle(data,m2m):
 				if(h.hexdigest()==enc.get("client_pw")):
 					# this will set all the parameter for the m2m, makes sure that the rulemanager is loaded etc
 					set_m2m_parameter(m2m,enc,db_r,msg)
+					# disconenct all other sockets for this m2m
+					for m2m_old in server_m2m.clients:
+						if(m2m_old.mid==m2m.mid and m2m_old!=m2m):
+							server_m2m.disconnect(m2m_old)
 				else:
 					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get('mid'))+"' log-in: failed","l")
 					msg["ok"]=-2 # not logged in
@@ -200,7 +206,7 @@ def recv_m2m_msg_handle(data,m2m):
 		elif(enc.get("cmd")=="state_change"):
 			m2m.state=enc.get("state",4)
 			m2m.detection=enc.get("detection",-1)
-			
+
 			# prepare notification system, arm or disarm
 			if(m2m.state==1 and m2m.detection>=1): # state=1 means Alert!
 				#start_new_alert(m2m)
@@ -244,8 +250,6 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file , for M2M
 		elif(enc.get("cmd")=="wf"):
-#			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' uploaded "+enc.get("fn"),"u")			
-#		elif(enc.get("cmd")=="wf_4real"):
 			# handle new file
 			if(m2m.openfile!=enc.get("fn")):
 				if(m2m.fp!=""):
@@ -348,7 +352,7 @@ def recv_m2m_msg_handle(data,m2m):
 					os.remove(this_file)
 
 				tmp_loc=this_file.split('/')
-				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' uploaded "+tmp_loc[len(tmp_loc)-1],"u")
+				p.rint2("'"+str(m2m.mid)[-5:]+"'/'"+str(m2m.alias)+"'@'"+str(m2m.account)+"' uploaded "+(tmp_loc[len(tmp_loc)-1])[-15:],"u","A_m2m",p.bcolors.GREY)
 			m2m.paket_count_per_file+=1
 
 		#### register a new m2m device ####
@@ -401,9 +405,6 @@ def recv_m2m_msg_handle(data,m2m):
 			msg["cmd"]=enc.get("cmd")
 			msg["ack_ok"]=1
 			msg_q_m2m.append((msg,m2m))
-#			for a in range(0,5):
-#				time.sleep(1)
-#				#rint(str(a))
 
 
 		#********* msg handling **************#
@@ -485,7 +486,6 @@ def recv_ws_con_handle(data,ws):
 
 					# also check if that ws has been one of the watchers of the webfeed
 					set_webcam_con(m2m.mid,0,ws)
-
 		try:
 			server_ws.clients.remove(ws)
 		except:
@@ -545,7 +545,7 @@ def recv_ws_msg_handle(data,ws):
 			except:
 				ip="???"
 
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] "+str(ip)+" requested prelogin","l")
+			p.rint2(str(ip)+" requested prelogin","l","A_ws")
 			#rint("received prelogin request, sending challange "+m2m.challange)
 
 		## LOGIN from a viewer, for WS
@@ -577,6 +577,8 @@ def recv_ws_msg_handle(data,ws):
 				if(h.hexdigest()==enc.get("client_pw") and db_r["account"]!=""):
 					# complete message
 					msg_ws["ok"]=1 # logged in
+					msg_ws["v_short"]=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+					msg_ws["v_hash"]=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 					msg_q_ws.append((msg_ws,ws))
 				
 					# add socket infos
@@ -603,10 +605,17 @@ def recv_ws_msg_handle(data,ws):
 					connect_ws_m2m("",ws)
 				
 					# check if the same UUID has another open connection
-					if(ws.uuid!=""):
+					if(str(ws.uuid)!=""):
 						for cli_ws in server_ws.clients:
-							if((cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login) or (cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60))  :
-								#rint("disconnecting "+str(cli_ws.login)+" IP "+str(cli_ws.ip)+" as that has the same UUID")
+							disconnect=0
+							if(cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login):
+								p.rint2("disconnecting '"+str(cli_ws.login)+"' / '"+str(cli_ws.uuid)+"' as that has the same UUID","d","A")
+								disconnect=1
+							if(cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60):
+								p.rint2("disconnecting an unlogged client as the last comm was "+str(time.time()-cli_ws.last_comm)+"sec ago","d","A")
+								disconnect=1
+
+							if(disconnect):
 								cli_ws.conn.close()
 								recv_ws_con_handle("disconnect", cli_ws)
 				
@@ -636,7 +645,7 @@ def recv_ws_msg_handle(data,ws):
 						ip=ws.conn.getpeername()[0]
 					except:
 						ip="???"
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l")
+					p.rint2("log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l","A_ws", p.bcolors.WARNING)
 					msg_ws["ok"]=-2 # not logged in
 					msg_q_ws.append((msg_ws,ws))
 
@@ -842,6 +851,23 @@ def recv_ws_msg_handle(data,ws):
 			msg_q_ws.append((msg,ws))						
 			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted area  '"+str(enc.get("id"))+"'","d")
 
+		## update a login
+		elif(enc.get("cmd")=="update_login"):
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["id"]=enc.get("id")
+			msg["ok"]=db.update_login(enc.get("id"), enc.get("name"), enc.get("pw"), enc.get("email"), ws.account);
+			msg_q_ws.append((msg,ws))						
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated login  '"+str(enc.get("id"))+"'","d")
+
+		## remove a login
+		elif(enc.get("cmd")=="remove_login"):
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=db.remove_login(enc.get("id"),ws.account);
+			msg_q_ws.append((msg,ws))						
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted login  '"+str(enc.get("id"))+"'","d")
+
 		## get IDs of open alerts
 		elif(enc.get("cmd")=="get_alert_ids"):
 			mid=enc.get("mid")
@@ -972,10 +998,11 @@ def recv_ws_msg_handle(data,ws):
 
 		## subscribe to heartbeats
 		elif(enc.get("cmd")=="hb_fast"):
-			if(enc.get("active",0)==1):
-				debug_loading_assist.subscribe(ws)
-			else:
-				debug_loading_assist.unsubscribe(ws)
+			#if(enc.get("active",0)==1):
+			#	debug_loading_assist.subscribe(ws)
+			#else:
+			#	debug_loading_assist.unsubscribe(ws)
+			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported subscription to hb_fast command from "+str(ws.login),"d")
 
 
 		## register new ws login
@@ -985,6 +1012,7 @@ def recv_ws_msg_handle(data,ws):
 			msg["cmd"]=enc.get("cmd")
 			msg["status"]=res
 			msg_q_ws.append((msg,ws))
+			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] new register from "+str(enc.get("user")),"d")
 
 
 		## get all areas for account
@@ -1012,6 +1040,19 @@ def recv_ws_msg_handle(data,ws):
 			else:
 				msg["ok"]=1
 				msg["m2m"]=all_m2m4account
+			msg_q_ws.append((msg,ws))
+
+		## get all logins for account
+		elif(enc.get("cmd")=="get_logins"):
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			all_logins4account=db.get_logins4account(ws.account)
+			if(type(all_logins4account) is int):
+				p.rint("Error getting login-data for account "+str(ws.account),"d")
+				msg["ok"]=-1
+			else:
+				msg["ok"]=1
+				msg["m2m"]=all_logins4account
 			msg_q_ws.append((msg,ws))
 
 		## get all rules for acocunt
@@ -1109,6 +1150,8 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	m2m.logged_in=1
 	m2m.mid=enc.get("mid")
 	m2m.state=enc.get("state")
+	m2m.v_short=enc.get("v_short","-")
+	m2m.v_hash=enc.get("v_hash","-")
 	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
 	msg["ok"]=1 # logged in
 
@@ -1194,6 +1237,7 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	except:
 		ip="???"
 	db.update_last_seen_m2m(m2m.mid,ip)
+	db.update_m2m_version(m2m.mid, m2m.v_short, m2m.v_hash)
 
 
 #******************************************************#
@@ -1260,6 +1304,8 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 						detection=int(db_r2["state"])
 					else:
 						detection=-1
+						p.err("[A_RM  "+time.strftime("%H:%M:%S")+"] get_state return an int, being called at connect_ws_m2m","d")
+
 
 					msg_ws2={}
 					msg_ws2["cmd"]="m2v_login"
@@ -1355,7 +1401,6 @@ def get_challange(size=12, chars=string.ascii_uppercase + string.digits):
 #******************************************************#
 # this function will be called in the main loop and shall check if there is a client in the state that he
 # started to capture a few images and might be ready to send them via mail / notification
-# TODO DAS KLAPPT DOCH NOCH NICHT HIER!
 def check_alerts():
 	ret=-1
 	for cli in server_m2m.clients:
@@ -1455,6 +1500,8 @@ def rm_check_rules(account,login,use_db):
 						affected_ws_clients=0
 						p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] ->(M2M) set detection of m2m '"+str(m2m.mid)+"' in area "+str(m2m.area)+" to '"+str(det_state[int(db_r2["state"])])+"'","a")
 						#break DO NOT! MIGHT HAVE MULTIPLE BOXES
+				else:
+					p.err("[A_RM  "+time.strftime("%H:%M:%S")+"] get_state return an int, being called at rm_check","d")
 
 				# step 9: even if the detection might have not changed, the rm might have. 
 				# send an updated state to all ws clients of this m2m box
@@ -1516,7 +1563,6 @@ def helper_output(input):
 # our helper for the console
 p.start()
 p.subscribe_callback(helper_output)
-
 # M2M structures
 recv_m2m_msg_q=[]	# incoming
 recv_m2m_con_q=[]	# incoming
