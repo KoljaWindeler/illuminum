@@ -1,6 +1,6 @@
 <?php
 if($_GET['useas']=="dummy"){
-	    header_remove('X-Frame-Options');
+	header_remove('X-Frame-Options');
 	exit(0);
 };
 ///////////////// server status ///////////////////////////
