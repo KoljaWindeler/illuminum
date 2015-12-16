@@ -1,6 +1,6 @@
 import OpenSSL
 import socket, time, json, base64, datetime, string, random
-import hashlib, select, trigger, uuid, os, sys
+import hashlib, select, trigger, uuid, os, sys, subprocess
 import light, p
 
 register_mode=0
@@ -88,7 +88,7 @@ def trigger_handle(event, data):
 		# avoid message on alarm if alarm_while_streaming=0 at various conditions
 		send_msg=1
 		if(_state>0 and _detection>0 and cam.alarm_while_streaming==0): 
-			if(cam.interval>0):				# no alarm while streaming
+			if(cam.webview_active==1):				# no alarm while streaming
 				send_msg=0
 			elif(time.time()-cam.last_picture_taken_ts<5):	# dead - time after streaming, 5 sec
 				send_msg=0
@@ -310,6 +310,10 @@ def parse_incoming_msg(con):
 				pw_c = h.hexdigest()
 				#print("result="+pw_c)
 
+				v_short=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				v_hash=str(subprocess.Popen(["git","log", "--pretty=format:'%h'", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+
+
 				msg = {}
 				msg["mid"] = mid
 				msg["client_pw"] = pw_c
@@ -318,6 +322,8 @@ def parse_incoming_msg(con):
 				msg["detection"] = trigger.s.detection
 				msg["ts"] = time.strftime("%d.%m.%Y || %H:%M:%S")
 				msg["ack"] = 1
+				msg["v_short"] = v_short
+				msg["v_hash"] = v_hash
 				con.msg_q.append(msg)
 
 			elif(enc.get("cmd") == "prelogin" and register_mode==1):
