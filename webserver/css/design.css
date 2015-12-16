@@ -98,7 +98,7 @@ div.float_right, img.float_right {
 	float: right;
 }
 
-div.inline_block {
+div.inline_block, i.inline_block {
 	display: inline-block;
 }
 
@@ -127,6 +127,10 @@ div.loading {
 	margin: 0 auto;  /* setzt den block mittig */
 	clear: both;
 	color: #EFEFEF; 
+}
+
+div.loading_fb {
+	color: #363636;
 }
 /******************************************** GENERAL SETUP *******************************************/
 /******************************** floating text "welcome to glubsch ***********************************/
