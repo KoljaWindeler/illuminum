@@ -392,7 +392,14 @@ def recv_m2m_msg_handle(data,m2m):
 			# respode
 			msg_q_m2m.append((msg,m2m))
 
-
+		#### response on the previously send git update command ####
+		elif(enc.get("cmd")=="git_update"):
+			print(enc.get("cmd_return","no cmd_return"))
+			# 2do, analyse if that was a success
+			msg={}
+			msg["cmd"]="reboot"
+			msg_q_m2m.append((msg,m2m))
+		
 
 		#### unsupported command, for M2M
 		else:
@@ -1099,6 +1106,24 @@ def recv_ws_msg_handle(data,ws):
 
 			# 8. rescan all rules to update booble
 			rm_check_rules(ws.account,ws.login,0)
+
+		## send a update command to the m2m
+		elif(enc.get("cmd")=="git_update"):
+			p.rint2("Received request to update mid:"+str(enc.get("mid","-")),"d","A ws")
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=-1
+
+			for cam in server_m2m.clients:
+				if(enc.get("mid")==cam.mid):
+					msg["ok"]=0
+					# send msg to m2m
+					msg2={}
+					msg2["cmd"]=enc.get("cmd")
+					msg_q_m2m.append((msg2,cam))
+
+			# send msg back to ws
+			msg_q_ws.append((msg,ws))
 
 
 		## unsupported cmd, for WS
