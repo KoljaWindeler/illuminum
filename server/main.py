@@ -394,7 +394,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#### response on the previously send git update command ####
 		elif(enc.get("cmd")=="git_update"):
-			r = enc.get("cmd_result","no cmd_result"))
+			r = enc.get("cmd_result","no cmd_result")
 			if(r.find("up-to-date")==-1 and r.find("Updating")==-1):
 				ignore = 1  # 2do, analyse if that was a success
 				p.err("git update response: "+r)
@@ -586,8 +586,6 @@ def recv_ws_msg_handle(data,ws):
 				if(h.hexdigest()==enc.get("client_pw") and db_r["account"]!=""):
 					# complete message
 					msg_ws["ok"]=1 # logged in
-					msg_ws["v_short"]=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-					msg_ws["v_hash"]=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 					msg_q_ws.append((msg_ws,ws))
 				
 					# add socket infos
@@ -1042,6 +1040,9 @@ def recv_ws_msg_handle(data,ws):
 		elif(enc.get("cmd")=="get_cams"):
 			msg={}
 			msg["cmd"]=enc.get("cmd")
+			msg["v_short"]=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+			msg["v_hash"]=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+
 			all_m2m4account=db.get_m2m4account(ws.account)
 			if(type(all_m2m4account) is int):
 				p.rint("Error getting data for account "+str(ws.account),"d")
