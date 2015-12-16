@@ -114,8 +114,6 @@ function parse_msg(msg_dec){
 			add_menu();
 			setTimeout("$('#wli').addClass('loginok')",1000);
 			setTimeout("$('#wli').html('Login accepted, all your cameras will show up.<br>You can also register new cameras now.')",1000);
-			g_version["v_short"]=msg_dec["v_short"];
-			g_version["v_hash"]=msg_dec["v_hash"];
 		};
 		c_set_login(g_user,g_pw);
 	}
@@ -146,6 +144,15 @@ function parse_msg(msg_dec){
 			hide_liveview(mid,false);
 			show_liveview(mid);
 		};
+
+		// check if cam was in wait state
+		var b = $("#"+mid+"_update_button");
+		if(b.length){ // if buttons is visible and text is hourglass, request all cams
+			if(b.text()=="hourglass_empty"){
+				request_all_cams(); // this should refresh the menu
+			};
+		};
+
 	}
 
 	// update the timestamp, we should receive this every once in a while
@@ -247,6 +254,9 @@ function parse_msg(msg_dec){
 
 	// parse incoming cams for sidebar
 	else if(msg_dec["cmd"]=="get_cams"){
+		g_version["v_short"]=msg_dec["v_short"];
+		g_version["v_hash"]=msg_dec["v_hash"];
+
 		parse_sidebar_info(msg_dec);
 	}
 
@@ -2189,25 +2199,56 @@ function add_camera_entry(m_m2m,field){
 			
 	// first the name
 	var cam_name=$("<div></div>");
-	cam_name.text(m_m2m["alias"]+" v."+m_m2m["v_short"]+"/"+g_version["v_short"]);
+	cam_name.text(m_m2m["alias"]);
 	cam_name.addClass("float_right");
 	cam_name.addClass("sidebar_area_name");
 	cam_icon_name.append(cam_name);
 
-	var cam_update_button=$("<div></div>");
-	cam_update_button.addClass("float_right");
+	// now the button div
+	var cam_buttons=$("<div></div>");
+	cam_buttons.addClass("float_right");
+	cam_buttons.addClass("inline_block");
+	cam_header.append(cam_buttons);
+
+	// update button
+	var cam_update_button=$("<i></i>");
+	cam_update_button.attr("id", m_m2m["mid"]+"_update_button");
+	cam_update_button.addClass("material-icons");
+	cam_update_button.addClass("sidebar_icons");
+	cam_update_button.addClass("button");
 	cam_update_button.click(function(){
 		var int_mid=m_m2m["mid"];
-		return function(){
-			git_update(int_mid);
-		};
+		// newest version
+		if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){		
+			return function(){
+				alert("This camera is up2date. Version "+m_m2m["v_short"]);
+			};
+		} 
+		// outdated but updateable
+		else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
+			return function(){
+				if( confirm('The software version of this camera is outdated ('+m_m2m["v_short"]+' vs '+g_version["v_short"]+'). Click ok to upgrade it. The camera will reboot.')){
+					$("#"+int_mid+"_update_button").text("hourglass_empty");
+					git_update(int_mid);
+				};
+			};
+		} 
+		// too old
+		else {
+			return function(){
+				alert("The software on this camera is outdated, but automated updates are only supported for versions >685. (Your version "+m_m2m["v_short"]+")");
+			};			
+		}
 	}());
-//	if(parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"])){
-		cam_update_button.text("UPDATE ");
-//	} else {
-//		cam_update_button.hide(); 2do
-//	}
-	cam_icon_name.append(cam_update_button);
+	if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){
+		cam_update_button.text("done");
+	} else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
+		cam_update_button.text("publish");
+	} else {
+		cam_update_button.text("clear");
+	}
+
+	cam_buttons.append(cam_update_button);
 
 	//////////////// add fps dropdown ////////////////////
 	var fps_select=$("<select></select>");
