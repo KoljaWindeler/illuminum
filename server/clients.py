@@ -35,6 +35,8 @@ class m2m_clients:
 		self.frame_dist = 0.5					# distance between frames, 2fps
 		self.resolution = "HD"					# 720p
 		self.alarm_while_streaming = 0				# bad power supply
+		self.v_short = "-"					# version nr
+		self.v_hash = "-"					# hash of git state
 # dies ist der WEBSOCKET client
 class ws_clients:
 	def __init__(self, addr):
