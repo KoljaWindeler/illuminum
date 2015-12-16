@@ -1,4 +1,4 @@
-import OpenSSL
+import OpenSSL, RPi.GPIO as GPIO
 import socket, time, json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess
 import light, p
@@ -55,12 +55,25 @@ class WebSocketConnection:
 		self.server_timeout = 15
 		self.max_outstanding_acks = 2
 
+#******************************************************#
 class Debugging:
 	def __init__(self):
 		self.active_since_ts = 0
 		self.frames_uploaded_since_active = 0
 		self.last_pic_taken_ts = 0
 
+#******************************************************#
+def pin_config():
+	GPIO.setwarnings(False)
+	GPIO.setmode(GPIO.BOARD)
+
+	GPIO.setup(PIN_MOVEMENT, GPIO.OUT)
+	GPIO.setup(PIN_DETECTION, GPIO.OUT)
+	GPIO.setup(PIN_USER, GPIO.OUT)
+
+	GPIO.output(PIN_MOVEMENT,0)
+	GPIO.output(PIN_DETECTION,0)
+	GPIO.output(PIN_USER,0)
 
 #******************************************************#
 def trigger_handle(event, data):
@@ -140,6 +153,19 @@ def trigger_handle(event, data):
 		else: # state==0 or detection==0, leave the picture remaining so we can finish uploading all 5 pictures per alarm
 			cam.alarm_in_alarm_state = 0
 		##### camera picture upload #########
+
+		##### set the gpio pins #####
+		g_state = 0
+		if(_state > 0):
+			g_state = 1
+		GPIO.output(PIN_MOVEMENT,g_state)
+
+		g_detection = 0
+		if(_detection > 0):
+			g_detection = 1
+		GPIO.output(PIN_DETECTION,g_detection)
+		##### set the gpio pins #####
+
 #******************************************************#
 #******************************************************#
 def get_time():
@@ -311,7 +337,7 @@ def parse_incoming_msg(con):
 				#print("result="+pw_c)
 
 				v_short=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-				v_hash=str(subprocess.Popen(["git","log", "--pretty=format:'%h'", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				v_hash=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
 
 				msg = {}
@@ -433,6 +459,51 @@ def parse_incoming_msg(con):
 				cam.interval = (enc.get("interval", 0))
 				cam.quality = (enc.get("qual", "HD"))
 				
+			# get the git version
+			elif(enc.get("cmd") == "get_version"):
+				v_short=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				v_hash=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)),"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+
+				msg = {}
+				msg["mid"] = mid
+				msg["cmd"] = enc.get("cmd")
+				msg["v_short"] = v_short
+				msg["v_hash"] = v_hash
+				con.msg_q.append(msg)
+
+			# run a git update
+			elif(enc.get("cmd") == "git_update"):
+				path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","update.sh")
+				result=str(subprocess.Popen(path,stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+
+				v_short=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				v_hash=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)),"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+
+				msg = {}
+				msg["mid"] = mid
+				msg["cmd"] = enc.get("cmd")
+				msg["v_short"] = v_short
+				msg["v_hash"] = v_hash
+				msg["cmd_result"] = result
+				con.msg_q.append(msg)
+
+			# run a reboot
+			elif(enc.get("cmd") == "reboot"):
+				result=str(subprocess.Popen("reboot",stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+
+				
+			# set a pin 
+			elif(enc.get("cmd") == "set_pin"):
+				state = 0
+				if(str(enc.get("state",0))=="1"):
+					state = 1
+				GPIO.output(PIN_USER,state)
+
+				msg = {}
+				msg["mid"] = mid
+				msg["cmd"] = enc.get("cmd")
+				msg["ok"] = "1"
+				con.msg_q.append(msg)
 
 			else:
 				print("unsopported command:"+enc.get("cmd"))
@@ -457,6 +528,10 @@ def parse_incoming_msg(con):
 # init objects and vars
 STEP_DEBUG = 0
 TIMING_DEBUG = 1
+PIN_MOVEMENT = 11
+PIN_DETECTION = 13
+PIN_USER = 15
+
 
 mid = str(uuid.getnode())
 
@@ -472,6 +547,9 @@ light.start()
 
 #only start listening to keyboard input if we are not in register mode
 p.start(not(register_mode))
+
+#start pin config
+pin_config()
 # Main programm
 #******************************************************#
 
