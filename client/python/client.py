@@ -336,8 +336,8 @@ def parse_incoming_msg(con):
 				pw_c = h.hexdigest()
 				#print("result="+pw_c)
 
-				v_short=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-				v_hash=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				v_short=str(subprocess.Popen(["sudo","-u","pi", "git", "-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
 
 				msg = {}
@@ -461,8 +461,8 @@ def parse_incoming_msg(con):
 				
 			# get the git version
 			elif(enc.get("cmd") == "get_version"):
-				v_short=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-				v_hash=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)),"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","-C", os.path.dirname(os.path.realpath(__file__)),"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
 				msg = {}
 				msg["mid"] = mid
@@ -473,11 +473,13 @@ def parse_incoming_msg(con):
 
 			# run a git update
 			elif(enc.get("cmd") == "git_update"):
+				print("received update command")
 				path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","update.sh")
 				result=str(subprocess.Popen(path,stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				print("our result ->"+str(result)+"<-")
 
-				v_short=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-				v_hash=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)),"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","-C", os.path.dirname(os.path.realpath(__file__)),"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
 				msg = {}
 				msg["mid"] = mid
@@ -489,6 +491,11 @@ def parse_incoming_msg(con):
 
 			# run a reboot
 			elif(enc.get("cmd") == "reboot"):
+				con.sock.shutdown()
+				con.sock.close()
+				print("============================")
+				print("======== rebooting =========")
+				print("============================")
 				result=str(subprocess.Popen("reboot",stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 
 				
