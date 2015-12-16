@@ -156,7 +156,6 @@ def return_to_old(ms):
 	dimm_to(l.o_rd,l.o_gd,l.o_bd,ms)
 
 def dimm_to(r,g,b,ms):
-	print("rot:"+str(r))
 	global l
 
 	# selection is 0-255 based, but it lreally means 0-100%
