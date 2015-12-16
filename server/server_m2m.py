@@ -67,8 +67,7 @@ def handle (client, addr):
 		try:
 			rList, wList, xList = select([client.conn], [client.conn], [client.conn], 3)
 		except Exception as n:
-			print("Select() return an exception:")
-			print(n)
+			p.err("Select() return an exception for connection "+str(addr)+":"+str(n))
 			disconnect(client)
 			break
 
