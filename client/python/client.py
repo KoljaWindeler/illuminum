@@ -338,7 +338,7 @@ def parse_incoming_msg(con):
 
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git", "-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-
+				print("DEBUG: repoting version nr ->"+str(v_short)+"<-")
 
 				msg = {}
 				msg["mid"] = mid
