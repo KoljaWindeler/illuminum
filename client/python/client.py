@@ -539,6 +539,8 @@ PIN_MOVEMENT = 11
 PIN_DETECTION = 13
 PIN_USER = 15
 
+#start pin config
+pin_config()
 
 mid = str(uuid.getnode())
 
@@ -555,8 +557,6 @@ light.start()
 #only start listening to keyboard input if we are not in register mode
 p.start(not(register_mode))
 
-#start pin config
-pin_config()
 # Main programm
 #******************************************************#
 
