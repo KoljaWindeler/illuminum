@@ -7,10 +7,9 @@ class sql:
 	#############################################################
 	def he(self):
 		p.err("sys:")
-		p.err(sys.exc_info()[0])
-		p.err(sys.exc_info()[1])
-		p.err(repr(traceback.format_tb(sys.exc_info()[2])))
-		p.err("")
+		p.err(str(sys.exc_info()[0]))
+		p.err(str(sys.exc_info()[1]))
+		p.err(str(repr(traceback.format_tb(sys.exc_info()[2]))))
 		
 	#############################################################
 	def connect(self):
@@ -147,8 +146,8 @@ class sql:
 					
 				else:
 					result = -1
-					p.rint("count not 1", "d")
-					p.rint(req, "d")
+					p.err("SQL get data for ->%s<- did not return 1 line but %s"%(str(mid),str(result["COUNT(*)"])))
+					p.err(req)
 				#rint(result)
 		except:
 			self.he()
@@ -258,6 +257,9 @@ class sql:
 		return result
 	#############################################################
 	def get_state(self, area, account):
+		if(area=="" or account==""):
+			p.err("get_state was callen with area and or account empty")
+			return -1
 		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
@@ -271,9 +273,9 @@ class sql:
 					cursor.execute(req, (str(account), str(area)) )
 					result = cursor.fetchone()
 				else: 
-					p.rint("Count!=1", "d")
+					p.rint("get state Count was "+str(result["COUNT(*)"])+"!=1", "d")
 					p.rint(req%(str(account), str(area)), "d")
-					return -1
+					result = -1
 		except:
 			self.he()
 			result = -1
@@ -348,7 +350,7 @@ class sql:
 			pass
 	#############################################################
 	def get_m2m4account(self, account):
-		if(1):#try:
+		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "SELECT  * FROM  `m2m` WHERE `account` =  %s"
@@ -369,7 +371,30 @@ class sql:
 					r["longitude"]=result2["longitude"]
 					r["area"]=result2["area"]
 
-		else:#except:
+		except:
+			self.he()
+			result = -1
+		self.close()
+		return result
+
+	#############################################################
+	def get_logins4account(self, account):
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "SELECT  * FROM  `ws` WHERE `account` =  %s"
+				# Create a new record
+				cursor.execute(req, str(account))
+				result = cursor.fetchall()
+
+				# avoid showning the PW
+				for r in result:
+					r.pop("pw")
+					r.pop("location")
+					r.pop("update")
+					r.pop("ip")
+					r.pop("account")
+		except:
 			self.he()
 			result = -1
 		self.close()
@@ -417,7 +442,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s and `del_by`=''"
+				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s and (`del_by`='' or `del_by` is NULL)"
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
@@ -432,7 +457,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s and `del_by`=''"
+				req = "SELECT  COUNT(*) FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s and (`del_by`='' or `del_by` is NULL)"
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchone()
 				result = result['COUNT(*)']
@@ -447,7 +472,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s  and `del_by`='' ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`=0 and `mid`=%s  and (`del_by`='' or `del_by` is NULL) ORDER BY `f_ts` DESC LIMIT "+str(a)+","+str(b)
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchall()
 		except:
@@ -461,7 +486,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s  and `del_by`='' ORDER BY `f_ts` DESC LIMIT "+str(a)+", "+str(b)
+				req = "SELECT  `id` FROM  `alerts` WHERE  `account` =  %s and `ack`!=0 and `mid`=%s  and (`del_by`='' or `del_by` is NULL) ORDER BY `f_ts` DESC LIMIT "+str(a)+", "+str(b)
 				cursor.execute(req, (str(account), str(mid)) )
 				result = cursor.fetchall()
 		except:
@@ -475,7 +500,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				# Create a new record
-				req = "SELECT  `f_ts`,`mid`,`area`,`rm_string`,`ack`,`ack_ts`,`ack_by` FROM  `alerts` WHERE  `account` =  %s and `id`=%s  and `del_by`=''"
+				req = "SELECT  `f_ts`,`mid`,`area`,`rm_string`,`ack`,`ack_ts`,`ack_by` FROM  `alerts` WHERE  `account` =  %s and `id`=%s  and (`del_by`='' or `del_by` is NULL)"
 				#rint(req)
 				cursor.execute(req, (str(account), str(alert_id)) )
 				result = cursor.fetchone()
@@ -602,7 +627,8 @@ class sql:
 					result = cursor.fetchone()
 					area = result['id']
 
-				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`) VALUES (%s, %s, %s, %s, %s, %s)"
+
+				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`) VALUES (%s, %s, %s, %s, %s)"
 				cursor.execute(req, (str(mid), str(m2m_pw), str(area), str(account), str(alias)) )
 			self.connection.commit()
 			ret = 0
@@ -696,6 +722,40 @@ class sql:
 
 		return ret
 	#############################################################
+	def update_login(self, id, name, pw, email, account):
+		ret = -1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "SELECT COUNT(*) FROM  `alert`.`ws`  WHERE  `id`=%s"
+				cursor.execute(req, str(id))
+				result = cursor.fetchone()
+				result = result['COUNT(*)']
+				if(result>0):
+					req = "UPDATE  `alert`.`ws` SET  `pw` =  %s, `login` = %s, `email` = %s  WHERE  `id` = %s and `account` = %s"
+					print(req % (str(pw), str(name), str(email), str(id), str(account)) )
+					cursor.execute(req, (str(pw), str(name), str(email), str(id), str(account)) )
+					ret = 0
+				else:
+					# is the user name taken
+					req = "SELECT COUNT(*) FROM  `alert`.`ws`  WHERE  `login`=%s"
+					cursor.execute(req, str(name))
+					result = cursor.fetchone()
+					result = result['COUNT(*)']
+
+					if(result == 0):
+						req = "INSERT INTO  `ws` (`login` ,`pw`, `email`, `account`) VALUES (%s, %s, %s, %s)"
+						cursor.execute(req, (str(name), str(pw), str(email), str(account)) )
+						ret = 0
+					else:
+						ret = -2
+				self.connection.commit()
+		except:
+			self.he()
+			ret = -1
+
+		return ret
+	#############################################################
 	def remove_area(self, id):
 		ret = -1
 		try:
@@ -710,5 +770,34 @@ class sql:
 			ret = -1
 
 		return ret
+	#############################################################
+	def remove_login(self, id, account):
+		ret = -1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "DELETE FROM `ws` WHERE `id`=%s and `account`=%s"
+				cursor.execute(req, (str(id),str(account)) )
+				self.connection.commit()
+			ret = 0
+		except:
+			self.he()
+			ret = -1
+		return ret
 	
+	#############################################################
+	def update_m2m_version(self, mid, v_short, v_hash):
+		ret = -1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "UPDATE  `alert`.`m2m` SET  `v_short` =  %s, `v_hash` =  %s WHERE  `m2m`.`mid` = %s"
+				cursor.execute(req, (str(v_short), str(v_hash), str(mid)) )
+				self.connection.commit()
+			ret = 0
+		except:
+			self.he()
+			ret = -1
 
+		return ret
+		
