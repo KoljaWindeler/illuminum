@@ -21,6 +21,7 @@ var g_areas=[];
 var g_m2m=[];
 var g_rules=[];
 var g_logins=[];
+var g_version=[];
 
 // run as son as everything is loaded
 $(function(){
@@ -110,9 +111,11 @@ function parse_msg(msg_dec){
 			g_pw="nongoodlogin";
 			add_login("login failed");
 		} else {
-		add_menu();
-		setTimeout("$('#wli').addClass('loginok')",1000);
-		setTimeout("$('#wli').html('Login accepted, all your cameras will show up.<br>You can also register new cameras now.')",1000);
+			add_menu();
+			setTimeout("$('#wli').addClass('loginok')",1000);
+			setTimeout("$('#wli').html('Login accepted, all your cameras will show up.<br>You can also register new cameras now.')",1000);
+			g_version["v_short"]=msg_dec["v_short"];
+			g_version["v_hash"]=msg_dec["v_hash"];
 		};
 		c_set_login(g_user,g_pw);
 	}
@@ -2186,7 +2189,7 @@ function add_camera_entry(m_m2m,field){
 			
 	// first the name
 	var cam_name=$("<div></div>");
-	cam_name.text(m_m2m["alias"]);
+	cam_name.text(m_m2m["alias"]+" v."+m_m2m["v_short"]+"/"+g_version["v_short"]);
 	cam_name.addClass("float_right");
 	cam_name.addClass("sidebar_area_name");
 	cam_icon_name.append(cam_name);
@@ -3373,7 +3376,9 @@ function resize_alert_pic(mid,data){
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function txt2fb(text){
-	text.find("div").addClass("loading_fb");
+	if(typeof(text)=="object"){
+		text.find("div").addClass("loading_fb");
+	};	
 	var fb=$("<a></a>");
 	fb.attr("id","txt2fb");
 	fb.attr("style","text-align:left;");
