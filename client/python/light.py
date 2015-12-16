@@ -79,9 +79,9 @@ def start_light():
 		# Intialize the library (must be called once before other functions).
 		strip.begin()
 		strip.show()
-	if(with_pwm):
-		wiringpi.wiringPiSetupGpio()  
-		wiringpi.pinMode(18,2)		
+	elif(with_pwm):
+		wiringpi.wiringPiSetupPhys()
+		wiringpi.pinMode(12,2)		
 
 
 	while True:											# loop forever
@@ -140,10 +140,9 @@ def start_light():
 					for i in range(0,LED_COUNT):
 						strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
 					strip.show()
-				# pwm controll on pin 18
-				if(with_pwm):
-					wiringpi.pwmWrite(18, l.c_r*4)
-					#rint(str(l.c_r*4))
+				# pwm controll on pin 12
+				elif(with_pwm):
+					wiringpi.pwmWrite(12, l.c_r*4)
 				time.sleep(0.8*l.ms_step/1000) # we can wait here a little while because we know that nothing will happen for us earlier than that anyway
 
 		else:
@@ -157,12 +156,19 @@ def return_to_old(ms):
 	dimm_to(l.o_rd,l.o_gd,l.o_bd,ms)
 
 def dimm_to(r,g,b,ms):
+	print("rot:"+str(r))
 	global l
+
+	# selection is 0-255 based, but it lreally means 0-100%
+	r=r/2.55
+	g=g/2.55
+	b=g/2.55
+
 	intens=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,27,28,29,30,31,32,33,34,35,36,38,39,40,41,43,44,45,47,48,50,51,53,55,57,58,60,62,64,66,68,70,73,75,77,80,82,85,88,91,93,96,99,103,106,109,113,116,120,124,128,132,136,140,145,150,154,159,164,170,175,181,186,192,198,205,211,218,225,232,239,247,255]
 
-	r=max(min(len(intens)-1,r),0) 			# just to make sure that we don't take an element outside the array 0-100
-	g=max(min(len(intens)-1,g),0)
-	b=max(min(len(intens)-1,b),0)
+	r=int(max(min(len(intens)-1,r),0)) 			# just to make sure that we don't take an element outside the array 0-100
+	g=int(max(min(len(intens)-1,g),0))
+	b=int(max(min(len(intens)-1,b),0))
 
 	l.t_r=intens[r]							# convert percentage to half-logarithmical brightness
 	l.t_g=intens[g]
@@ -182,6 +188,7 @@ def dimm_to(r,g,b,ms):
 
 		l.s_t=time.time()					# copy the starttime
 		l.t_t=l.s_t+ms/1000					# set start time as starttime + time to dimm
+
 		l.state=1 							# state 1 means dimming
 		l.ĺast_ts=0							# last_ts=0 will result in instant execution of the first dimming step in the loop above
 		l.ms_step=ms/max_diff				# calc the time between the dimming steps as total time / max steps
