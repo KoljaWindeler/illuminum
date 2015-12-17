@@ -2201,8 +2201,8 @@ function add_camera_entry(m_m2m,field){
 	// first the name
 	var cam_name=$("<div></div>");
 	cam_name.text(m_m2m["alias"]);
+	cam_name.attr("id", "c_"+m_m2m["mid"]+"_name_display");
 	cam_name.css("margin-left", "5px");
-	cam_name.attr("id","c_"+m_m2m["mid"]+"_name_display");
 	cam_field_wrapper.append(cam_name);
 
 	///////////////// now the name edit ///////////
@@ -2249,12 +2249,6 @@ function add_camera_entry(m_m2m,field){
 			t+=1;
 		}
 	};
-	fps_select.change(function(){
-		var mid_int=m_m2m["mid"];
-		return function(){
-			update_cam_parameter(mid_int);
-		}
-	}());
 
 	cam_field_wrapper.append(fps_select);
 	//////////////// add fps dropdown ////////////////////
@@ -2275,12 +2269,6 @@ function add_camera_entry(m_m2m,field){
 	}
 	qual_select.append($('<option></option>').val("HD").html("HD resolution, slow").prop('selected', hd_sel));
 	qual_select.append($('<option></option>').val("VGA").html("VGA resolution, fast").prop('selected', vga_sel));
-	qual_select.change(function(){
-		var mid_int=m_m2m["mid"];
-		return function(){
-			update_cam_parameter(mid_int);
-		}
-	}());
 	cam_field_wrapper.append(qual_select);
 	///////////////// quality selector //////////////////////
 
@@ -2301,12 +2289,6 @@ function add_camera_entry(m_m2m,field){
 	}
 	alarm_while_stream_select.append($('<option></option>').val("no_alarm").html("No alarm while streaming (Bad power supply)").prop('selected', no_alarm_sel));
 	alarm_while_stream_select.append($('<option></option>').val("alarm").html("Still watch for movement (good power supply)").prop('selected',alarm_sel));
-	alarm_while_stream_select.change(function(){
-		var mid_int=m_m2m["mid"];
-		return function(){
-			update_cam_parameter(mid_int);
-		}
-	}());
 	cam_field_wrapper.append(alarm_while_stream_select);
 	/////////// alarm while streaming selector //////////////////
 
@@ -2326,12 +2308,6 @@ function add_camera_entry(m_m2m,field){
 		}
 		area_select.append($('<option></option>').val(g_areas[i]["id"]).html(g_areas[i]["area"]).prop('selected', sel));
 	}
-	area_select.change(function(){
-		var mid_int=m_m2m["mid"];
-		return function(){
-			update_cam_parameter(mid_int);
-		}
-	}());
 	cam_field_wrapper.append(area_select);
 	/////////// areas switch //////////////////
 	// now the button div
@@ -2382,6 +2358,8 @@ function add_camera_entry(m_m2m,field){
 		var int_mid=m_m2m["mid"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
 		return function(){
 			cam_entry_button_state(int_mid,"show");
+			update_cam_parameter(int_mid);
+			request_all_cams();
 		};
 	}());
 	cam_buttons.append(cam_save);
@@ -2394,33 +2372,52 @@ function add_camera_entry(m_m2m,field){
 	cam_update_button.addClass("button");
 	cam_update_button.click(function(){
 		var int_mid=m_m2m["mid"];
-		// newest version
-		if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){		
-			return function(){
-				alert("This camera is up2date. Version "+m_m2m["v_short"]);
+		// check if online
+		var online=0;
+		for(var i=0; i<g_m2m.length; i++){
+			if(g_m2m[i]["mid"]==int_mid){
+				online=g_m2m[i]["online"];
+				break;
 			};
-		} 
-		// outdated but updateable
-		else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
-			return function(){
-				if( confirm('The software version of this camera is outdated ('+m_m2m["v_short"]+' vs '+g_version["v_short"]+'). Click ok to upgrade it. The camera will reboot.')){
-					$("#c"+int_mid+"_update").text("hourglass_empty");
-					git_update(int_mid);
+		};
+		if(online){
+			// newest version
+			if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){		
+				return function(){
+					alert("This camera is up2date. Version "+m_m2m["v_short"]);
 				};
-			};
-		} 
-		// too old
-		else {
+			} 
+			// outdated but updateable
+			else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
+				return function(){
+					if( confirm('The software version of this camera is outdated ('+m_m2m["v_short"]+' vs '+g_version["v_short"]+'). Click ok to upgrade it. The camera will reboot.')){
+						var icon=$("#c_"+int_mid+"_update");
+						if(icon.length){
+							icon.text("hourglass_empty");
+						};
+						git_update(int_mid);
+					};
+				};
+			} 
+			// too old
+			else {
+				return function(){
+					alert("The software on this camera is outdated, but automated updates are only supported for versions >685. (Your version "+m_m2m["v_short"]+")");
+				};			
+			}
+		} else {
 			return function(){
-				alert("The software on this camera is outdated, but automated updates are only supported for versions >685. (Your version "+m_m2m["v_short"]+")");
+				alert("This cam is offline");
 			};			
-		}
+		};
 	}());
 	if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){
 		cam_update_button.text("done");
 	} else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
 		cam_update_button.text("publish");
 	} else {
+		cam_update_button.addClass("md-inactive");
+		cam_update_button.addClass("md-dark");
 		cam_update_button.text("clear");
 	}
 
@@ -3371,9 +3368,10 @@ function update_cam_parameter(mid){
 	var qual=$("#"+mid+"_qual_select");
 	var alarm_while_stream=$("#"+mid+"_alarm_while_stream_select");
 	var fps=$("#"+mid+"_fps_select");
-	
-	if(area.length && qual.length && alarm_while_stream.length && fps.length){
-		var cmd_data = { "cmd":"update_cam_parameter", "mid":mid, "area":area.val(), "qual":qual.val(), "alarm_while_stream":alarm_while_stream.val(), "fps":fps.val()};
+	var name_edit=$("#c_"+mid+"_name_edit");
+
+	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length){
+		var cmd_data = { "cmd":"update_cam_parameter", "mid":mid, "area":area.val(), "qual":qual.val(), "alarm_while_stream":alarm_while_stream.val(), "fps":fps.val(), "name":name_edit.val()};
 		console.log(cmd_data);
 		con.send(JSON.stringify(cmd_data));
 	}
