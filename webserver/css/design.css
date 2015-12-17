@@ -106,7 +106,7 @@ div.clear_both {
 	clear: both;
 }
 
-div.center, img.center {
+div.center, img.center, a.center {
 	margin: 0 auto;  /* setzt den block mittig */
 	text-align: center!important;
 	margin-left: auto;
