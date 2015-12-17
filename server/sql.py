@@ -131,7 +131,7 @@ class sql:
 				#rint(result)
 				#rint(result)
 				if(result["COUNT(*)"] == 1):
-					req = "SELECT  pw, area, account, alias, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist, resolution  FROM m2m WHERE mid= %s"
+					req = "SELECT  pw, area, account, alias, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist, resolution, external_state  FROM m2m WHERE mid= %s"
 					cursor.execute(req, str(mid))
 					result = cursor.fetchone()
 
@@ -180,6 +180,21 @@ class sql:
 				# Create a new record
 				req = "UPDATE  `m2m` SET  `mRed` =  %s, `mGreen` =  %s,`mBlue` =  %s, `color_pos` =  %s, `brightness_pos` =  %s WHERE  `m2m`.`mid` = %s"
 				cursor.execute(req, (str(r), str(g), str(b), str(color_pos), str(brightness_pos), str(m2m.mid)) )
+			self.connection.commit()
+			result = 0
+		except:
+			self.he()
+			result = 1
+		self.close()
+		return result
+	#############################################################
+	def update_external_state(self, mid, state):
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				# Create a new record
+				req = "UPDATE  `m2m` SET  `external_state` =  %s WHERE  `m2m`.`mid` = %s"
+				cursor.execute(req, (str(state), str(mid)) )
 			self.connection.commit()
 			result = 0
 		except:
