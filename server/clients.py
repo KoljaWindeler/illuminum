@@ -17,6 +17,7 @@ class m2m_clients:
 		self.comm_timeout=11*60					# max time with incoming msg
 		self.m2v=[]							# list of all active viewer subscribers. those will get a message for e.g. idle -> motion detected
 		self.area=" "						# a location like "in front of the main entrace"
+		self.area_id=-1						# a location like 3
 		self.account=" "					# the accout the device belongs to .. something like JKW even if there are two logins (kolja,caro) to the ACCOUNT
 		self.webcam=[]						# list of type webcam_viewer who are watching the webcam
 		self.state=-1						# state of the cam, 0=idle, 1=alert, 2=detection disabled, idle, 3=detection disabled, movement
