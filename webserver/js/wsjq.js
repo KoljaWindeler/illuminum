@@ -146,11 +146,9 @@ function parse_msg(msg_dec){
 		};
 
 		// check if cam was in wait state
-		var b = $("#"+mid+"_update_button");
-		if(b.length){ // if buttons is visible and text is hourglass, request all cams
-			if(b.text()=="hourglass_empty"){
-				request_all_cams(); // this should refresh the menu
-			};
+		var b = $("#c_"+mid+"_update");
+		if(b.length){ // if buttons is visible, request all cams
+			request_all_cams(); // this should refresh the menu
 		};
 
 	}
@@ -2179,79 +2177,47 @@ function add_menu(){
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 function add_camera_entry(m_m2m,field){
 	// create header
-	var cam_header=$("<div></div>");
-	cam_header.addClass("sidebar_area_entry");
-	cam_header.addClass("inline_block");
-	field.append(cam_header);
-
-	// create cam div
-	var cam_icon_name=$("<div></div>");
-	cam_icon_name.addClass("float_left");
-	cam_icon_name.addClass("inline_block");
-	cam_header.append(cam_icon_name);				
+	var cam_entry=$("<div></div>");
+	cam_entry.addClass("sidebar_area_entry");
+	cam_entry.addClass("inline_block");
+	field.append(cam_entry);
 
 	// add icon
 	var cam_icon=$("<i></i>");
+	cam_icon.css("vertical-align","top");
 	cam_icon.addClass("material-icons");
 	cam_icon.addClass("float_left");
 	cam_icon.text("camera_enhance");
-	cam_icon_name.append(cam_icon);
+	cam_entry.append(cam_icon);
+
+	// keep everything right - multi rows
+	var cam_field_wrapper=$("<div></div>");
+	cam_field_wrapper.attr("id","c_"+m_m2m["mid"]+"_field_wrapper");
+	cam_field_wrapper.addClass("inline_block");
+	cam_field_wrapper.css("margin-top", "3px");
+	cam_field_wrapper.css("width", "50%");
+	cam_entry.append(cam_field_wrapper);
 			
 	// first the name
 	var cam_name=$("<div></div>");
 	cam_name.text(m_m2m["alias"]);
-	cam_name.addClass("float_right");
-	cam_name.addClass("sidebar_area_name");
-	cam_icon_name.append(cam_name);
+	cam_name.css("margin-left", "5px");
+	cam_name.attr("id","c_"+m_m2m["mid"]+"_name_display");
+	cam_field_wrapper.append(cam_name);
 
-	// now the button div
-	var cam_buttons=$("<div></div>");
-	cam_buttons.addClass("float_right");
-	cam_buttons.addClass("inline_block");
-	cam_header.append(cam_buttons);
-
-	// update button
-	var cam_update_button=$("<i></i>");
-	cam_update_button.attr("id", m_m2m["mid"]+"_update_button");
-	cam_update_button.addClass("material-icons");
-	cam_update_button.addClass("sidebar_icons");
-	cam_update_button.addClass("button");
-	cam_update_button.click(function(){
-		var int_mid=m_m2m["mid"];
-		// newest version
-		if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){		
-			return function(){
-				alert("This camera is up2date. Version "+m_m2m["v_short"]);
-			};
-		} 
-		// outdated but updateable
-		else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
-			return function(){
-				if( confirm('The software version of this camera is outdated ('+m_m2m["v_short"]+' vs '+g_version["v_short"]+'). Click ok to upgrade it. The camera will reboot.')){
-					$("#"+int_mid+"_update_button").text("hourglass_empty");
-					git_update(int_mid);
-				};
-			};
-		} 
-		// too old
-		else {
-			return function(){
-				alert("The software on this camera is outdated, but automated updates are only supported for versions >685. (Your version "+m_m2m["v_short"]+")");
-			};			
-		}
-	}());
-	if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){
-		cam_update_button.text("done");
-	} else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
-		cam_update_button.text("publish");
-	} else {
-		cam_update_button.text("clear");
-	}
-
-	cam_buttons.append(cam_update_button);
+	///////////////// now the name edit ///////////
+	var cam_name_edit=$("<input></input>");
+	cam_name_edit.attr("id","c_"+m_m2m["mid"]+"_name_edit");
+	cam_name_edit.val(m_m2m["alias"]);
+	cam_name_edit.css("width", "100%");
+	cam_name_edit.css("margin-left", "5px");
+	cam_name_edit.addClass("sidebar_area_name");
+	cam_field_wrapper.append(cam_name_edit);
 
 	//////////////// add fps dropdown ////////////////////
 	var fps_select=$("<select></select>");
+	fps_select.css("width", "100%");
+	fps_select.css("margin-left", "5px");
 	fps_select.attr({
 		"id": m_m2m["mid"]+"_fps_select",
 		"class":"sidebar_select"
@@ -2290,11 +2256,13 @@ function add_camera_entry(m_m2m,field){
 		}
 	}());
 
-	field.append(fps_select);
+	cam_field_wrapper.append(fps_select);
 	//////////////// add fps dropdown ////////////////////
 
 	///////////////// quality selector //////////////////////
 	var qual_select=$("<select></select>");
+	qual_select.css("width", "100%");
+	qual_select.css("margin-left", "5px");
 	qual_select.attr({
 		"id": m_m2m["mid"]+"_qual_select",
 		"class":"sidebar_select"
@@ -2313,11 +2281,13 @@ function add_camera_entry(m_m2m,field){
 			update_cam_parameter(mid_int);
 		}
 	}());
-	field.append(qual_select);
+	cam_field_wrapper.append(qual_select);
 	///////////////// quality selector //////////////////////
 
 	/////////// alarm while streaming selector //////////////////
 	var alarm_while_stream_select=$("<select></select>");
+	alarm_while_stream_select.css("width", "100%");
+	alarm_while_stream_select.css("margin-left", "5px");
 	alarm_while_stream_select.attr({
 		"id": m_m2m["mid"]+"_alarm_while_stream_select",
 		"class":"sidebar_select"
@@ -2337,11 +2307,13 @@ function add_camera_entry(m_m2m,field){
 			update_cam_parameter(mid_int);
 		}
 	}());
-	field.append(alarm_while_stream_select);
+	cam_field_wrapper.append(alarm_while_stream_select);
 	/////////// alarm while streaming selector //////////////////
 
 	/////////// areas switch //////////////////
 	var area_select=$("<select></select>");
+	area_select.css("width", "100%");
+	area_select.css("margin-left", "5px");
 	area_select.attr({
 		"id": m_m2m["mid"]+"_area_select",
 		"class":"sidebar_select"
@@ -2360,8 +2332,99 @@ function add_camera_entry(m_m2m,field){
 			update_cam_parameter(mid_int);
 		}
 	}());
-	field.append(area_select);
+	cam_field_wrapper.append(area_select);
 	/////////// areas switch //////////////////
+	// now the button div
+	var cam_buttons=$("<div></div>");
+	cam_buttons.attr("id","c_"+m_m2m["mid"]+"_buttons");
+	cam_buttons.addClass("float_right");
+	cam_buttons.addClass("inline_block");
+	cam_entry.append(cam_buttons);
+
+	// the edit login button
+	var cam_edit=$("<i></i>");
+	cam_edit.attr("id","c_"+m_m2m["mid"]+"_edit");
+	cam_edit.addClass("material-icons");
+	cam_edit.addClass("sidebar_icons");
+	cam_edit.text("mode_edit");
+	cam_edit.addClass("button");
+	cam_edit.click(function(){
+		var int_mid=m_m2m["mid"];
+		return function(){
+			cam_entry_button_state(int_mid,"edit");
+		};
+	}());
+	cam_buttons.append(cam_edit);
+
+	// the discard button
+	var cam_discard=$("<i></i>");
+	cam_discard.attr("id","c_"+m_m2m["mid"]+"_disc");
+	cam_discard.text("clear");
+	cam_discard.addClass("sidebar_icons");
+	cam_discard.addClass("material-icons");
+	cam_discard.hide();
+	cam_discard.click(function(){
+		var int_mid=m_m2m["mid"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			cam_entry_button_state(int_mid,"show");			
+		};
+	}());
+	cam_buttons.append(cam_discard);
+
+	// the save button
+	var cam_save=$("<i></i>");
+	cam_save.attr("id","c_"+m_m2m["mid"]+"_save");
+	cam_save.attr("type","submit");
+	cam_save.addClass("material-icons");
+	cam_save.addClass("sidebar_icons");
+	cam_save.text("save");
+	cam_save.click(function(){
+		var int_mid=m_m2m["mid"]; // reminder, do not save arrays here, i think that is due to the nature or pointer vs value
+		return function(){
+			cam_entry_button_state(int_mid,"show");
+		};
+	}());
+	cam_buttons.append(cam_save);
+
+	// update button
+	var cam_update_button=$("<i></i>");
+	cam_update_button.attr("id","c_"+m_m2m["mid"]+"_update");
+	cam_update_button.addClass("material-icons");
+	cam_update_button.addClass("sidebar_icons");
+	cam_update_button.addClass("button");
+	cam_update_button.click(function(){
+		var int_mid=m_m2m["mid"];
+		// newest version
+		if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){		
+			return function(){
+				alert("This camera is up2date. Version "+m_m2m["v_short"]);
+			};
+		} 
+		// outdated but updateable
+		else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
+			return function(){
+				if( confirm('The software version of this camera is outdated ('+m_m2m["v_short"]+' vs '+g_version["v_short"]+'). Click ok to upgrade it. The camera will reboot.')){
+					$("#c"+int_mid+"_update").text("hourglass_empty");
+					git_update(int_mid);
+				};
+			};
+		} 
+		// too old
+		else {
+			return function(){
+				alert("The software on this camera is outdated, but automated updates are only supported for versions >685. (Your version "+m_m2m["v_short"]+")");
+			};			
+		}
+	}());
+	if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){
+		cam_update_button.text("done");
+	} else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
+		cam_update_button.text("publish");
+	} else {
+		cam_update_button.text("clear");
+	}
+
+	cam_buttons.append(cam_update_button);
 }
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -2493,7 +2556,6 @@ function add_area_entry(field,m_area){
 			}
 		});
 	};
-
 	area_entry.append(area_name_edit);
 
 	var area_lat=$("<input></input>");
@@ -2699,12 +2761,6 @@ function add_login_entry(field,m_login){
 	login_entry.attr("id","u_"+m_login["id"]+"_outer");
 	field.append(login_entry);
 
-	// create user div
-	var login_info=$("<div></div>");
-	login_info.addClass("float_left");
-	login_info.addClass("inline_block");
-	login_info.attr("id","u_"+m_login["id"]+"_info");
-	//login_entry.append(login_info);				
 
 	// add icon
 	var login_icon=$("<i></i>");
@@ -2716,7 +2772,6 @@ function add_login_entry(field,m_login){
 	if(m_login["id"]==-1){
 		login_icon.text("add");
 	};
-	//login_info.append(login_icon);
 	login_entry.append(login_icon);
 
 	// keep everything right - multi rows
@@ -2973,6 +3028,56 @@ function login_entry_button_state(m_login_id,state){
 	$("#u_"+m_login_id+"_field_wrapper").outerWidth((right-left)*0.92);
 
 };
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function cam_entry_button_state(mid,state){
+	var name_display = $("#c_"+mid+"_name_display");
+	var fps_sel = $("#"+mid+"_fps_select");
+	var qual_sel = $("#"+mid+"_qual_select");
+	var alarm_while_stream_sel = $("#"+mid+"_alarm_while_stream_select");
+	var area_sel = $("#"+mid+"_area_select");
+	var save = $("#c_"+mid+"_save");
+	var discard = $("#c_"+mid+"_disc");
+	var edit = $("#c_"+mid+"_edit");
+	var name_edit = $("#c_"+mid+"_name_edit");
+	var update = $("#c_"+mid+"_update");
+
+	update.hide();
+	save.hide();
+	discard.hide();
+	edit.hide();
+	name_display.hide();
+	name_edit.hide();
+	fps_sel.hide();
+	qual_sel.hide();
+	alarm_while_stream_sel.hide();
+	area_sel.hide();
+
+	if(state=="show"){
+		edit.show();
+		update.show();
+		name_display.show();
+	} else if(state=="edit"){
+		save.show();
+		discard.show();
+		name_edit.show();
+		fps_sel.show();
+		qual_sel.show();
+		alarm_while_stream_sel.show();
+		area_sel.show();
+	}
+	// scale text field to 92% of available width
+	var left=$("#c_"+mid+"_field_wrapper").position().left;
+	var right=$("#c_"+mid+"_buttons").position().left;
+	$("#c_"+mid+"_field_wrapper").outerWidth((right-left)*0.92);
+
+};
+
 /////////////////////////////////////////// ADD MENU ENTRY //////////////////////////////////////////
 // triggered by:	add_menu()
 // arguemnts:	 	
@@ -3207,6 +3312,7 @@ function parse_sidebar_info(msg){
 			field.text("");
 			for(var a=0;a<g_m2m.length;a++){
 				add_camera_entry(g_m2m[a],field);
+				cam_entry_button_state(g_m2m[a]["mid"],"show");
 			}; // for each camera
 		}; // camera box
 		/////////////////////// CAMERA BOX ////////////////////
