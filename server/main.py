@@ -802,6 +802,7 @@ def recv_ws_msg_handle(data,ws):
 			in_frame_dist=float(enc.get("fps","0.5"))
 			in_area=enc.get("area","-1")
 			in_alarm_ws="1"
+			in_name=enc.get("name")
 
 			# save new parameter
 			for m2m in server_m2m.clients:
@@ -811,7 +812,7 @@ def recv_ws_msg_handle(data,ws):
 					m2m.frame_dist=in_frame_dist
 					m2m.alarm_ws=in_alarm_ws
 
-					if(str(m2m.area_id)!=str(in_area)):
+					if(str(m2m.area_id)!=str(in_area) or str(m2m.alias)!=str(in_name)):
 						# it might sound rough, but we have to reloader all the rules, 
 						# change the area, inform all clients. If we just disconnect to box
 						# it will redial in in 3 sec and everything will run on its own
@@ -827,7 +828,7 @@ def recv_ws_msg_handle(data,ws):
 					break;
 
 			# outside of loop to update cams that are offline
-			db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws)
+			db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name)
 
 			# send ok response to ws
 			msg={}
@@ -1044,10 +1045,19 @@ def recv_ws_msg_handle(data,ws):
 			msg["v_hash"]=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
 			all_m2m4account=db.get_m2m4account(ws.account)
+			# if it failed
 			if(type(all_m2m4account) is int):
 				p.rint("Error getting data for account "+str(ws.account),"d")
 				msg["ok"]=-1
 			else:
+				# is cam online
+				for m2m in all_m2m4account:
+					m2m["online"]=0
+					for cli in server_m2m.clients:
+						if(str(cli.mid) == str(m2m["mid"])):
+							m2m["online"]=1
+							break
+
 				msg["ok"]=1
 				msg["m2m"]=all_m2m4account
 			msg_q_ws.append((msg,ws))

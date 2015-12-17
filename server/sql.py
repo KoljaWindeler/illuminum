@@ -676,7 +676,7 @@ class sql:
 
 		return ret
 	#############################################################
-	def update_cam_parameter(self, mid, frame_space, resolution, alarm_while_stream, area, alarm_ws):
+	def update_cam_parameter(self, mid, frame_space, resolution, alarm_while_stream, area, alarm_ws, name):
 		ret = -1
 		try:
 			if(float(frame_space)>0):
@@ -688,9 +688,9 @@ class sql:
 
 				self.connect()
 				with self.connection.cursor() as cursor:
-					req = "UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s, `area` = %s  WHERE  `m2m`.`mid` = %s"
+					req = "UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s, `area` = %s, `alias` = %s  WHERE  `m2m`.`mid` = %s"
 					#rint("UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s  WHERE  `m2m`.`mid` = %s" % (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(mid)))
-					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(area), str(mid)) )
+					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(area), str(name), str(mid)) )
 					self.connection.commit()
 			ret = 0
 		except:
