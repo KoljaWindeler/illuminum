@@ -140,6 +140,7 @@ class sql:
 					cursor.execute(req2, str(result["area"]))
 					result2 = cursor.fetchone()
 					
+					result["area_id"]=result["area"]
 					result["latitude"]=result2["latitude"]
 					result["longitude"]=result2["longitude"]
 					result["area"]=result2["area"]
