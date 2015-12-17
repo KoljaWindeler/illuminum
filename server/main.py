@@ -1,4 +1,4 @@
-import time,json,os,base64,hashlib,string,random, subprocess
+import time,json,os,base64,hashlib,string,random, subprocess, traceback
 from clients import alert_event,webcam_viewer,det_state
 import server_m2m
 import server_ws
@@ -47,7 +47,13 @@ def recv_m2m_con_dq_handle():
 		ret=1
 		recv_con=recv_m2m_con_q[0]
 		recv_m2m_con_q.remove(recv_con)
-		recv_m2m_con_handle(recv_con[0],recv_con[1])
+		try:
+			recv_m2m_con_handle(recv_con[0],recv_con[1])
+		except:
+			p.err("sys:")
+			p.err(str(sys.exc_info()[0]))
+			p.err(str(sys.exc_info()[1]))
+			p.err(str(repr(traceback.format_tb(sys.exc_info()[2]))))
 	return ret
 #******************************************************#
 
@@ -100,7 +106,13 @@ def recv_m2m_msg_dq_handle():
 		ret=1
 		recv_msg=recv_m2m_msg_q[0]
 		recv_m2m_msg_q.remove(recv_msg)
-		recv_m2m_msg_handle(recv_msg[0],recv_msg[1])
+		try:
+			recv_m2m_msg_handle(recv_msg[0],recv_msg[1])
+		except:
+			p.err("sys:")
+			p.err(str(sys.exc_info()[0]))
+			p.err(str(sys.exc_info()[1]))
+			p.err(str(repr(traceback.format_tb(sys.exc_info()[2]))))
 	return ret
 #******************************************************#
 
@@ -470,7 +482,14 @@ def recv_ws_con_dq_handle():
 		ret=1
 		recv_con=recv_ws_con_q[0]
 		recv_ws_con_q.remove(recv_con)
-		recv_ws_con_handle(recv_con[0],recv_con[1])
+		try:
+			recv_ws_con_handle(recv_con[0],recv_con[1])
+		except:
+			p.err("sys:")
+			p.err(str(sys.exc_info()[0]))
+			p.err(str(sys.exc_info()[1]))
+			p.err(str(repr(traceback.format_tb(sys.exc_info()[2]))))
+
 	return ret
 #******************************************************#
 
@@ -518,7 +537,13 @@ def recv_ws_msg_dq_handle():
 		ret=1
 		recv_msg=recv_ws_msg_q[0]
 		recv_ws_msg_q.remove(recv_msg)
-		recv_ws_msg_handle(recv_msg[0],recv_msg[1])
+		try:
+			recv_ws_msg_handle(recv_msg[0],recv_msg[1])
+		except:
+			p.err("sys:")
+			p.err(str(sys.exc_info()[0]))
+			p.err(str(sys.exc_info()[1]))
+			p.err(str(repr(traceback.format_tb(sys.exc_info()[2]))))
 	return ret
 #******************************************************#
 
@@ -1134,10 +1159,44 @@ def recv_ws_msg_handle(data,ws):
 					msg2={}
 					msg2["cmd"]=enc.get("cmd")
 					msg_q_m2m.append((msg2,cam))
+					break
 
 			# send msg back to ws
 			msg_q_ws.append((msg,ws))
 
+		## set the state of the external pin
+		elif(enc.get("cmd")=="toggle_external_pin"):
+			mid=enc.get("mid","0")
+
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["mid"]=mid
+			msg["ok"]=-1
+			state=0
+
+			# search the right cam, based on the MID and account
+			for cam in server_m2m.clients:
+				if(enc.get("mid")==cam.mid and cam.account==ws.account):
+					cam.external_state=int(not(cam.external_state))
+					state=cam.external_state
+					msg["ok"]=0
+					msg["state"]=state
+
+					# send msg to m2m
+					msg2={}
+					msg2["cmd"]=enc.get("cmd")
+					msg2["state"]=state
+					msg_q_m2m.append((msg2,cam))
+
+					# send a message to al listeners
+					for l in cam.m2v:
+						msg_q_ws.append((msg,l))
+					break
+
+			# send the message once more, in case we couldn't find the m2m
+			msg_q_ws.append((msg,ws))			
+			db.update_external_state(mid,state)
+			p.rint2("User '"+str(ws.login)+"' asked to toggle the pin '"+str(mid)+"'","d","A ws")
 
 		## unsupported cmd, for WS
 		else:
@@ -1212,6 +1271,7 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	msg["mRed"]=db_r["mRed"]
 	msg["mGreen"]=db_r["mGreen"]
 	msg["mBlue"]=db_r["mBlue"]
+	msg["external_state"]=db_r["external_state"]
 	msg["alarm_while_streaming"]=db_r["alarm_while_streaming"]	# TODO remove me!
 			
 	# send a second message to set the parameter, don't want to double it in the login	
@@ -1309,6 +1369,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 		msg_ws2["alias"]=m2m.alias
 		msg_ws2["last_seen"]=m2m.last_comm
 		msg_ws2["color_pos"]=m2m.color_pos
+		msg_ws2["external_state"]=m2m.external_state
 		msg_ws2["brightness_pos"]=m2m.brightness_pos
 		msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 		msg_ws2["open_alarms"]=db.get_open_alert_count(m2m.account,m2m.mid)
