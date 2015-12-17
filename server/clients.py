@@ -38,6 +38,7 @@ class m2m_clients:
 		self.alarm_while_streaming = 0				# bad power supply
 		self.v_short = "-"					# version nr
 		self.v_hash = "-"					# hash of git state
+		self.external_state = 0					# state of the external pin
 # dies ist der WEBSOCKET client
 class ws_clients:
 	def __init__(self, addr):
