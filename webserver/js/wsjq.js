@@ -268,7 +268,7 @@ function parse_msg(msg_dec){
 		parse_sidebar_info(msg_dec);
 	}
 
-	// response from server
+	// response from server regarding the update request
 	else if(msg_dec["cmd"]=="update_login"){
 		$.fancybox.close();				
 
@@ -278,6 +278,21 @@ function parse_msg(msg_dec){
 		} else if(msg_dec["ok"]=="-2") {
 			alert("this username was already taken, choose another one");
 		}
+	}
+
+	// response regarding the set pin command
+	else if(msg_dec["cmd"]=="toggle_external_pin"){
+		var mid=msg_dec["mid"];
+		var state=msg_dec["state"];
+		var b=$("#"+mid+"_external");
+		if(b.length){
+			if(state=="1" || state==1){
+				b.text("switch off");
+			} else {
+				b.text("switch on");
+			};
+		};
+
 	};
 
 
@@ -1328,6 +1343,29 @@ function check_append_m2m(msg_dec){
 			};
 		}()});
 	setupcontrol.append(scroller);
+	setupcontrol.append($("<br>"));
+
+	var c=$("<div></div>");
+	c.addClass("center");
+	c.css("width","100%");
+	setupcontrol.append(c);
+
+	var button=$("<a></a>");
+	button.attr("id",msg_dec["mid"]+"_external");
+	button.css("width","60%");
+	if(msg_dec["external_state"] == "1"){
+		button.text("switch off")
+	} else {
+		button.text("switch on")
+	};
+	button.addClass("button");
+	button.click(function(){
+		var int_mid=msg_dec["mid"];
+		return function (){
+			toggle_external_pin(int_mid);
+		}
+	}());
+	c.append(button);
 	////////////////// COLOR SLIDER ////////////////////////////
 
 	////////////////// ALARM MANAGER ////////////////////////////
@@ -1830,6 +1868,25 @@ function createRainbowDiv(s){
 		}
 	}
 	return gradient;
+}
+
+/////////////////////////////////////////// TOGGLE EXTERNAL PIN //////////////////////////////////////////
+// triggered by: user click
+// arguemnts:	 MID
+// what it does: just send a msg to the server
+// why: 	 to activate / deactivate external devices
+/////////////////////////////////////////// TOGGLE EXTERNAL PIN //////////////////////////////////////////
+
+function toggle_external_pin(mid){
+		var b=$("#"+mid+"_external");
+		if(b.length){
+			b.text("wait..");
+		};
+
+		var cmd_data = { 
+				"cmd":"toggle_external_pin", 
+				"mid":mid};
+		con.send(JSON.stringify(cmd_data));	
 }
 
 /////////////////////////////////////////// SEND COLOR //////////////////////////////////////////
