@@ -36,6 +36,7 @@ $header='<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="robots" content="noindex">
         <link rel="stylesheet" href="css/design.css" type="text/css" media="screen" charset="utf-8">
+	<link rel="shotcut icon" href="images/logobw.png" type="image/x-icon">
         <title>illuminum webapp v.'.$v.'</title>
 	'.$extra_header.'
     </head>
