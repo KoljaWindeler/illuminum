@@ -800,7 +800,7 @@ def recv_ws_msg_handle(data,ws):
 			in_alarm_while_stream=enc.get("alarm_while_stream","no_alarm")
 			in_resolution=enc.get("qual","HD")
 			in_frame_dist=float(enc.get("fps","0.5"))
-			in_area=enc.get("area","home")
+			in_area=enc.get("area","-1")
 			in_alarm_ws="1"
 
 			# save new parameter
@@ -811,7 +811,7 @@ def recv_ws_msg_handle(data,ws):
 					m2m.frame_dist=in_frame_dist
 					m2m.alarm_ws=in_alarm_ws
 
-					if(m2m.area!=in_area):
+					if(str(m2m.area_id)!=str(in_area)):
 						# it might sound rough, but we have to reloader all the rules, 
 						# change the area, inform all clients. If we just disconnect to box
 						# it will redial in in 3 sec and everything will run on its own
@@ -1186,6 +1186,7 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	# get area and account based on database value for this mid
 	m2m.account=db_r["account"]
 	m2m.area=db_r["area"]
+	m2m.area_id=db_r["area_id"]
 	m2m.alias=db_r["alias"]
 	m2m.longitude=db_r["longitude"]
 	m2m.latitude=db_r["latitude"]
