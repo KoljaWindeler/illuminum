@@ -98,10 +98,10 @@ class sql:
 				#rint("get_data gen req:")
 				req = "SELECT COUNT(*) FROM ws WHERE login=%s"
 				cursor.execute(req, str(login))
-				result = cursor.fetchone()
+				result_c = cursor.fetchone()
 				#rint(result)
 				#rint(result)
-				if(result["COUNT(*)"] == 1):
+				if(result_c["COUNT(*)"] == 1):
 					req = "SELECT  pw, account, email FROM ws WHERE login=%s"
 					#rint(req)
 					cursor.execute(req, str(login))
@@ -109,7 +109,7 @@ class sql:
 					result = cursor.fetchone()
 				else:
 					result = -1
-					p.rint("count not 1, it is "+result["COUNT(*)"], "d")
+					p.rint("count not 1, it is "+result_c["COUNT(*)"], "d")
 					p.rint(req, "d")
 				#rint(result)
 		except:
@@ -127,10 +127,10 @@ class sql:
 				#rint("get_data gen req:")
 				req = "SELECT COUNT(*) FROM m2m WHERE mid= %s"
 				cursor.execute(req, str(mid))
-				result = cursor.fetchone()
+				result_count = cursor.fetchone()
 				#rint(result)
 				#rint(result)
-				if(result["COUNT(*)"] == 1):
+				if(result_count["COUNT(*)"] == 1):
 					req = "SELECT  pw, area, account, alias, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist, resolution, external_state  FROM m2m WHERE mid= %s"
 					cursor.execute(req, str(mid))
 					result = cursor.fetchone()
@@ -147,7 +147,7 @@ class sql:
 					
 				else:
 					result = -1
-					p.err("SQL get data for ->%s<- did not return 1 line but %s"%(str(mid),str(result["COUNT(*)"])))
+					p.err("SQL get data for ->%s<- did not return 1 line but %s"%(str(mid),str(result_count["COUNT(*)"])))
 					p.err(req)
 				#rint(result)
 		except:
@@ -787,20 +787,34 @@ class sql:
 
 		return ret
 	#############################################################
-	def remove_login(self, id, account):
+	def remove_area(self, id):
 		ret = -1
 		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
-				req = "DELETE FROM `ws` WHERE `id`=%s and `account`=%s"
-				cursor.execute(req, (str(id),str(account)) )
+				req = "DELETE FROM `area_state` WHERE `id`=%s"
+				cursor.execute(req, (str(id),) )
+				self.connection.commit()
+			ret = 0
+		except:
+			self.he()
+			ret = -1
+
+		return ret
+	#############################################################
+	def remove_m2m(self, mid, account):
+		ret = -1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "DELETE FROM `m2m` WHERE `mid`=%s and `account`=%s"
+				cursor.execute(req, (str(mid),str(account)) )
 				self.connection.commit()
 			ret = 0
 		except:
 			self.he()
 			ret = -1
 		return ret
-	
 	#############################################################
 	def update_m2m_version(self, mid, v_short, v_hash):
 		ret = -1

@@ -293,6 +293,12 @@ function parse_msg(msg_dec){
 			};
 		};
 
+	}
+
+	// response of deleteing a m2m, eventhough not this ws might have deltete it
+	else if(msg_dec["cmd"]=="remove_m2m"){
+		var mid=msg_dec["mid"];
+		remove_m2m(mid);
 	};
 
 
@@ -949,6 +955,28 @@ function show_pic_slider(img,mid,core,slider_id){
 	$("a[rel="+core+"]").fancybox({"openEffect":"elastic"}).trigger("click");
 }
 
+/////////////////////////////////////////// REMOVE_M2M //////////////////////////////////////////
+// triggered by: check_append_m2m() or incoming message that the cam was deleteted
+// arguemnts:	 mid
+// what it does: remove client and if the eare is empty after that, delete it as well
+// why: 	 core code
+/////////////////////////////////////////// REMOVE_M2M //////////////////////////////////////////
+function remove_m2m(mid){
+	if($("#clients").length){
+		var node=$("#"+mid);
+		// check if this m2m  exists, if so remove it as it might be underthe wrong area
+		if(node.length){
+			var area=node.parent();
+			// count nodeof class area_m2m on area if just one then we have to delete this area as well
+			if(area.children('.area_m2m').length==1){
+				area.remove();
+			} else {
+				node.remove();
+			};
+		}
+	}
+}
+
 /////////////////////////////////////////// CHECK_APPEND_M2M //////////////////////////////////////////
 // triggered by: parse_msg()
 // arguemnts:	 complete msg
@@ -963,16 +991,7 @@ function check_append_m2m(msg_dec){
 		var node=$("#"+mid);
 
 		// check if this m2m already exists, if so remove it as it might be underthe wrong area
-		if(node.length){
-			var area=node.parent();
-			// count nodeof class area_m2m on area if just one then we have to delete this area as well
-			if(area.children('.area_m2m').length==1){
-				area.remove();
-			} else {
-				node.remove();
-			};
-			/////////////////// REMOVE M2M ////////////////////////////(
-		}
+		remove_m2m(mid);
 
 		// AREA Creation if needed
 		var area=$("#"+msg_dec["account"]+"_"+msg_dec["area"]);
@@ -2233,6 +2252,15 @@ function add_menu(){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 function add_camera_entry(m_m2m,field){
+	// check if online
+	var online=0;
+	for(var i=0; i<g_m2m.length; i++){
+		if(g_m2m[i]["mid"]==m_m2m["mid"]){
+			online=g_m2m[i]["online"];
+			break;
+		};
+	};
+
 	// create header
 	var cam_entry=$("<div></div>");
 	cam_entry.addClass("sidebar_area_entry");
@@ -2420,7 +2448,7 @@ function add_camera_entry(m_m2m,field){
 		};
 	}());
 	cam_buttons.append(cam_save);
-
+	
 	// update button
 	var cam_update_button=$("<i></i>");
 	cam_update_button.attr("id","c_"+m_m2m["mid"]+"_update");
@@ -2429,21 +2457,13 @@ function add_camera_entry(m_m2m,field){
 	cam_update_button.addClass("button");
 	cam_update_button.click(function(){
 		var int_mid=m_m2m["mid"];
-		// check if online
-		var online=0;
-		for(var i=0; i<g_m2m.length; i++){
-			if(g_m2m[i]["mid"]==int_mid){
-				online=g_m2m[i]["online"];
-				break;
-			};
-		};
 		if(online){
 			// newest version
 			if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){		
 				return function(){
 					alert("This camera is up2date. Version "+m_m2m["v_short"]);
 				};
-			} 
+			} 	
 			// outdated but updateable
 			else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
 				return function(){
@@ -2461,24 +2481,51 @@ function add_camera_entry(m_m2m,field){
 				return function(){
 					alert("The software on this camera is outdated, but automated updates are only supported for versions >685. (Your version "+m_m2m["v_short"]+")");
 				};			
-			}
+			};
 		} else {
 			return function(){
-				alert("This cam is offline");
-			};			
-		};
+				alert("Can't update this camera as it is offline");
+			};
+		}
 	}());
-	if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"])){
+	if(parseInt(m_m2m["v_short"])==parseInt(g_version["v_short"]) && online){
 		cam_update_button.text("done");
-	} else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685))){
+	} else if((parseInt(m_m2m["v_short"])<parseInt(g_version["v_short"]) && (parseInt(m_m2m["v_short"])>=685)) && online){
 		cam_update_button.text("publish");
 	} else {
 		cam_update_button.addClass("md-inactive");
 		cam_update_button.addClass("md-dark");
-		cam_update_button.text("clear");
+		cam_update_button.text("publish");
 	}
-
 	cam_buttons.append(cam_update_button);
+
+	// add a delete button
+	var cam_delete_button=$("<i></i>");
+	cam_delete_button.attr("id","c_"+m_m2m["mid"]+"_delete");
+	cam_delete_button.addClass("material-icons");
+	cam_delete_button.addClass("sidebar_icons");
+	cam_delete_button.addClass("button");
+	if(online){
+		cam_delete_button.addClass("md-inactive");
+		cam_delete_button.addClass("md-dark");
+	}
+	cam_delete_button.text("delete");
+	cam_delete_button.click(function(){
+		var int_mid=m_m2m["mid"];
+		if(online){
+			return function(){
+				alert("This cam can not be delteted, as it is online");
+			}
+		} else {
+			return function(){
+				if(confirm('Do you really want to delete this unit from your account?')){
+					cam_delete(int_mid);
+					request_all_cams();
+				}
+			}
+		}
+	}());
+	cam_buttons.append(cam_delete_button);
 }
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -3305,7 +3352,7 @@ function parse_sidebar_info(msg){
 	};
 	///////////////////////////////// Parse individual info and go one if all entries are set /////////////
 
-	if(g_areas.length && g_m2m.length && g_rules.length){
+	if(g_areas.length && g_m2m.length && g_logins.length){
 		/////////////////////// RM BOX ////////////////////
 		var field=$("#rm_box");
 		if(field.length){
@@ -3401,6 +3448,18 @@ function remove_area(id){
 	console.log(cmd_data);
 	con.send(JSON.stringify(cmd_data));
 };
+
+/////////////////////////////////////////// CAM DELETE //////////////////////////////////////////
+// triggered by: 	user clicked on delete button
+// arguemnts:	 	mid of cam
+// what it does: 	just forward it to the server
+// why: 	 	to remove an old cam
+/////////////////////////////////////////// CAM DELETE //////////////////////////////////////////
+function cam_delete(mid){
+	var cmd_data = { "cmd":"remove_m2m", "mid":mid};
+	console.log(cmd_data);
+	con.send(JSON.stringify(cmd_data));
+}
 
 /////////////////////////////////////////// GIT_UPDATE //////////////////////////////////////////
 // triggered by: 	user clicked on update button
