@@ -241,7 +241,7 @@ def show_m2m(id,l,m2m):
 		show_m2m(1,l,m2m)
 		print(bcolors.WARNING+"we got "+str(l)+" m2m-clients connected"+bcolors.ENDC)
 	elif(id==-1):
-		print(bcolors.WARNING+"M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Coordinates"+bcolors.ENDC)
+		print(bcolors.WARNING+"M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Version"+bcolors.ENDC)
 		show_m2m(1,l,m2m)
 	elif(id==0):
 		p_alias=(m2m.alias+"                        ")[0:15]
@@ -255,7 +255,7 @@ def show_m2m(id,l,m2m):
 			p_detection=(str(m2m.detection)+"                  ")[0:9]
 		p_state=(m2m_state[int(m2m.state)]+"                   ")[0:13]
 		output=str(m2m.mid)[-5:]+"/"+p_alias+" | "+p_account+" | "+str(p_detection)+" | "+(p_state)+" | "+str(p_ip)+" | "+str(m2m.logged_in)+"    | "
-		output+=p_last_seen+" | "+p_area+" | "+str(m2m.latitude)+"/"+str(m2m.longitude)
+		output+=p_last_seen+" | "+p_area+" | "+str(m2m.v_short)+"/"+str(m2m.v_hash)
 		print(bcolors.WARNING+output+bcolors.ENDC)
 	elif(id==1):
 		print(bcolors.WARNING+"-------------------------------------------------------------------------------------------------------------------------------------------------------"+bcolors.ENDC)
