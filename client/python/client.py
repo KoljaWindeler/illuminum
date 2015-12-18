@@ -63,6 +63,9 @@ class Debugging:
 		self.last_pic_taken_ts = 0
 
 #******************************************************#
+def rw(): #remounts the filesystem read-write
+	print(subprocess.Popen(["mount","-o","remount,rw", "/"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate())
+#******************************************************#
 def pin_config():
 	GPIO.setwarnings(False)
 	GPIO.setmode(GPIO.BOARD)
@@ -474,9 +477,11 @@ def parse_incoming_msg(con):
 
 			# run a git update
 			elif(enc.get("cmd") == "git_update"):
-				path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","update.sh")
-				result=str(subprocess.Popen(path,stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-
+				# remount root rw
+				rw() 
+				# run the update
+				subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+				# get new version
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
@@ -522,15 +527,23 @@ def parse_incoming_msg(con):
 				msg["ok"] = "-1"
 			
 				try:
+					# remount root rw
+					rw() 
+					# run update
 					path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","gpucam")
 					if(os.path.isfile(os.path.join(path,"annotation.config"))):
 						file=open(os.path.join(path,"annotation.config"),"w")
 						file.write("annotation "+alias+" %04d.%02d.%02d_%02d:%02d:%02d \r\nanno_background false")
 						file.close()
-						subprocess.Popen(os.path.join(path,"generate_config.sh"),stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+						subprocess.Popen(os.path.join(path,"generate_config.sh"),stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 						msg["ok"] = "1"
 						print("ok")
 				except:
+					import sys, traceback
+					print("sys:")
+					print(str(sys.exc_info()[0]))
+					print(str(sys.exc_info()[1]))
+					print(str(repr(traceback.format_tb(sys.exc_info()[2]))))
 					print("setting new name failed")
 				con.msg_q.append(msg)
 
