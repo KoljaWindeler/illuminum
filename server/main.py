@@ -414,6 +414,16 @@ def recv_m2m_msg_handle(data,m2m):
 			msg["cmd"]="reboot"
 			msg_q_m2m.append((msg,m2m))
 		
+		### send the camera to reboot after the alias was changed successful ###
+		elif(enc.get("cmd")=="set_alias"):
+			if(str(enc.get("ok","-1"))=="1"):
+				msg={}
+				msg["cmd"]="reboot"
+				msg_q_m2m.append((msg,m2m))
+				p.rint2("M2M "+m2m.alias+" has updated its name, rebooting it","d","A_ws")
+			else:
+				p.rint2("M2M "+m2m.alias+" update alias failed!","d","A_ws")
+
 
 		#### unsupported command, for M2M
 		else:
@@ -837,7 +847,14 @@ def recv_ws_msg_handle(data,ws):
 					m2m.frame_dist=in_frame_dist
 					m2m.alarm_ws=in_alarm_ws
 
-					if(str(m2m.area_id)!=str(in_area) or str(m2m.alias)!=str(in_name)):
+					if(str(m2m.alias)!=str(in_name)):
+						# if the name (and probably more) has change, reboot cam
+						msg={}
+						msg["cmd"]="set_alias"
+						msg["alias"]=in_name
+						msg_q_m2m.append((msg,m2m))
+					elif(str(m2m.area_id)!=str(in_area)):
+						# if then name has not change, but the area, just reconnect it
 						# it might sound rough, but we have to reloader all the rules, 
 						# change the area, inform all clients. If we just disconnect to box
 						# it will redial in in 3 sec and everything will run on its own
@@ -846,7 +863,7 @@ def recv_ws_msg_handle(data,ws):
 						# inform the webcam about the new parameter
 						msg={}
 						msg["cmd"]="update_parameter"
-						msg["qual"]=m2m.resolution	
+						msg["qual"]=m2m.resolution
 						msg["alarm_while_streaming"]=m2m.alarm_while_streaming
 						msg["interval"]=m2m.frame_dist
 						msg_q_m2m.append((msg,m2m))
@@ -1048,7 +1065,7 @@ def recv_ws_msg_handle(data,ws):
 			#	debug_loading_assist.subscribe(ws)
 			#else:
 			#	debug_loading_assist.unsubscribe(ws)
-			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported subscription to hb_fast command from "+str(ws.login),"d")
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] unsupported subscription to hb_fast command from "+str(ws.login),"d")
 
 
 		## register new ws login
