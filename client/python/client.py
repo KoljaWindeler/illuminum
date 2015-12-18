@@ -481,7 +481,7 @@ def parse_incoming_msg(con):
 				rw() 
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				# run the update
-				subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+				result=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				# get new version
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
