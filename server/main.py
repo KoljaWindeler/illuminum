@@ -884,6 +884,19 @@ def recv_ws_msg_handle(data,ws):
 			msg_q_ws.append((msg,ws))						
 			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted area  '"+str(enc.get("id"))+"'","d")
 
+		## remove an m2m
+		elif(enc.get("cmd")=="remove_m2m"):
+			mid=enc.get("mid")
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["ok"]=db.remove_m2m(mid,ws.account);
+			msg["mid"]=mid
+			# send a message to every client of the server account
+			for v in server_ws.clients:
+				if(v.account == ws.account):
+					msg_q_ws.append((msg,v))						
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted m2m '"+str(mid)+"'","d")
+
 		## update a login
 		elif(enc.get("cmd")=="update_login"):
 			msg={}
@@ -1247,9 +1260,13 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	m2m.logged_in=1
 	m2m.mid=enc.get("mid")
 	m2m.state=enc.get("state")
-	m2m.v_short=enc.get("v_short","-")
 	m2m.v_hash=enc.get("v_hash","-")
 	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
+	m2m.v_short="error"
+	try:
+		m2m.v_short=str(int(str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "--count", m2m.v_hash],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")))
+	except:
+		pass
 	msg["ok"]=1 # logged in
 
 	# get area and account based on database value for this mid
