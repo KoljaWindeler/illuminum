@@ -512,6 +512,28 @@ def parse_incoming_msg(con):
 				msg["ok"] = "1"
 				con.msg_q.append(msg)
 
+			# set alias
+			elif(enc.get("cmd") == "set_alias"):
+				alias = enc.get("alias","-")
+				print("Trying to set a new name: "+str(alias))
+				msg = {}
+				msg["mid"] = mid
+				msg["cmd"] = enc.get("cmd")
+				msg["ok"] = "-1"
+			
+				try:
+					path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","gpucam")
+					if(os.path.isfile(os.path.join(path,"annotation.config"))):
+						file=open(os.path.join(path,"annotation.config"),"w")
+						file.write("annotation "+alias+" %04d.%02d.%02d_%02d:%02d:%02d \r\nanno_background false")
+						file.close()
+						subprocess.Popen(os.path.join(path,"generate_config.sh"),stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+						msg["ok"] = "1"
+						print("ok")
+				except:
+					print("setting new name failed")
+				con.msg_q.append(msg)
+
 			else:
 				print("unsopported command:"+enc.get("cmd"))
 
