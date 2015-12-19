@@ -61,6 +61,23 @@ echo "annotation ${line:0:10} %04d.%02d.%02d_%02d:%02d:%02d" > annotation.config
 echo "anno_background false" >> annotation.config
 ./generate_config.sh
 
+echo "====================================================="
+echo "================= 9. autostart ======================"
+echo "====================================================="
+echo "shall the cam start automatically on boot? (y/n): ";
+read line;
+if [ "$line" == "y" ];
+then
+	T=$DIR"/../run.sh";
+	F=/etc/rc.local
+	if grep -q $T $F; then
+		echo "autostart already present";
+	else
+		sed -i -e 's|exit 0|'$T'\&;\r\n&|g' $F
+		echo "autostart added";
+	fi
+fi
+
 
 echo "Setup completed, shall I start the cam? (y/n): ";
 read line;
@@ -84,7 +101,5 @@ then
 	fi
 fi
 
-echo "If you want your cam to start after bootup please add this"
-echo $DIR"/../run.sh to /etc/rc.local"
-echo "before the line ->exit 0<-"
 echo "Peace out"
+
