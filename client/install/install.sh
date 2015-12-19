@@ -68,7 +68,7 @@ echo "shall the cam start automatically on boot? (y/n): ";
 read line;
 if [ "$line" == "y" ];
 then
-	T=$DIR"/../run.sh";
+	T=$DIR"/../run.sh&";
 	F=/etc/rc.local
 	if grep -q $T $F; then
 		echo "autostart already present";
@@ -77,6 +77,7 @@ then
 		echo $T >> /etc/rc.local_new
 		echo "exit 0" >> /etc/rc.local_new
 		mv /etc/rc.local_new /etc/rc.local
+		chmod +x /etc/rc.local
 		echo "autostart added";
 	fi
 fi
