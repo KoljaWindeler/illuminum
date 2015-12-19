@@ -73,10 +73,12 @@ def pin_config():
 	GPIO.setup(PIN_MOVEMENT, GPIO.OUT)
 	GPIO.setup(PIN_DETECTION, GPIO.OUT)
 	GPIO.setup(PIN_USER, GPIO.OUT)
+	GPIO.setup(PIN_CAM, GPIO.OUT)
 
 	GPIO.output(PIN_MOVEMENT,0)
 	GPIO.output(PIN_DETECTION,0)
 	GPIO.output(PIN_USER,0)
+	GPIO.output(PIN_CAM,0)
 
 #******************************************************#
 def trigger_handle(event, data):
@@ -341,7 +343,6 @@ def parse_incoming_msg(con):
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-				print("DEBUG: repoting version nr ->"+str(v_short)+"<-")
 
 				msg = {}
 				msg["mid"] = mid
@@ -428,8 +429,10 @@ def parse_incoming_msg(con):
 			elif(enc.get("cmd") == "set_interval"):
 				if(enc.get("interval", 0) == 0):
 					cam.webview_active = 0
+					GPIO.output(PIN_CAM,0)
 				else:
 					cam.webview_active = 1
+					GPIO.output(PIN_CAM,1)
 				cam.interval = (enc.get("interval", 0))
 				cam.quality = (enc.get("qual", "HD"))
 				if(enc.get("alarm_while_streaming","no_alarm")=="alarm"):
@@ -573,6 +576,7 @@ TIMING_DEBUG = 1
 PIN_MOVEMENT = 11
 PIN_DETECTION = 13
 PIN_USER = 15
+PIN_CAM = 16
 
 #start pin config
 pin_config()
