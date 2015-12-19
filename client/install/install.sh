@@ -73,7 +73,10 @@ then
 	if grep -q $T $F; then
 		echo "autostart already present";
 	else
-		sed -i -e 's|exit 0|'$T'\&;\r\n&|g' $F
+		head -n -1 /etc/rc.local > /etc/rc.local_new
+		echo $T >> /etc/rc.local_new
+		echo "exit 0" >> /etc/rc.local_new
+		mv /etc/rc.local_new /etc/rc.local
 		echo "autostart added";
 	fi
 fi
