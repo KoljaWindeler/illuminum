@@ -505,7 +505,7 @@ def parse_incoming_msg(con):
 
 				
 			# set a pin 
-			elif(enc.get("cmd") == "set_pin"):
+			elif(enc.get("cmd") == "toggle_external_pin"):
 				state = 0
 				if(str(enc.get("state",0))=="1"):
 					state = 1

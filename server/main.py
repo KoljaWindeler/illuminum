@@ -1195,7 +1195,7 @@ def recv_ws_msg_handle(data,ws):
 			# send msg back to ws
 			msg_q_ws.append((msg,ws))
 
-		## set the state of the external pin
+		## set the state of the external pin WS
 		elif(enc.get("cmd")=="toggle_external_pin"):
 			mid=enc.get("mid","0")
 
