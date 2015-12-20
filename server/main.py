@@ -183,9 +183,10 @@ def recv_m2m_msg_handle(data,m2m):
 
 				# check parameter
 				if(h.hexdigest()==enc.get("client_pw")):
-					# this will set all the parameter for the m2m, makes sure that the rulemanager is loaded etc
+					# load all info from the db to the object in populate_m2m
 					m2m.mid=enc.get("mid")
 					populate_m2m(m2m)
+					# this will set all the parameter for the m2m, makes sure that the rulemanager is loaded etc
 					set_m2m_parameter(m2m,enc,db_r,msg)
 					# disconenct all other sockets for this m2m
 					for m2m_old in server_m2m.clients:
@@ -1355,7 +1356,6 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 		m2m.v_short=str(int(str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "--count", m2m.v_hash],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")))
 	except:
 		pass
-
 	# add info to the messge for the m2m
 	msg["ok"]=1 # logged in					
 	msg["alias"]=m2m.alias		# this goes to the m2m
@@ -1379,10 +1379,12 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	#rint("### rm debug ###")
 	#rm.print_all()
 	#rint("### rm debug ###")
+
 	if(not(rm.is_account(m2m.account))):
 		#rint("account did not exist, adding")
 		new_rule_account=rule_account(m2m.account)
 		rm.add_account(new_rule_account)
+		
 
 	# then check the same for the area, if there was NO m2m and NO ws connected, the area wont be in the rm, otherwise it should
 	if(not(rm.is_area_in_account(m2m.account,m2m.area))):
