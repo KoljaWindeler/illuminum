@@ -52,6 +52,9 @@ class WebSocketConnection:
 		self.max_msg_size = 10024000 # 10 MB?
 		self.server_ip = "52.24.157.229"
 		self.server_port = 9875
+		if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"experimental"))):
+			self.server_port = 9775
+			print("!!!!!!!!! RUNNING ON EXPERIMENTAL PORT !!!!!!!!!!!")
 		self.server_timeout = 15
 		self.max_outstanding_acks = 2
 
