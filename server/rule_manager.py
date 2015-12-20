@@ -130,12 +130,12 @@ class rule_manager:
 				break
 			
 		now=time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
-		p.rint("== I'm the rule manager, I have "+str(len(self.data)-1)+" accounts registered at ts: "+str(now)+"==","r") # -1 for the empty account
+		p.rint("== I'm the rule manager, I have "+str(len(self.data))+" accounts registered at ts: "+str(now)+"==","r") 
 		i=1
 		for a in self.data:
 			if(a.account!=""):
 				p.rint("","r")
-				p.rint("|+ Account "+str(i)+"/"+str(len(self.data)-1),"r")
+				p.rint("|+ Account "+str(i)+"/"+str(len(self.data)),"r")
 				a.print_account()
 				i+=1
 		p.rint("","r")
@@ -154,7 +154,7 @@ class rule_manager:
 				return a
 		# if we haven't return now, we haven't found the account, create new if allowed
 		if(create):
-			new_rule_account=rule_account(account)
+			new_rule_account=rule_account(account,self.db)
 			self.add_account(new_rule_account)
 			return new_rule_account
 		# this should never happen
@@ -167,12 +167,12 @@ class rule_manager:
 # when the next check of the rules is required
 #*************************************#
 class rule_account:
-	def __init__(self,account):
+	def __init__(self,account,db=""):
 		self.account=account
 		self.next_ts = -1
 		self.day_last_check=-1
 		self.areas = []
-		self.db=""
+		self.db=db
 	#############################################################
 	def add_area(self, area):
 		area.db=self.db
@@ -214,14 +214,14 @@ class rule_account:
 				return a
 		# if we reach this point, we haven't found the area, return a new one
 		if(create):
-			new_area=area(area_name, self.account) # will load rule set on its own from the database
+			new_area=area(area_name, self.account, self.db) # will load rule set on its own from the database
 			self.add_area(new_area)
 			return new_area
 		return 0
 	#############################################################
 	def print_account(self,m_dict=0):
 		if(m_dict!=1):
-			p.rint("|"+p.bcolors.FAIL+"+ This is account '"+self.account+"' I have "+str(len(self.areas)-1)+" areas:"+p.bcolors.ENDC,"r") # -1 for ghost area
+			p.rint("|"+p.bcolors.FAIL+"+ This is account '"+self.account+"' I have "+str(len(self.areas))+" areas:"+p.bcolors.ENDC,"r")
 		else:
 			ret_dict={}
 		i=1
@@ -229,7 +229,7 @@ class rule_account:
 			if(a.area!=""):
 				if(m_dict!=1):
 					p.rint("|","r")
-					p.rint("||"+p.bcolors.WARNING+"+ Area "+str(i)+"/"+str(len(self.areas)-1)+p.bcolors.ENDC,"r")  # -1 for ghost area
+					p.rint("||"+p.bcolors.WARNING+"+ Area "+str(i)+"/"+str(len(self.areas))+p.bcolors.ENDC,"r")  
 					a.print_rules()
 				else:
 					ret_dict[i]=a.print_rules(dict=1)
@@ -318,6 +318,7 @@ class area:
 			db_rules=self.db.load_rules(self.area,self.account,0) 				# 0=rules, 1=sub_rules
 			db_sub_rules=self.db.load_rules(self.area,self.account,1)	# 0=rules, 1=sub_rules
 		else:
+			p.err("rm, reload rules didn't have a db connection to load rules")
 			db_rules=[]
 			db_sub_rules=[]
 		#rint(db_rules)
@@ -546,7 +547,7 @@ class area:
 		arg1=""
 		arg2=""
 		for sr in self.sub_rules:
-			#print("vergleiche "+str(sr.id)+" mit "+str(rule_id))
+			#rint("vergleiche "+str(sr.id)+" mit "+str(rule_id))
 			if(int(sr.id)==int(rule_id)):
 				conn=sr.conn
 				arg1=sr.arg1
@@ -595,8 +596,8 @@ class area:
 		if(conn=="AND"):
 			(conn_1,arg1_1,arg2_1) = self.get_sub_rule(arg1)
 			(conn_2,arg1_2,arg2_2) = self.get_sub_rule(arg2)
-			#print("fetched for subrule "+str(arg1)+" this:"+str(conn_1)+"/"+str(arg1_1)+"/"+str(arg2_1))
-			#print("fetched for subrule "+str(arg2)+" this:"+str(conn_2)+"/"+str(arg1_2)+"/"+str(arg2_2))
+			#rint("fetched for subrule "+str(arg1)+" this:"+str(conn_1)+"/"+str(arg1_1)+"/"+str(arg2_1))
+			#rint("fetched for subrule "+str(arg2)+" this:"+str(conn_2)+"/"+str(arg1_2)+"/"+str(arg2_2))
 			res_1=self.eval_rule(conn_1,arg1_1,arg2_1,depth-1,use_db,arg1) # arg1 is rule id
 			res_2=self.eval_rule(conn_2,arg1_2,arg2_2,depth-1,use_db,arg2)
 			if(res_1 and res_2):
@@ -652,7 +653,7 @@ class area:
 		## week day based
 		elif(conn=="day"):
 			today=datetime.datetime.today().weekday()
-			#print("heute ist:"+str(today)+" arg1: "+str(arg1))
+			#rint("heute ist:"+str(today)+" arg1: "+str(arg1))
 			if(int(today)==int(arg1)):
 				return 1
 		## week day based
@@ -664,14 +665,14 @@ class area:
 				# Step 1: count user from this account, being logged on to this  (our) area
 				try:
 					user_count=self.db.user_count_on_area(self.account, self.area)
-					#print("user_count_on_area gave us:")
-					#print(user_count)
-					#print("eoo")
+					#rint("user_count_on_area gave us:")
+					#rint(user_count)
+					#rint("eoo")
 					if(user_count!=-1): # no db problem
 						user_count=int(user_count["COUNT(*)"])
-					#print("meaning")
-					#print(user_count)
-					#print("eoo")
+					#rint("meaning")
+					#rint(user_count)
+					#rint("eoo")
 
 					# step 2: if user count == 0 the rule "nobody at geo area" is true
 						if(user_count==0):
@@ -679,7 +680,7 @@ class area:
 				except:
 					return 0
 			else:
-				#print("skipped")
+				#rint("skipped")
 				return 0
 		## GEO location based
 		
