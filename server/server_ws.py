@@ -1,23 +1,18 @@
 #!/usr/bin/env python
 #import ssl
-from OpenSSL import SSL
 import socket, struct,  threading, cgi, time, p, sys, traceback
+import hashlib, base64, socket, os, struct, ssl, sys, errno, codecs
+from OpenSSL import SSL
 from clients import ws_clients
 from base64 import b64encode
 from hashlib import sha1
-
-import hashlib
-import base64
-import socket
-import struct
-import ssl
-import sys
-import errno
-import codecs
 from collections import deque
 from select import select
 
 PORT=9879	
+if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"experimental"))):
+	PORT=9779
+	print("!!!!! RUNNING EXPERIMENTAL VERSION OF WS SERVER !!!!!!")
 
 MAX_CLIENTS=50
 

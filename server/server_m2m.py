@@ -1,11 +1,15 @@
 #!/usr/bin/env python
-from OpenSSL import SSL 
 import socket, struct,  threading, cgi, time, os, p
+from OpenSSL import SSL 
 from select import select
 from clients import m2m_clients
 from base64 import b64encode
 from hashlib import sha1
+
 SERVER_PORT=9875
+if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"experimental"))):
+	SERVER_PORT=9775
+	print("!!!!! RUNNING EXPERIMENTAL VERSION OF M2M SERVER!!!!!!")
 MAX_CONN=50
 MAX_MSG_SIZE=1024000
 
