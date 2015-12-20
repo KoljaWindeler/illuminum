@@ -5,8 +5,11 @@ det_state = ["off","on,single","on,permanent","error"]
 
 class m2m_clients: 
 	def __init__(self, addr):
-		self.ip = addr.getpeername()[0]  	# the IP adress
-		self.port = addr.getpeername()[1]	# the client port
+		try:
+			self.ip = addr.getpeername()[0]  	# the IP adress
+			self.port = addr.getpeername()[1]	# the client port
+		except:
+			pass
 		self.conn=addr						# this is the socket
 		self.openfile="" 					# the filename of the open file
 		self.buffer=""						# ?

@@ -1,9 +1,9 @@
 import time,json,os,base64,hashlib,string,random, subprocess, traceback
 from clients import alert_event,webcam_viewer,det_state
-import server_m2m
-import server_ws
+import server_m2m, server_ws
 import send_mail
 import p
+from clients import m2m_clients
 from rule_manager import *
 from sql import *
 from debug import *
@@ -184,6 +184,8 @@ def recv_m2m_msg_handle(data,m2m):
 				# check parameter
 				if(h.hexdigest()==enc.get("client_pw")):
 					# this will set all the parameter for the m2m, makes sure that the rulemanager is loaded etc
+					m2m.mid=enc.get("mid")
+					populate_m2m(m2m)
 					set_m2m_parameter(m2m,enc,db_r,msg)
 					# disconenct all other sockets for this m2m
 					for m2m_old in server_m2m.clients:
@@ -645,7 +647,19 @@ def recv_ws_msg_handle(data,ws):
 						if(m2m.account==ws.account):
 							connect_ws_m2m(m2m,ws)
 					# and finally connect all disconnected m2m to the ws
-					connect_ws_m2m("",ws)
+					all_m2m4account=db.get_m2m4account(ws.account)
+					if(type(all_m2m4account) is int):
+						p.rint("Error getting data for account "+str(ws.account),"d")
+					else:	# loop over all results, and make sure that they are not online
+						for all_m2m in all_m2m4account:
+							for online_m2m in server_m2m.clients:
+								if(all_m2m["mid"]==online_m2m.mid):
+									break
+							# we are still here, so box is offline, lets create a empty object
+							m2m = m2m_clients("")
+							m2m.mid=all_m2m["mid"]
+							populate_m2m(m2m)
+							connect_ws_m2m(m2m,ws,update_m2m=0)
 				
 					# check if the same UUID has another open connection
 					if(str(ws.uuid)!=""):
@@ -700,7 +714,19 @@ def recv_ws_msg_handle(data,ws):
 				if(m2m.account==ws.account):
 					connect_ws_m2m(m2m,ws,0) # call with 0 will avoid that we append us to a list
 			# and finally connect all disconnected m2m to the ws
-			connect_ws_m2m("",ws,0) # call with 0 will avoid that we append us to a list
+			all_m2m4account=db.get_m2m4account(ws.account)
+			if(type(all_m2m4account) is int):
+				p.rint("Error getting data for account "+str(ws.account),"d")
+			else:	# loop over all results, and make sure that they are not online
+				for all_m2m in all_m2m4account:
+					for online_m2m in server_m2m.clients:
+						if(all_m2m.mid==online_m2m):
+							break
+					# we are still here, so box is offline, lets create a empty object
+					m2m = m2m_clients("")
+					m2m.mid=all_m2m["mid"]
+					populate_m2m(m2m)
+					connect_ws_m2m(m2m,ws,update_m2m=0)
 
 		#### heartbeat, for WS
 		elif(enc.get("cmd")=="ws_hb"):
@@ -840,9 +866,14 @@ def recv_ws_msg_handle(data,ws):
 			in_alarm_ws="1"
 			in_name=enc.get("name")
 
+			# outside of loop to update cams that are offline
+			db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name)
+
 			# save new parameter
+			found=0
 			for m2m in server_m2m.clients:
 				if(m2m.mid==in_mid):
+					found=1
 					m2m.alarm_while_streaming=in_alarm_while_stream
 					m2m.resolution=in_resolution
 					m2m.frame_dist=in_frame_dist
@@ -870,8 +901,15 @@ def recv_ws_msg_handle(data,ws):
 						msg_q_m2m.append((msg,m2m))
 					break;
 
-			# outside of loop to update cams that are offline
-			db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name)
+			# if not found, aka offline, just create a temporary box and send the update info
+			if(found==0):
+				m2m = m2m_clients("")
+				m2m.mid=in_mid
+				populate_m2m(m2m)
+				# send this message to all ws with the same account
+				for a_ws in server_ws.clients:
+					if(a_ws.account == ws.account):
+						connect_ws_m2m(m2m,a_ws,update_m2m=0)
 
 			# send ok response to ws
 			msg={}
@@ -1269,24 +1307,11 @@ def snd_ws_msg_dq_handle():
 #***************************************************************************************#
 # common function more than one of ws or m2m uses
 
-#******************************************************#
-# set parameter for m2m client
-def set_m2m_parameter(m2m,enc,db_r,msg):
-	global rm
+#***************************************************#
+# copy all infor from the database to this m2m
+def populate_m2m(m2m):
 	global db
-
-	m2m.logged_in=1
-	m2m.mid=enc.get("mid")
-	m2m.state=enc.get("state")
-	m2m.v_hash=enc.get("v_hash","-")
-	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
-	m2m.v_short="error"
-	try:
-		m2m.v_short=str(int(str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "--count", m2m.v_hash],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")))
-	except:
-		pass
-	msg["ok"]=1 # logged in
-
+	db_r=db.get_data(m2m.mid)
 	# get area and account based on database value for this mid
 	m2m.account=db_r["account"]
 	m2m.area=db_r["area"]
@@ -1300,8 +1325,33 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	m2m.frame_dist=float(db_r["frame_dist"])
 	m2m.alarm_while_streaming=db_r["alarm_while_streaming"]
 	m2m.resolution=db_r["resolution"]
+	m2m.state=-1 # assume offline
+	m2m.detection=-1 # off?
+	m2m.last_comm =	db_r["last_seen"]
+	m2m.v_hash = db_r["v_hash"]
+	m2m.v_short = db_r["v_short"]
+	m2m.external_state = db_r["external_state"]
 
-					
+
+#******************************************************#
+# set parameter for m2m client
+def set_m2m_parameter(m2m,enc,db_r,msg):
+	global rm
+	global db
+
+	# override newest info, fresh from the m2m
+	m2m.logged_in=1
+	m2m.state=enc.get("state")
+	m2m.v_hash=enc.get("v_hash","-")
+	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
+	m2m.v_short="error"
+	try:
+		m2m.v_short=str(int(str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "--count", m2m.v_hash],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")))
+	except:
+		pass
+
+	# add info to the messge for the m2m
+	msg["ok"]=1 # logged in					
 	msg["alias"]=m2m.alias		# this goes to the m2m
 	msg["mRed"]=db_r["mRed"]
 	msg["mGreen"]=db_r["mGreen"]
@@ -1380,89 +1430,44 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 # and the m2m shall know that there is a viewer to inform
 def connect_ws_m2m(m2m,ws,update_m2m=1):
 	global rm
-	if(m2m!=""): # first lets assume that we shall connect a given pair right here
-		# add us to their (machine to viewer) list, to be notified whats going on
-		if(update_m2m):
-			if not(ws in m2m.m2v):
-				m2m.m2v.append(ws)
-			# and add them to us to give us the change to tell them if they should be sharp or not
-			if not(m2m in ws.v2m):
-				ws.v2m.append(m2m)
+	# add us to their (machine to viewer) list, to be notified whats going on
+	if(update_m2m):
+		if not(ws in m2m.m2v):
+			m2m.m2v.append(ws)
+		# and add them to us to give us the change to tell them if they should be sharp or not
+		if not(m2m in ws.v2m):
+			ws.v2m.append(m2m)
 
-		p.connect_ws_m2m(m2m,ws)
-		# send a nice and shiny message to the viewer to tell him what boxes are online,
-		msg_ws2={}
-		msg_ws2["cmd"]="m2v_login"
-		msg_ws2["mid"]=m2m.mid
-		msg_ws2["area"]=m2m.area
-		msg_ws2["longitude"]=m2m.longitude
-		msg_ws2["latitude"]=m2m.latitude
-		msg_ws2["state"]=m2m.state
-		msg_ws2["detection"]=m2m.detection
-		msg_ws2["alarm_ws"]=m2m.alarm_ws
-		msg_ws2["account"]=m2m.account
-		msg_ws2["alias"]=m2m.alias
-		msg_ws2["last_seen"]=m2m.last_comm
-		msg_ws2["color_pos"]=m2m.color_pos
-		msg_ws2["external_state"]=m2m.external_state
-		msg_ws2["brightness_pos"]=m2m.brightness_pos
-		msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
-		msg_ws2["open_alarms"]=db.get_open_alert_count(m2m.account,m2m.mid)
-		msg_ws2["frame_dist"]=float(m2m.frame_dist)
-		msg_ws2["alarm_ws"]=m2m.alarm_ws
-		msg_ws2["resolution"]=m2m.resolution
-		msg_ws2["alarm_while_streaming"]=m2m.alarm_while_streaming
-		msg_ws2["rm_override"]=""
-		if(rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_off):
-			 msg_ws2["rm_override"]="/"
-		elif(rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_on):
-			msg_ws2["rm_override"]="*"
+	p.connect_ws_m2m(m2m,ws)
+	# send a nice and shiny message to the viewer to tell him what boxes are online,
+	msg_ws2={}
+	msg_ws2["cmd"]="m2v_login"
+	msg_ws2["mid"]=m2m.mid
+	msg_ws2["area"]=m2m.area
+	msg_ws2["longitude"]=m2m.longitude
+	msg_ws2["latitude"]=m2m.latitude
+	msg_ws2["state"]=m2m.state
+	msg_ws2["detection"]=m2m.detection
+	msg_ws2["alarm_ws"]=m2m.alarm_ws
+	msg_ws2["account"]=m2m.account
+	msg_ws2["alias"]=m2m.alias
+	msg_ws2["last_seen"]=m2m.last_comm
+	msg_ws2["color_pos"]=m2m.color_pos
+	msg_ws2["external_state"]=m2m.external_state
+	msg_ws2["brightness_pos"]=m2m.brightness_pos
+	msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
+	msg_ws2["open_alarms"]=db.get_open_alert_count(m2m.account,m2m.mid)
+	msg_ws2["frame_dist"]=float(m2m.frame_dist)
+	msg_ws2["alarm_ws"]=m2m.alarm_ws
+	msg_ws2["resolution"]=m2m.resolution
+	msg_ws2["alarm_while_streaming"]=m2m.alarm_while_streaming
+	msg_ws2["rm_override"]=""
+	if(rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_off):
+		 msg_ws2["rm_override"]="/"
+	elif(rm.get_account(m2m.account).get_area(m2m.area).has_override_detection_on):
+		msg_ws2["rm_override"]="*"
 
-		msg_q_ws.append((msg_ws2,ws))
-	else: # this will be called at the very end of a websocket sign-on, it shall add all non connected boxes to the websocket.
-		# 1. get all boxed with the same account
-		all_m2m4account=db.get_m2m4account(ws.account)
-		if(type(all_m2m4account) is int):
-			p.rint("Error getting data for account "+str(ws.account),"d")
-		else:
-			# 2. loop through them and make sure that they are not part of the list, that the ws already knows
-			for m2m in all_m2m4account:
-				found=0
-				for am2m in ws.v2m:
-					if(m2m["mid"]==am2m.mid):
-						found=1
-						break
-				if(not(found)):
-					# get the state from the DB for this box, eventhough it is not online
-					db_r2=db.get_state(m2m["area"],ws.account)
-					if(type(db_r2)!=int):
-						detection=int(db_r2["state"])
-					else:
-						detection=-1
-						p.err("[A_RM  "+time.strftime("%H:%M:%S")+"] get_state return an int, being called at connect_ws_m2m")
-
-
-					msg_ws2={}
-					msg_ws2["cmd"]="m2v_login"
-					msg_ws2["mid"]=m2m["mid"]
-					msg_ws2["area"]=m2m["area"]
-					msg_ws2["alias"]=m2m["alias"]
-					msg_ws2["longitude"]=m2m["longitude"]
-					msg_ws2["latitude"]=m2m["latitude"]
-					msg_ws2["state"]=-1
-					msg_ws2["detection"]=detection
-					msg_ws2["account"]=ws.account
-					msg_ws2["last_seen"]=m2m["last_seen"]
-					msg_ws2["color_pos"]=m2m["color_pos"]
-					msg_ws2["brightness_pos"]=m2m["brightness_pos"]
-					msg_ws2["rm"]="offline"
-					msg_ws2["open_alarms"]=db.get_open_alert_count(ws.account,m2m["mid"])
-					msg_ws2["frame_dist"]=m2m["frame_dist"]
-					msg_ws2["alarm_ws"]=m2m["alarm_ws"]
-					msg_ws2["resolution"]=m2m["resolution"]
-					msg_ws2["alarm_while_streaming"]=m2m["alarm_while_streaming"]
-			# 3. send data to the websocket
-					msg_q_ws.append((msg_ws2,ws))
+	msg_q_ws.append((msg_ws2,ws))
 #******************************************************#
 
 #******************************************************#
