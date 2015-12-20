@@ -652,14 +652,17 @@ def recv_ws_msg_handle(data,ws):
 						p.rint("Error getting data for account "+str(ws.account),"d")
 					else:	# loop over all results, and make sure that they are not online
 						for all_m2m in all_m2m4account:
+							found=0
 							for online_m2m in server_m2m.clients:
 								if(all_m2m["mid"]==online_m2m.mid):
+									found=1
 									break
-							# we are still here, so box is offline, lets create a empty object
-							m2m = m2m_clients("")
-							m2m.mid=all_m2m["mid"]
-							populate_m2m(m2m)
-							connect_ws_m2m(m2m,ws,update_m2m=0)
+							if(found==0):
+								# we are still here, so box is offline, lets create a empty object
+								m2m = m2m_clients("")
+								m2m.mid=all_m2m["mid"]
+								populate_m2m(m2m)
+								connect_ws_m2m(m2m,ws,update_m2m=0)
 				
 					# check if the same UUID has another open connection
 					if(str(ws.uuid)!=""):
@@ -719,14 +722,17 @@ def recv_ws_msg_handle(data,ws):
 				p.rint("Error getting data for account "+str(ws.account),"d")
 			else:	# loop over all results, and make sure that they are not online
 				for all_m2m in all_m2m4account:
+					found=0
 					for online_m2m in server_m2m.clients:
 						if(all_m2m.mid==online_m2m):
+							found=1
 							break
-					# we are still here, so box is offline, lets create a empty object
-					m2m = m2m_clients("")
-					m2m.mid=all_m2m["mid"]
-					populate_m2m(m2m)
-					connect_ws_m2m(m2m,ws,update_m2m=0)
+					if(found==0):
+						# we are still here, so box is offline, lets create a empty object
+						m2m = m2m_clients("")
+						m2m.mid=all_m2m["mid"]
+						populate_m2m(m2m)
+						connect_ws_m2m(m2m,ws,update_m2m=0)
 
 		#### heartbeat, for WS
 		elif(enc.get("cmd")=="ws_hb"):
