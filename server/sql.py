@@ -131,7 +131,7 @@ class sql:
 				#rint(result)
 				#rint(result)
 				if(result_count["COUNT(*)"] == 1):
-					req = "SELECT  pw, area, account, alias, color_pos, brightness_pos, mRed, mGreen, mBlue, alarm_ws, alarm_while_streaming, frame_dist, resolution, external_state  FROM m2m WHERE mid= %s"
+					req = "SELECT * FROM m2m WHERE mid= %s"
 					cursor.execute(req, str(mid))
 					result = cursor.fetchone()
 
