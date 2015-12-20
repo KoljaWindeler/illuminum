@@ -43,7 +43,12 @@ $(function(){
 // triggered by the ondocument_ready
 function open_ws() {
 	console.log("connecting to the server");
-	con = new WebSocket('wss://'+IP+':9879/');
+	if(window.location.href.indexOf(":343")>=0){
+		con = new WebSocket('wss://'+IP+':9779/');
+		console.log("!!!! running experimental port !!!!");
+	} else {
+		con = new WebSocket('wss://'+IP+':9879/');
+	}
 	con.onopen = function(){
 		while($("#rl_msg").length){
 			$.fancybox.close();							
@@ -1788,9 +1793,8 @@ function state2str(state,det){
 		ret = "disconnected";
 	} else if(state==-2){ 
 		// just show state
-		if(det==0){
-			ret="Protection disabled!";
-		} else if(det==1){
+		ret="Protection disabled!";
+		if(det==1){
 			ret="Protected";
 		} else if(det==2){
 			ret="Heavy protected";
