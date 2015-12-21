@@ -488,7 +488,7 @@ def parse_incoming_msg(con):
 				rw() 
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				# run the update
-				result=subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+				result=subprocess.Popen(["sudo","-u","pi", "git", "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 				ret_res=result[0].decode().replace("\n","")
 				print("git update: ",end="")
 				print(result)
