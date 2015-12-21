@@ -1397,7 +1397,7 @@ def handle_ws_refresh_ws(enc,ws):
 def is_mid_online(mid):
 	ret=0
 	for online_m2m in server_m2m.clients:
-		if(mid==online_m2m):
+		if(mid==online_m2m.mid):
 			ret=1
 			break
 	return ret
