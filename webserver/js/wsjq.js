@@ -2518,7 +2518,7 @@ function add_camera_entry(m_m2m,field){
 		var int_mid=m_m2m["mid"];
 		if(online){
 			return function(){
-				alert("This cam can not be deleted, as it is online");
+				alert("This cam can not be deleted, as it is offline");
 			}
 		} else {
 			return function(){
