@@ -1,7 +1,8 @@
 import OpenSSL
 import RPi.GPIO as GPIO
 import socket
-import time, json, base64, datetime, string, random
+import time
+import json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess
 import light, p
 
