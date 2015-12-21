@@ -347,7 +347,7 @@ def parse_incoming_msg(con):
 				pw_c = h.hexdigest()
 				#print("result="+pw_c)
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
-				v_short=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				v_short=SEC_VERSION
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
 				msg = {}
@@ -586,6 +586,9 @@ PIN_MOVEMENT = 11
 PIN_DETECTION = 13
 PIN_USER = 15
 PIN_CAM = 16
+
+# manual version 
+SEC_VERSION="201251215"
 
 #start pin config
 pin_config()
