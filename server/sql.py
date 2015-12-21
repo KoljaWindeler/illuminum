@@ -593,7 +593,6 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "UPDATE  `alert`.`alerts` SET  `del_by` =  %s WHERE  `id` =%s and `mid`=%s"
-				print(req%(str(login), str(aid), str(mid)))
 				cursor.execute(req, (str(login), str(aid), str(mid)) )
 			self.connection.commit()
 			result = 0
