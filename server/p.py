@@ -1,5 +1,6 @@
 import sys,  threading, time, datetime
 from clients import m2m_state,det_state
+import send_mail
 
 __author__ = 'kolja'
 
@@ -179,11 +180,25 @@ def err(input):
 	try:
 		rint2("==============================================","e","ERR",bcolors.FAIL)
 		rint2(input,"e","ERR",bcolors.FAIL)
+		send_mail.send("illuminum ERROR",input, files=[], send_to="KKoolljjaa@gmail.com",send_from="koljasspam493@gmail.com", server="localhost")
 		input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
 		with open("err.txt", "a") as log_file:
 			log_file.write(input_log)
 			log_file.close()
 		rint2("==============================================","e","ERR",bcolors.FAIL)
+    									
+	except:
+		ignore=1
+
+def warn(input):
+	try:
+		rint2("==============================================","e","ERR",bcolors.WARNING)
+		rint2(input,"e","ERR",bcolors.FAIL)
+		input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
+		with open("err.txt", "a") as log_file:
+			log_file.write(input_log)
+			log_file.close()
+		rint2("==============================================","e","ERR",bcolors.WARNING)
     									
 	except:
 		ignore=1
