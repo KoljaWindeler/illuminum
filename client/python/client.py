@@ -539,7 +539,7 @@ def parse_incoming_msg(con):
 					path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","gpucam")
 					if(os.path.isfile(os.path.join(path,"annotation.config"))):
 						file=open(os.path.join(path,"annotation.config"),"w")
-						file.write("annotation "+alias+" %04d.%02d.%02d_%02d:%02d:%02d \r\nanno_background false")
+						file.write("annotation "+alias+" %04d.%02d.%02d_%02d:%02d:%02d \nanno_background false")
 						file.close()
 						subprocess.Popen(os.path.join(path,"generate_config.sh"),stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 						msg["ok"] = "1"
