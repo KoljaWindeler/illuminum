@@ -512,7 +512,7 @@ def parse_incoming_msg(con):
 				print("============================")
 				print("======== rebooting =========")
 				print("============================")
-				#result=str(subprocess.Popen("reboot",stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+				result=str(subprocess.Popen("reboot",stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 
 				
 			# set a pin 
