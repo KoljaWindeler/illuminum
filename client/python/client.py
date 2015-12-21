@@ -487,8 +487,10 @@ def parse_incoming_msg(con):
 				rw() 
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				# run the update
-				result=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate().decode()).replace("\n","")
-				print("git update: "+result)
+				result=subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+				ret_res=result[0].decode().replace("\n","")
+				print("git update: ",end="")
+				print(result)
 				# get new version
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
@@ -498,7 +500,7 @@ def parse_incoming_msg(con):
 				msg["cmd"] = enc.get("cmd")
 				msg["v_short"] = v_short
 				msg["v_hash"] = v_hash
-				msg["cmd_result"] = result
+				msg["cmd_result"] = ret_res
 				con.msg_q.append(msg)
 
 			# run a reboot
