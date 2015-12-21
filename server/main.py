@@ -64,29 +64,30 @@ def recv_m2m_con_dq_handle():
 def recv_m2m_con_handle(data,m2m):
 	# this function is is used to be callen if a m2m disconnects, we have to update all ws clients
 	#rint("[A_m2m "+time.strftime("%H:%M:%S")+"] connection change")
-	if(data=="disconnect"):
-		p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' disconneted","l")
+	# client connected, generate challange
+	if(data=="connect"):
+		m2m.challange=get_challange()
+	# client disconnected 
+	elif(data=="disconnect"):
+		p.rint2(str(m2m.mid)+"' disconneted","l","A_m2m")
 		db.update_last_seen_m2m(m2m.mid,"") #<- this returns bad file descriptor
 
 		# try to find that m2m in all ws clients lists, so go through all clients and their lists
 		for ws in server_ws.clients:
-			for viewer in ws.v2m:
-				if(viewer==m2m):
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] releasing '"+str(ws.login)+"' from "+str(m2m.mid),"l")
-					ws.v2m.remove(viewer)
-					msg={}
-					msg["cmd"]="disconnect"
-					msg["mid"]=m2m.mid
-					msg["area"]=m2m.area
-					msg["account"]=m2m.account
-					msg["detection"]=m2m.detection
-					msg_q_ws.append((msg,ws))
+			if(m2m in ws.v2m):
+				p.rint2("releasing '"+str(ws.login)+"' from "+str(m2m.mid),"l","A_ws")
+				ws.v2m.remove(m2m)
+				msg={}
+				msg["cmd"]="disconnect"
+				msg["mid"]=m2m.mid
+				msg["area"]=m2m.area
+				msg["account"]=m2m.account
+				msg["detection"]=m2m.detection
+				msg_q_ws.append((msg,ws))
 		try:
 			server_m2m.clients.remove(m2m)
 		except:
-			ignore=1
-	elif(data=="connect"):
-		m2m.challange=get_challange()
+			pass
 #******************************************************#
 ################## M2M CONNECTION #########################
 
@@ -129,8 +130,6 @@ def recv_m2m_msg_handle(data,m2m):
 		enc=""
 		p.rint("-d--> json decoding failed on:" + data,"d")
 
-	#rint(enc)
-	#rint("m2m:"+str(m2m.port)+"/"+str(m2m.ip))
 	if(type(enc) is dict):
 		# if the message would like to be debugged
 		if(enc.get("debug",0)==1):
@@ -142,6 +141,8 @@ def recv_m2m_msg_handle(data,m2m):
 
 		#********* msg handling **************#
 		# assuming that we could decode the message from json to dicc: we have to distingush between the commands:
+
+		############## M2M CMD ############# block all but login commands, as long as we are not logged in
 		if(m2m.logged_in==0 and enc.get("cmd")!="login" and enc.get("cmd")!="prelogin" and enc.get("cmd")!="register"):
 			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] A client tried to interact without beeing logged in","l")
 			# send bad ack
@@ -150,42 +151,34 @@ def recv_m2m_msg_handle(data,m2m):
 			msg["ok"]=-2 # not logged in
 			msg_q_m2m.append((msg,m2m))
 
-		#### pre login challange for M2M
+		############## M2M CMD ############## pre login challange for M2M
 		elif(enc.get("cmd")=="prelogin"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["challange"]=m2m.challange
+			msg = {
+				"cmd": 		enc.get("cmd"),
+				"challange":	m2m.challange
+			}
 			msg_q_m2m.append((msg,m2m))
 			#rint("received prelogin request, sending challange "+m2m.challange)
 
-
-		#### login try to set the logged_in to 1 to upload files etc, for M2M
+		############## M2M CMD ############# login try to set the logged_in to 1 to upload files etc, for M2M
 		elif(enc.get("cmd")=="login"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
+			msg={
+				"cmd":	enc.get("cmd")
+			}
 
-			# data base has to give us this values based on enc.get("mid")
+			# get data, based on submitted MID
 			db_r=db.get_data(enc.get("mid"))
-			if(db_r["area"]==""):
-				p.err("ALARM")
-			#rint("Ergebniss der datenbank:")
-			#rint(db_r)
-
-			if(type(db_r) is int): #user not found
-				#rint("db error")
-				p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("mid"))+"' not found in DB, log-in: failed","l")
+			if(type(db_r) is int or db_r["area"]==""): #user not found
+				p.rint2("'"+str(enc.get("mid"))+"' not found in DB or area='"+str(db_r["area"])+"', log-in: failed","l","A_m2m",p.bcolors.WARNING)
 				msg["ok"]=-3 # not logged in
 			else:
 				h = hashlib.md5()
 				h.update(str(db_r["pw"]+m2m.challange).encode("UTF-8"))
-				#rint("total to code="+(str(db["pw"]+m2m.challange)))
-				#rint("result="+h.hexdigest()+" received: "+enc.get("client_pw"))
-
 				# check parameter
 				if(h.hexdigest()==enc.get("client_pw")):
-					# load all info from the db to the object in populate_m2m
 					m2m.mid=enc.get("mid")
-					populate_m2m(m2m)
+					# load all info from the db to the object in populate_m2m
+					populate_m2m(m2m)	
 					# this will set all the parameter for the m2m, makes sure that the rulemanager is loaded etc
 					set_m2m_parameter(m2m,enc,db_r,msg)
 					# disconenct all other sockets for this m2m
@@ -193,67 +186,66 @@ def recv_m2m_msg_handle(data,m2m):
 						if(m2m_old.mid==m2m.mid and m2m_old!=m2m):
 							server_m2m.disconnect(m2m_old)
 				else:
-					p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(enc.get('mid'))+"' log-in: failed","l")
+					p.rint2("'"+str(enc.get('mid'))+"' log-in: failed","l","A_m2m",p.bcolors.FAIL)
 					msg["ok"]=-2 # not logged in
 			# send message in any case
 			msg_q_m2m.append((msg,m2m))
 
-		#### heartbeat, for M2M
+		############## M2M CMD ############# heartbeat, for M2M
 		elif(enc.get("cmd")=="m2m_hb"):
 			# respond
-			p.rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+str(m2m.mid)+"' / '"+str(m2m.alias)+"' HB updating "+str(len(m2m.m2v))+" clients","h")
-			msg={}
-			msg["mid"]=m2m.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=1
+			p.rint2("'"+str(m2m.mid)+"' / '"+str(m2m.alias)+"' HB updating "+str(len(m2m.m2v))+" clients","h","A_m2m")
+			msg = {
+				"mid":	m2m.mid,
+				"cmd":	enc.get("cmd"),
+				"ok":	1
+			}
 			msg_q_m2m.append((msg,m2m))
 
 			# tell subscribers
-			msg={}
-			msg["mid"]=m2m.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["ts"]=time.time()
+			msg={
+				"mid":	m2m.mid,
+				"cmd":	enc.get("cmd"),
+				"ts":	time.time()
+			}
 			for subscriber in m2m.m2v:
 				#rint("Tell that to "+subscriber.login)
 				msg_q_ws.append((msg,subscriber))
 
 
-		#### confirm that is changed the state of detection or tell us that there is movement, for M2M
+		############## M2M CMD ############# confirm that is changed the state of detection or tell us that there is movement, for M2M
 		elif(enc.get("cmd")=="state_change"):
 			m2m.state=enc.get("state",4)
 			m2m.detection=enc.get("detection",-1)
 
 			# prepare notification system, arm or disarm
 			if(m2m.state==1 and m2m.detection>=1): # state=1 means Alert!
-				#start_new_alert(m2m)
-				m2m.alert.notification_send=0 
-				m2m.alert.collecting=1
+				#start_new_alert for this m2m
+				m2m.alert.notification_send=0 # the loop searchs for alerts, with notification_send==0
+				m2m.alert.notification_send_ts = -1 # not used
+				m2m.alert.collecting=1	# means activly collecting
 				m2m.alert.id=db.create_alert(m2m,rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0))
 				m2m.alert.ts=time.time()
-				m2m.alert.files = []
-				m2m.alert.notification_send_ts = -1 # indicates that this is a thing to be done
+				m2m.alert.files = []	# file names
 				m2m.alert.last_upload=0
 				
-			elif(m2m.detection==0): #state 2 or 3 means: offline (+idle/+alert)
+			elif(m2m.detection==0): 
 				# assuming that the system was already triggered and right after that the switch off command arrived -> avoid notification
-				# check_alerts will search for m2m with notification_send_ts==-1
-				m2m.alert.notification_send_ts = 0 # indicate that this is done
+				# check_alerts will search for m2m with notification_send==0
+				m2m.alert.notification_send = 1 # indicate that this is done
 
 			# prepare messages
 			# tell subscribers
-			msg={}
-			#res=db.get_open_alerts(m2m.account,0)
-			#for key, value in res:
-			#	msg[key]=value
-			
-			msg["mid"]=m2m.mid
-			msg["cmd"]=enc.get("cmd")
-			msg["alarm_ws"]=m2m.alarm_ws
-			msg["state"]=m2m.state
-			msg["area"]=m2m.area
-			msg["account"]=m2m.account
-			msg["detection"]=m2m.detection
-			msg["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
+			msg={
+				"mid":		m2m.mid,
+				"cmd":		enc.get("cmd"),
+				"alarm_ws":	m2m.alarm_ws,
+				"state":	m2m.state,
+				"area":		m2m.area,
+				"account":	m2m.account,
+				"detection":	m2m.detection,
+				"rm":		rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
+			}
 			informed=0
 			for subscriber in m2m.m2v:
 				msg_q_ws.append((msg,subscriber))
@@ -263,8 +255,7 @@ def recv_m2m_msg_handle(data,m2m):
 			p.change_state(m2m,informed)
 
 
-
-		#### wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file , for M2M
+		############## M2M CMD ############# wf -> write file, message shall send the fn -> filename and set the EOF -> 1 if it is the last piece of the file , for M2M
 		elif(enc.get("cmd")=="wf"):
 			# handle new file
 			if(m2m.openfile!=enc.get("fn")):
@@ -284,14 +275,11 @@ def recv_m2m_msg_handle(data,m2m):
 				# if those conditions are satifies we'll check if the mail optioin is active and if so mail it to
 				# the given address. after that we set the m2m.alert_mail_send to 1 state change to low should clear that
 				if(m2m.state==1 and m2m.detection>=1): # ALERT
-					if(m2m.alert.collecting==1 and m2m.alert.notification_send==0): # not yet send, append fn to list and save timestamp
+					# not yet send, append fn to list and save timestamp  || OR || detection = permanant fire, then we're going to save the picture, even after fireing the mail
+					if( (m2m.alert.collecting==1 and m2m.alert.notification_send==0) or (m2m.detection==2)): 
 						db.append_alert_photo(m2m,base_location)
 						m2m.alert.files.append(des_location)
 						m2m.alert.last_upload = time.time()
-					elif(m2m.detection==2): # if detection = permanant fire, then we're going to save the picture, even after fireing the mail
-						db.append_alert_photo(m2m,des_location)
-				#tmp_loc=des_location.split('/')
-				#rint("[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' uploads "+tmp_loc[len(tmp_loc)-1])
 				m2m.paket_count_per_file=0
 
 			# write this file
@@ -311,14 +299,14 @@ def recv_m2m_msg_handle(data,m2m):
 				debug_in.update(m2m.mid)
 
 				# prepare client message
-				msg={}
-				msg["mid"]=m2m.mid
-				msg["cmd"]="rf"
-				msg["state"]=m2m.state
-				msg["area"]=m2m.area
-				msg["detection"]=m2m.detection
-				msg["up_down_debug"]=debug_in.get(m2m.mid)+" || "+debug_out.get(m2m.mid)
-
+				msg={
+					"mid":		m2m.mid,
+					"cmd":		"rf",
+					"state":	m2m.state,
+					"area":		m2m.area,
+					"detection":	m2m.detection,
+					"up_down_debug":debug_in.get(m2m.mid)+" || "+debug_out.get(m2m.mid)
+				}
 				# all image data in one packet
 				if(enc.get("sof",0)==1):
 					#send img, assuming this is a at once img
@@ -344,8 +332,6 @@ def recv_m2m_msg_handle(data,m2m):
 							if(v.snd_q_len<10 and v.alarm_view==1): # just send it if their queue is not to full AND the clients wants unrequested img
 								msg_q_ws.append((msg,v))
 								v.snd_q_len+=1	
-					#if(m2m.detection==1 and m2m.alert.notification_send_ts>0):		# TODO: if this is activated only the first xx file will be saved for detection=1 clients, detection=2 clients will save forever
-					#	os.remove(this_file)
 				# webcam -> use webcam list as the m2v list has all viewer, but the webcam has those who have requested the feed
 				for v in m2m.webcam:
 					#only update if last ts war more then interval ago
@@ -367,11 +353,11 @@ def recv_m2m_msg_handle(data,m2m):
 				if(m2m.detection==0):
 					os.remove(this_file)
 
-				tmp_loc=this_file.split('/')
+				tmp_loc=this_file.split('/') # short filename
 				p.rint2("'"+str(m2m.mid)[-5:]+"'/'"+str(m2m.alias)+"'@'"+str(m2m.account)+"' uploaded "+(tmp_loc[len(tmp_loc)-1])[-15:],"u","A_m2m",p.bcolors.GREY)
 			m2m.paket_count_per_file+=1
 
-		#### register a new m2m device ####
+		############## M2M CMD ############# register a new m2m device ####
 		elif(enc.get("cmd")=="register"):
 			#rint("register request received")
 			db_r=db.get_ws_data(enc.get("login",""))
@@ -380,10 +366,10 @@ def recv_m2m_msg_handle(data,m2m):
 
 			if(type(db_r) is int): #user not found results in return -1 or so
 				#rint("db error")
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("login","no_login"))+"' not found in DB, log-in: failed","l")
+				p.rint2("Register: '"+str(enc.get("login","no_login"))+"' not found in DB, log-in: failed","l","A_ws")
 				msg["ok"]=-3 # not logged in
 			else:
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("login","no_login"))+"' logged in, registering a new device","l")
+				p.rint2("'"+str(enc.get("login","no_login"))+"' logged in, registering a new device","l","A_ws")
 				# generate hash for DB passwort and challange, client will generate hash_of(hash_of(passwort) + challange)
 				# this enables us to save only the hash_of(password) instead of clear text password in the db!
 				h = hashlib.md5()
@@ -394,9 +380,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 				# check parameter
 				if(h.hexdigest()==enc.get("password") and db_r["account"]!=""):
-					#rint("pw ok, run db insert")
 					db_r2=db.register_m2m(enc.get("mid"),enc.get("m2m_pw"),db_r["account"],enc.get("alias","SecretCam"))
-					#rint("db respond is "+str(db_r2))
 					# complete message
 					if(db_r2==0):
 						msg["ok"]=1 # logged in
@@ -408,44 +392,43 @@ def recv_m2m_msg_handle(data,m2m):
 			# respode
 			msg_q_m2m.append((msg,m2m))
 
-		#### response on the previously send git update command ####
+		############## M2M CMD ############# response on the previously send git update command ####
 		elif(enc.get("cmd")=="git_update"):
 			r = enc.get("cmd_result","no cmd_result")
 			if(r.find("up-to-date")==-1 and r.find("Updating")==-1):
 				ignore = 1  # 2do, analyse if that was a success
 				p.err("git update response: "+r)
-			msg={}
-			msg["cmd"]="reboot"
+			msg={"cmd":"reboot"}
 			msg_q_m2m.append((msg,m2m))
 		
-		### send the camera to reboot after the alias was changed successful ###
+		############## M2M CMD ############# send the camera to reboot after the alias was changed successful ###
 		elif(enc.get("cmd")=="set_alias"):
 			if(str(enc.get("ok","-1"))=="1"):
-				msg={}
-				msg["cmd"]="reboot"
+				msg={"cmd":"reboot"}
 				msg_q_m2m.append((msg,m2m))
 				p.rint2("M2M "+m2m.alias+" has updated its name, rebooting it","d","A_ws")
 			else:
 				p.rint2("M2M "+m2m.alias+" update alias failed!","d","A_ws")
 
 
-		#### unsupported command, for M2M
+		############## M2M CMD ############# unsupported command, for M2M
 		else:
 			p.rint("unsupported command: "+str(enc.get("cmd")),"d")
 
-		# send good ack
+		############### CONNECTION ##### send good ack
 		if(enc.get("ack",0)!=0):
-			#rint("ack request recv")
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ack_ok"]=1
+			msg={
+				"cmd":		enc.get("cmd"),
+				"ack_ok":	1
+			}
 			msg_q_m2m.append((msg,m2m))
+		############### CONNECTION ##### send good ack
 
 
 		#********* msg handling **************#
 	#### comm error , for M2M
 	else:
-		p.rint("-d--> json decode error","d")
+		p.err("JSON decode on m2m message error!")
 		msg={}
 		msg["cmd"]=enc.get("cmd")
 		msg["ok"]=-1 #comm error
@@ -518,7 +501,7 @@ def recv_ws_con_handle(data,ws):
 		except:
 			ip="???"
 
-		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] WS "+str(ip)+"/"+str(ws.login)+" disconneted","l")
+		p.rint2("WS "+str(ip)+"/"+str(ws.login)+" disconneted","l","A_ws")
 		# try to find that websockets in all client lists, so go through all clients and their lists
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
@@ -581,704 +564,106 @@ def recv_ws_msg_handle(data,ws):
 				p.rint("-d-->Key:'"+key+"' / Value:'"+str(value)+"'","d")
 
 
-		#### pre login challange, for WS
+		############## WS CMD ############# pre login challange, for WS
 		if(enc.get("cmd")=="prelogin"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["challange"]=ws.challange
-			msg_q_ws.append((msg,ws))
-
-			try:
-				ip=ws.conn.getpeername()[0]
-			except:
-				ip="???"
-
-			p.rint2(str(ip)+" requested prelogin","l","A_ws")
-			#rint("received prelogin request, sending challange "+m2m.challange)
-
-		## LOGIN from a viewer, for WS
+			handle_ws_prelogin(enc,ws)
+		############## WS CMD ############# LOGIN from a viewer, for WS
 		elif(enc.get("cmd")=="login"):
-			msg_ws={}
-			msg_ws["cmd"]=enc.get("cmd")
-			# data base has to give us this values
-			ws.login=enc.get("login")
-			
-			# data base has to give us this values based on login
-			db_r=db.get_ws_data(ws.login)
-			#rint("Ergebniss der datenbank:")
-			#rint(db_r)
+			handle_ws_login(enc,ws)
 
-			if(type(db_r) is int): #user not found results in return -1 or so
-				#rint("db error")
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' not found in DB, log-in: failed","l")
-				msg_ws["ok"]=-3 # not logged in
-				msg_q_ws.append((msg_ws,ws))
-			else:
-				# generate hash for DB passwort and challange, client will generate hash_of(hash_of(passwort) + challange)
-				# this enables us to save only the hash_of(password) instead of clear text password in the db!
-				h = hashlib.md5()
-				hashme=(str(db_r["pw"])+ws.challange).encode("UTF-8")
-				h.update(hashme)
-				#rint("for secure login we have: pw="+str(db_r["pw"])+" challange="+str(ws.challange)+" together="+str(hashme)+" hash="+str(h.hexdigest())+" vs received="+enc.get("client_pw"))
-				
-				# check parameter
-				if(h.hexdigest()==enc.get("client_pw") and db_r["account"]!=""):
-					# complete message
-					msg_ws["ok"]=1 # logged in
-					msg_q_ws.append((msg_ws,ws))
-				
-					# add socket infos
-					ws.logged_in=1
-					ws.account=db_r["account"]
-					ws.email=db_r["email"]
-					ws.uuid=enc.get("uuid","")
-					ws.alarm_view=enc.get("alarm_view",0) #1,0 depending on service or app
-				
-					# rint and update db, as this fails when the client already disconnected, surrond with try catch
-					p.ws_login(ws)
-					try:
-						ip=ws.conn.getpeername()[0]
-					except:
-						ip="???"
-					db.update_last_seen_ws(ws.login, ip)
-				
-					# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
-					# introduce them to each other
-					for m2m in server_m2m.clients:
-						if(m2m.account==ws.account):
-							connect_ws_m2m(m2m,ws)
-					# and finally connect all disconnected m2m to the ws
-					all_m2m4account=db.get_m2m4account(ws.account)
-					if(type(all_m2m4account) is int):
-						p.rint("Error getting data for account "+str(ws.account),"d")
-					else:	# loop over all results, and make sure that they are not online
-						for all_m2m in all_m2m4account:
-							found=0
-							for online_m2m in server_m2m.clients:
-								if(all_m2m["mid"]==online_m2m.mid):
-									found=1
-									break
-							if(found==0):
-								# we are still here, so box is offline, lets create a empty object
-								m2m = m2m_clients("")
-								m2m.mid=all_m2m["mid"]
-								populate_m2m(m2m)
-								connect_ws_m2m(m2m,ws,update_m2m=0)
-				
-					# check if the same UUID has another open connection
-					if(str(ws.uuid)!=""):
-						for cli_ws in server_ws.clients:
-							disconnect=0
-							if(cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login):
-								p.rint2("disconnecting '"+str(cli_ws.login)+"' / '"+str(cli_ws.uuid)+"' as that has the same UUID","d","A")
-								disconnect=1
-							if(cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60):
-								p.rint2("disconnecting an unlogged client as the last comm was "+str(time.time()-cli_ws.last_comm)+"sec ago","d","A")
-								disconnect=1
-
-							if(disconnect):
-								cli_ws.conn.close()
-								recv_ws_con_handle("disconnect", cli_ws)
-				
-					# check if the user has areas which have been un-protected for a long long time
-					areas=db.get_areas_for_account(ws.account)
-					if(areas!=-1):
-						for a in areas:
-							a=a["area"]
-							#rint("check for area "+a)
-							data=db.get_areas_state(ws.account,a)
-							if(data!=-1):
-								#rint(data)
-								a_ts=int(data['updated'])
-								a_state=int(data['state'])
-								if(a_state<=0 and (a_ts+5*86400)<time.time()):
-									#rint("Area "+a+" is not active for more than 5 days")
-									# area is not protected
-									msg_add={}
-									msg_add["cmd"]="msg"
-									msg_add["msg"]="check_area,"+str(a)+",unprotected,"+str(a_ts)
-									msg_q_ws.append((msg_add,ws))
-					#end of long unprotection check
-							
-				# end of successful login
-				else:
-					try:
-						ip=ws.conn.getpeername()[0]
-					except:
-						ip="???"
-					p.rint2("log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l","A_ws", p.bcolors.WARNING)
-					msg_ws["ok"]=-2 # not logged in
-					msg_q_ws.append((msg_ws,ws))
-
-		#### refresh, this will be called by the app, on a start. the service is already connected to us, so no need for a complete reconnect, but the app will need an update about all clients
+		############## WS CMD ############# refresh, this will be called by the app, on a start. 
+		# the service is already connected to us, so no need for a complete reconnect, but the app will need an update about all clients
 		elif(enc.get("cmd")=="refresh_ws"):
-			 # search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
-			# introduce them to each other
-			for m2m in server_m2m.clients:
-				if(m2m.account==ws.account):
-					connect_ws_m2m(m2m,ws,0) # call with 0 will avoid that we append us to a list
-			# and finally connect all disconnected m2m to the ws
-			all_m2m4account=db.get_m2m4account(ws.account)
-			if(type(all_m2m4account) is int):
-				p.rint("Error getting data for account "+str(ws.account),"d")
-			else:	# loop over all results, and make sure that they are not online
-				for all_m2m in all_m2m4account:
-					found=0
-					for online_m2m in server_m2m.clients:
-						if(all_m2m.mid==online_m2m):
-							found=1
-							break
-					if(found==0):
-						# we are still here, so box is offline, lets create a empty object
-						m2m = m2m_clients("")
-						m2m.mid=all_m2m["mid"]
-						populate_m2m(m2m)
-						connect_ws_m2m(m2m,ws,update_m2m=0)
+			handle_ws_refresh_ws(enc,ws)
 
-		#### heartbeat, for WS
+		############## WS CMD ############# heartbeat, for WS
 		elif(enc.get("cmd")=="ws_hb"):
-			# respond
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"'@'"+str(ws.account)+"' HB","h")
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=1
-			msg_q_ws.append((msg,ws))
+			handle_ws_hb(enc,ws)
 
+		############## WS CMD ############# reset webcam_countdown
+		elif(enc.get("cmd")=="reset_webcam_countdown"):
+			handle_ws_reset_countdown(enc,ws)
 
-		#### set a color 
-		elif(enc.get("cmd")=="set_color"):
-			# respond
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["r"]=enc.get("r")
-			msg["g"]=enc.get("g")
-			msg["b"]=enc.get("b")
-			for m2m in ws.v2m:
-				if(enc.get("mid")==m2m.mid):
-					db.update_color(m2m,int(enc.get("r")),int(enc.get("g")),int(enc.get("b")),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
-					
-					m2m.color_pos=int(enc.get("color_pos"))
-					m2m.brightness_pos=int(enc.get("brightness_pos"))
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' change color","v")
-					msg_q_m2m.append((msg,m2m))
-					break
+		############## WS CMD ############# get all areas for account
+		elif(enc.get("cmd")=="get_areas"):
+			handle_ws_get_areas(enc,ws)
+		############## WS CMD ############# set updated area parameter
+		elif(enc.get("cmd")=="update_area"):
+			handle_ws_update_area(enc,ws)
+		############## WS CMD ############# remove an area
+		elif(enc.get("cmd")=="remove_area"):
+			handle_ws_remove_area(enc,ws)
 
-		## Detection on/off handle, for WS --> this should be obsolete as the server can decide on its own when to activate the detection
+		############## WS CMD ############# set updated camera parameter
+		elif(enc.get("cmd")=="update_cam_parameter"):
+			handle_update_cam_parameter(enc,ws)
+		############## WS CMD ############# get all cams for account
+		elif(enc.get("cmd")=="get_cams"):
+			handle_ws_get_cams(enc,ws)
+		############## WS CMD ############# remove an m2m
+		elif(enc.get("cmd")=="remove_m2m"):
+			handle_ws_remove_m2m(enc,ws)
+
+		############## WS CMD ############# get all logins for account
+		elif(enc.get("cmd")=="get_logins"):
+			handle_ws_get_logins(enc,ws)
+		############## WS CMD ############# register new ws login
+		elif(enc.get("cmd")=="new_register"):
+			handle_ws_new_register(enc,ws)
+		############## WS CMD ############# update a login
+		elif(enc.get("cmd")=="update_login"):
+			handle_ws_update_login(enc,ws)
+		############## WS CMD ############# remove a login
+		elif(enc.get("cmd")=="remove_login"):
+			handle_ws_remove_login(enc,ws)
+
+		############## WS CMD ############# get IDs of open alerts
+		elif(enc.get("cmd")=="get_alert_ids"):
+			handle_ws_get_alert_ids(enc,ws)
+		############## WS CMD ############# get Details to a alarm ID
+		elif(enc.get("cmd")=="get_alarm_details"):
+			handle_ws_get_alert_details(enc,ws)
+		############## WS CMD ############# send pictures to email adress
+		elif(enc.get("cmd")=="send_alert"):
+			handle_ws_send_alert(enc,ws)
+		############## WS CMD ############# acknowledge alerts
+		elif(enc.get("cmd")=="ack_alert" or enc.get("cmd")=="ack_all_alert" or enc.get("cmd")=="del_alert"):
+			handle_ws_ack_del_alert(enc,ws)
+		############## WS CMD ############# get picture, used by the alarms
+		elif(enc.get("cmd")=="get_img"):
+			handle_ws_get_image(enc,ws)
+
+		############## WS CMD ############# Detection on/off handle, for WS 
+		# --> this should be only an backup as the server can decide on its own when to activate the detection
 		elif(enc.get("cmd")=="set_override"):
-			area=enc.get("area")
-			rule=enc.get("rule") # can be "*" for on or "/" for off
-			duration=int(enc.get("duration"))
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' sets a override '"+str(rule)+"' for area '"+str(area)+"'","v")
-			
-			# prepare msg
-			msg={}
-			msg["cmd"]=enc.get("cmd")
+			handle_ws_set_override(enc,ws)
+		############## WS CMD ############# if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
+		elif(enc.get("cmd")=="update_location"):
+			handle_ws_update_location(enc,ws)
+		############## WS CMD ############# get all rules for acocunt
+		elif(enc.get("cmd")=="get_rules"):
+			handle_ws_get_rules(enc,ws)
+		############## WS CMD ############# modify geo rule
+		elif(enc.get("cmd")=="update_rule_geo"):
+			handle_ws_update_rule_geo(enc,ws)
 
-			r=rm.get_account(ws.account)
-			if(r!=0):
-				rule_area=r.get_area(area)
-				if(rule_area!=0):
-					# check if opposit rule existed and remove up front
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] RM, remove override rule","r")
-					rule_area.rm_override("/")
-					rule_area.rm_override("*")
-					
-					if(rule!=""): # add new override as no one was in place to remove
-						if(duration>0): # duration can be a time in sec or -1 = forever
-							duration=int(time.time()+duration)
-						rule_area.append_rule(rule,duration,0)	
-				
-					msg["status"]="running rule check"
-					msg["ok"]=1
-					msg["rm_override"]=""
-					if(rule_area.has_override_detection_off):
-						 msg["rm_override"]="/"
-					elif(rule_area.has_override_detection_on):
-						msg["rm_override"]="*"
-
-				else:
-					p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Can't find area '"+str(area)+"' on this account, camera online?","r")
-					msg["status"]="area not found"
-					msg["ok"]=0
-
-				
-				# update next timestamp (the override could be timelimited) and run a rulecheck as the szenario has most certainly changed		
-				rm.get_account(ws.account).update_next_ts()
-				rm_check_rules(ws.account,ws.login,1)
-			else:
-				#return bad ack
-				p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] can't find account '"+str(ws.account)+"' on rulemanager, camera online?","r")
-
-				msg["ok"]=0
-				msg["status"]="account not found"
-
-	
-			# send an update that the server has received the request
-			if(msg["ok"]==1): # new override set successful, inform every viewer
-				msg["area"]=enc.get("area")
-				msg["account"]=ws.account
-				for v in server_ws.clients:
-					if(v.account==ws.account):
-						msg_q_ws.append((msg,v))
-			else: # update failed, send message just to the requester
-				msg_q_ws.append((msg,ws))
-
-			
-		## webcam interval -> sign in or out to webcam, for WS
+		############## WS CMD ############# send a update command to the m2m
+		elif(enc.get("cmd")=="git_update"):
+			handle_ws_git_update(enc,ws)
+		############## WS CMD ############# set a color 
+		elif(enc.get("cmd")=="set_color"):
+			handle_ws_set_color(enc,ws)
+		############## WS CMD ############# webcam interval -> sign in or out to webcam, for WS
 		elif(enc.get("cmd")=="set_interval"):
 			set_webcam_con(enc.get("mid"), enc.get("interval",0) ,ws)
-
-		## set updated area parameter
-		elif(enc.get("cmd")=="update_area"):
-			area_id=enc.get("id","0")
-			area_old_name=""
-			# 1. get old name of area id
-			areas=db.get_areas_for_account(ws.account)
-			for a in areas:
-				if(str(a["id"])==str(area_id)):
-					area_old_name=a["area"]
-					break
-
-			# 2. save new parameter
-			for m2m in server_m2m.clients:
-				if(m2m.area==area_old_name):
-					# it might sound rough, but we have to reloader all the rules, 
-					# change the area, inform all clients. If we just disconnect to box
-					# it will redial in in 3 sec and everything will run on its own
-					server_m2m.disconnect(m2m)
-
-			# 3. update database
-			db.update_area(enc.get("id",0), enc.get("name",""), enc.get("latitude","0.0"), enc.get("longitude","0.0"), ws.account)
-
-			# 4. send ok response to ws
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=1
-			msg["id"]=enc.get("id");
-			msg["name"]=enc.get("name");
-			msg["latitude"]=enc.get("latitude");
-			msg["longitude"]=enc.get("longitude");
-
-			msg_q_ws.append((msg,ws))
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated area parameter for '"+enc.get("name","")+"'","d")
-			
-
-		## set updated camera parameter
-		elif(enc.get("cmd")=="update_cam_parameter"):
-			in_mid=enc.get("mid",0)
-			in_alarm_while_stream=enc.get("alarm_while_stream","no_alarm")
-			in_resolution=enc.get("qual","HD")
-			in_frame_dist=float(enc.get("fps","0.5"))
-			in_area=enc.get("area","-1")
-			in_alarm_ws="1"
-			in_name=enc.get("name")
-
-			# outside of loop to update cams that are offline
-			db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name)
-
-			# save new parameter
-			found=0
-			for m2m in server_m2m.clients:
-				if(m2m.mid==in_mid):
-					found=1
-					m2m.alarm_while_streaming=in_alarm_while_stream
-					m2m.resolution=in_resolution
-					m2m.frame_dist=in_frame_dist
-					m2m.alarm_ws=in_alarm_ws
-
-					if(str(m2m.alias)!=str(in_name)):
-						# if the name (and probably more) has change, reboot cam
-						msg={}
-						msg["cmd"]="set_alias"
-						msg["alias"]=in_name
-						msg_q_m2m.append((msg,m2m))
-					elif(str(m2m.area_id)!=str(in_area)):
-						# if then name has not change, but the area, just reconnect it
-						# it might sound rough, but we have to reloader all the rules, 
-						# change the area, inform all clients. If we just disconnect to box
-						# it will redial in in 3 sec and everything will run on its own
-						server_m2m.disconnect(m2m)
-					else:
-						# inform the webcam about the new parameter
-						msg={}
-						msg["cmd"]="update_parameter"
-						msg["qual"]=m2m.resolution
-						msg["alarm_while_streaming"]=m2m.alarm_while_streaming
-						msg["interval"]=m2m.frame_dist
-						msg_q_m2m.append((msg,m2m))
-					break;
-
-			# if not found, aka offline, just create a temporary box and send the update info
-			if(found==0):
-				m2m = m2m_clients("")
-				m2m.mid=in_mid
-				populate_m2m(m2m)
-				# send this message to all ws with the same account
-				for a_ws in server_ws.clients:
-					if(a_ws.account == ws.account):
-						connect_ws_m2m(m2m,a_ws,update_m2m=0)
-
-			# send ok response to ws
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=1
-			msg_q_ws.append((msg,ws))
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated cam parameter for  '"+in_mid+"'","d")
-
-
-		## if a ws client supports location grabbing it can send location updates to switch on/off the detection, for WS
-		elif(enc.get("cmd")=="update_location"):
-			ws.location=enc.get("loc","")
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"'@'"+str(ws.account)+"' moved to '"+enc.get("loc")+"'","h")
-			# step 1: update database location for this login
-			db_r=db.update_location(ws.login,enc.get("loc"))
-			# step 2: run all rule checks and update every box on the account
-			t=time.time()
-			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] checking as somebody moved for this account","r")
-			rm_check_rules(ws.account,ws.login,1)	# check and use db
-			p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(time.time()-t),"r")
-
-		## remove an area
-		elif(enc.get("cmd")=="remove_area"):
-			db.remove_area(enc.get("id"));
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=1
-			msg_q_ws.append((msg,ws))						
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted area  '"+str(enc.get("id"))+"'","d")
-
-		## remove an m2m
-		elif(enc.get("cmd")=="remove_m2m"):
-			mid=enc.get("mid")
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=db.remove_m2m(mid,ws.account);
-			msg["mid"]=mid
-			# send a message to every client of the server account
-			for v in server_ws.clients:
-				if(v.account == ws.account):
-					msg_q_ws.append((msg,v))						
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted m2m '"+str(mid)+"'","d")
-
-		## update a login
-		elif(enc.get("cmd")=="update_login"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["id"]=enc.get("id")
-			msg["ok"]=db.update_login(enc.get("id"), enc.get("name"), enc.get("pw"), enc.get("email"), ws.account);
-			msg_q_ws.append((msg,ws))						
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated login  '"+str(enc.get("id"))+"'","d")
-
-		## remove a login
-		elif(enc.get("cmd")=="remove_login"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=db.remove_login(enc.get("id"),ws.account);
-			msg_q_ws.append((msg,ws))						
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted login  '"+str(enc.get("id"))+"'","d")
-
-		## get IDs of open alerts
-		elif(enc.get("cmd")=="get_alert_ids"):
-			mid=enc.get("mid")
-			open_start=enc.get("open_start",0)
-			open_end=enc.get("open_end",10)
-			closed_start=enc.get("closed_start",0)
-			closed_end=enc.get("closed_end",10)
-
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ids_open"]=[]
-			msg["ids_closed"]=[]
-			msg["mid"]=mid
-			msg["open_max"]=db.get_open_alert_count(ws.account, mid)
-			msg["closed_max"]=db.get_closed_alert_count(ws.account, mid)
-
-			db_r=db.get_open_alert_ids(ws.account,mid,open_start,open_end)
-			if(db_r==-1):
-				msg["ids_open"].append(-1)
-			else:
-				for i in db_r:
-					msg["ids_open"].append(i['id'])
-
-			db_r=db.get_closed_alert_ids(ws.account,mid,closed_start,closed_end)
-			if(db_r==-1):
-				msg["ids_closed"].append(-1)
-			else:
-				for i in db_r:
-					msg["ids_closed"].append(i['id'])
-			msg_q_ws.append((msg,ws))
-					
-		## get Details to a alarm ID
-		elif(enc.get("cmd")=="get_alarm_details"):
-			id=enc.get("id")
-			if(id!=-1):
-				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" details","v")
-				db_r1=db.get_alert_details(ws.account,id)
-				## get number of pictures for this alert
-				db_r2=db.get_img_count_for_alerts(id)
-				## get picture path for 0..100 
-				db_r3=db.get_img_for_alerts(id,0)
-				msg={}
-				msg["cmd"]=enc.get("cmd")
-				msg["id"]=id
-				msg["rm_string"]=db_r1['rm_string']
-				msg["f_ts"]=db_r1['f_ts']
-				msg["img_count"]=db_r2
-				msg["img"]=db_r3
-				msg["mid"]=enc.get("mid")		
-				msg["ack"]=db_r1['ack']
-				msg["ack_ts"]=db_r1['ack_ts']
-				msg["ack_by"]=db_r1['ack_by']
-				msg_q_ws.append((msg,ws))
-
-		## send pictures to email adress
-		elif(enc.get("cmd")=="send_alert"):
-			id=enc.get("aid")
-
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["mid"]=enc.get("mid")
-			msg["aid"]=id
-			msg["status"]=-1
-
-			if(id!=-1 and ws.email!=""):
-				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" to mail","v")
-				## get picture path for 0..100 
-				db_r3=db.get_img_for_alerts(id,0)
-				db_account=db.get_account_for_path(db_r3[0]['path'])
-				if(str(db_account)==str(ws.account)):
-					file_lst=[]
-					for f in db_r3:
-						file_lst.append(upload_dir+f['path'])
-						# TODO
-					send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to=ws.email,send_from="koljasspam493@gmail.com", server="localhost")		
-				msg["status"]=1
-			else:
-				p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Invalid request for alarm: "+str(id)+" to mail "+str(ws.email),"v")
-				
-
-			msg_q_ws.append((msg,ws))
-
-
-		## reset webcam_countdown
-		elif(enc.get("cmd")=="reset_webcam_countdown"):
-			ws.webcam_countdown=99
-			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received countdown reset from "+str(ws.login),"v") 
-
-		## get picture 
-		elif(enc.get("cmd")=="get_img"):
-			path=enc.get("path")
-			p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for img: "+str(path)+", uploading","v")
-			db_r=db.get_account_for_path(path)
-			if(db_r==ws.account):
-				msg={}
-				msg["cmd"]="recv_req_file"
-				msg["path"]=path
-				msg["height"]=enc.get("height")
-				msg["width"]=enc.get("width")
-
-				try:
-					img = open(upload_dir+path,'rb')
-				except:
-					img = open("../webserver/images/filenotfound.jpg",'rb')
-					
-				strng=img.read(512000-100)
-				img.close()
-				msg["img"]=base64.b64encode(strng).decode('utf-8')
-				msg_q_ws.append((msg,ws))
-
-		# acknowledge alerts
-		elif(enc.get("cmd")=="ack_alert" or enc.get("cmd")=="ack_all_alert" or enc.get("cmd")=="del_alert"):
-			if(enc.get("cmd")=="ack_alert"):
-				db.ack_alert(enc.get("mid"),enc.get("aid"),ws.login)
-			elif(enc.get("cmd")=="ack_all_alert"):
-				db.ack_all_alert(enc.get("mid"),ws.login)
-			elif(enc.get("cmd")=="del_alert"):
-				db.del_alert(enc.get("mid"),enc.get("aid"),ws.login)
-			msg={}
-			msg["cmd"]="update_open_alerts"
-			msg["mid"]=enc.get("mid")
-			msg["open_alarms"]=db.get_open_alert_count(ws.account,enc.get("mid"))
-			for cam in server_m2m.clients:
-				if(cam.mid==enc.get("mid")):
-					for v in cam.m2v:
-						msg_q_ws.append((msg,v))
-					break
-
-		## subscribe to heartbeats
-		elif(enc.get("cmd")=="hb_fast"):
-			#if(enc.get("active",0)==1):
-			#	debug_loading_assist.subscribe(ws)
-			#else:
-			#	debug_loading_assist.unsubscribe(ws)
-			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] unsupported subscription to hb_fast command from "+str(ws.login),"d")
-
-
-		## register new ws login
-		elif(enc.get("cmd")=="new_register"):
-			res=db.register_ws(enc.get("user"),enc.get("pw"),enc.get("email"))		
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["status"]=res
-			msg_q_ws.append((msg,ws))
-			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] new register from "+str(enc.get("user")),"d")
-
-
-		## get all areas for account
-		elif(enc.get("cmd")=="get_areas"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			areas=db.get_areas_for_account(ws.account)
-			if(areas!=-1):
-				msg["ok"]=1
-				msg["areas"]=[]#areas
-				for a in areas:
-					msg["areas"].append((a))
-			else:
-				msg["ok"]=-1
-			msg_q_ws.append((msg,ws))
-
-		## get all cams for account
-		elif(enc.get("cmd")=="get_cams"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["v_short"]=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-			msg["v_hash"]=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-
-			all_m2m4account=db.get_m2m4account(ws.account)
-			# if it failed
-			if(type(all_m2m4account) is int):
-				p.rint("Error getting data for account "+str(ws.account),"d")
-				msg["ok"]=-1
-			else:
-				# is cam online
-				for m2m in all_m2m4account:
-					m2m["online"]=0
-					for cli in server_m2m.clients:
-						if(str(cli.mid) == str(m2m["mid"])):
-							m2m["online"]=1
-							break
-
-				msg["ok"]=1
-				msg["m2m"]=all_m2m4account
-			msg_q_ws.append((msg,ws))
-
-		## get all logins for account
-		elif(enc.get("cmd")=="get_logins"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			all_logins4account=db.get_logins4account(ws.account)
-			if(type(all_logins4account) is int):
-				p.rint("Error getting login-data for account "+str(ws.account),"d")
-				msg["ok"]=-1
-			else:
-				msg["ok"]=1
-				msg["m2m"]=all_logins4account
-			msg_q_ws.append((msg,ws))
-
-		## get all rules for acocunt
-		elif(enc.get("cmd")=="get_rules"):
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["rules"]=rm.get_account(ws.account).print_account(m_dict=1)
-			msg_q_ws.append((msg,ws))
-
-		## modify geo rule
-		elif(enc.get("cmd")=="update_rule_geo"):
-			t_area=enc.get("name","")
-			msg={}
-			msg["ok"]=-1
-
-			# 3. no go, get it
-			rules=rm.get_account(ws.account).get_area(t_area).rules
-
-			# 4. check if geo rules exists
-			id=-1
-			for rule in rules:
-				if(rule.conn=="nobody_at_my_geo_area"):
-					id=rule.id
-					break
-			
-			# 5.1. add rule, only if not existing
-			if(str(enc.get("geo","0"))==str("1") and id==-1):
-				rm.get_account(ws.account).get_area(t_area).append_rule("nobody_at_my_geo_area",0,0)
-				msg["ok"]=1
-			# 5.2. remove rule, only if existing
-			elif(str(enc.get("geo","1"))==str("0") and id!=-1):
-				rm.get_account(ws.account).get_area(t_area).rm_rule(id)
-				msg["ok"]=1
-
-			# 6. send response
-			msg["cmd"]=enc.get("cmd")
-			msg_q_ws.append((msg,ws))
-		
-			# 7. resend rules to refresh user dash
-			msg={}
-			msg["cmd"]="get_rules"
-			msg["rules"]=rm.get_account(ws.account).print_account(m_dict=1)
-			msg_q_ws.append((msg,ws))
-
-			# 8. rescan all rules to update booble
-			rm_check_rules(ws.account,ws.login,0)
-
-		## send a update command to the m2m
-		elif(enc.get("cmd")=="git_update"):
-			p.rint2("Received request to update mid:"+str(enc.get("mid","-")),"d","A ws")
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["ok"]=-1
-
-			for cam in server_m2m.clients:
-				if(enc.get("mid")==cam.mid and cam.account==ws.account):
-					msg["ok"]=0
-					# send msg to m2m
-					msg2={}
-					msg2["cmd"]=enc.get("cmd")
-					msg_q_m2m.append((msg2,cam))
-					break
-
-			# send msg back to ws
-			msg_q_ws.append((msg,ws))
-
-		## set the state of the external pin WS
+		############## WS CMD ############# set the state of the external pin WS
 		elif(enc.get("cmd")=="toggle_external_pin"):
-			mid=enc.get("mid","0")
+			handle_ws_toggle_external_pin(enc,ws)
 
-			msg={}
-			msg["cmd"]=enc.get("cmd")
-			msg["mid"]=mid
-			msg["ok"]=-1
-			state=0
-
-			# search the right cam, based on the MID and account
-			for cam in server_m2m.clients:
-				if(enc.get("mid")==cam.mid and cam.account==ws.account):
-					cam.external_state=int(not(cam.external_state))
-					state=cam.external_state
-					msg["ok"]=0
-					msg["state"]=state
-
-					# send msg to m2m
-					msg2={}
-					msg2["cmd"]=enc.get("cmd")
-					msg2["state"]=state
-					msg_q_m2m.append((msg2,cam))
-
-					# send a message to al listeners
-					for l in cam.m2v:
-						msg_q_ws.append((msg,l))
-					break
-
-			# send the message once more, in case we couldn't find the m2m
-			msg_q_ws.append((msg,ws))			
-			db.update_external_state(mid,state)
-			p.rint2("User '"+str(ws.login)+"' asked to toggle the pin '"+str(mid)+"'","d","A ws")
-
-		## unsupported cmd, for WS
+		############## WS CMD ############# unsupported cmd, for WS
 		else:
 			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+str(ws.login),"d")
 #******************************************************#
-
 #******************************************************#
 # and here again: the main loop will call us to check if there is a message to send back
 def snd_ws_msg_dq_handle():
@@ -1301,10 +686,703 @@ def snd_ws_msg_dq_handle():
 			debug_out.update(msg.get("mid",0))
 			#rint(debug_in.print(msg.get("mid",0)))
 			#rint(debug_out.print(msg.get("mid",0)))
-
-
 	return ret
 #******************************************************#
+########### HANDLE ws update location ################
+def handle_ws_update_location(enc,ws):
+	ws.location=enc.get("loc","")
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"'@'"+str(ws.account)+"' moved to '"+enc.get("loc")+"'","h")
+	# step 1: update database location for this login
+	db_r=db.update_location(ws.login,ws.location)
+	# step 2: run all rule checks and update every box on the account
+	t=time.time()
+	p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] checking as somebody moved for this account","r")
+	rm_check_rules(ws.account,ws.login,1)	# check and use db
+	p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(time.time()-t),"r")
+########### HANDLE ws update location ################
+
+########### HANDLE ws remove area ################
+def handle_ws_remove_area(enc,ws):
+	msg={
+		"cmd":	enc.get("cmd"),
+		"ok":	db.remove_area(enc.get("id")),
+	}
+	msg_q_ws.append((msg,ws))						
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted area  '"+str(enc.get("id"))+"'","d")
+########### HANDLE ws remove area ################
+
+########### HANDLE ws remove m2m ################
+def handle_ws_remove_m2m(enc,ws):
+	mid=enc.get("mid")
+	msg={
+		"cmd":	enc.get("cmd"),
+		"ok":	db.remove_m2m(mid,ws.account),
+		"mid":	mid
+	}
+	# send a message to every client of the server account
+	for v in server_ws.clients:
+		if(v.account == ws.account):
+			msg_q_ws.append((msg,v))						
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted m2m '"+str(mid)+"'","d")
+########### HANDLE ws remove m2m ################
+
+########### HANDLE ws update login ################
+def handle_ws_update_login(enc,ws):
+	msg={
+		"cmd":	enc.get("cmd"),
+		"id":	enc.get("id"),
+		"ok":	db.update_login(enc.get("id"), enc.get("name"), enc.get("pw"), enc.get("email"), ws.account)
+	}
+	msg_q_ws.append((msg,ws))						
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated login  '"+str(enc.get("id"))+"'","d")
+########### HANDLE ws update login ################
+
+########### HANDLE ws remove login ################
+def handle_ws_remove_login(enc,ws):
+	msg={
+		"cmd":	enc.get("cmd"),
+		"ok":	db.remove_login(enc.get("id"),ws.account)
+	}
+	msg_q_ws.append((msg,ws))						
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' deleted login  '"+str(enc.get("id"))+"'","d")
+########### HANDLE ws remove login ################
+
+########### HANDLE ws get alarm id's ################
+def handle_ws_get_alert_ids(enc,ws):
+	mid=enc.get("mid")
+	open_start=enc.get("open_start",0)
+	open_end=enc.get("open_end",10)
+	closed_start=enc.get("closed_start",0)
+	closed_end=enc.get("closed_end",10)
+
+	msg={
+		"cmd": 		enc.get("cmd"),
+		"ids_open":	[],
+		"ids_closed":	[],
+		"mid":		mid,
+		"open_max":	db.get_open_alert_count(ws.account, mid),
+		"closed_max":	db.get_closed_alert_count(ws.account, mid)
+	}
+
+	db_r=db.get_open_alert_ids(ws.account,mid,open_start,open_end)
+	if(db_r==-1):
+		msg["ids_open"].append(-1)
+	else:
+		for i in db_r:
+			msg["ids_open"].append(i['id'])
+
+	db_r=db.get_closed_alert_ids(ws.account,mid,closed_start,closed_end)
+	if(db_r==-1):
+		msg["ids_closed"].append(-1)
+	else:
+		for i in db_r:
+			msg["ids_closed"].append(i['id'])
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws get alarm id's ################
+
+########### HANDLE ws get alarm details ################
+def handle_ws_get_alert_details(enc,ws):
+	id=enc.get("id")
+	if(id!=-1):
+		p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" details","v")
+		db_r1=db.get_alert_details(ws.account,id)
+		## get number of pictures for this alert
+		db_r2=db.get_img_count_for_alerts(id)
+		## get picture path for 0..100 
+		db_r3=db.get_img_for_alerts(id,0)
+		msg={
+			"cmd":		enc.get("cmd"),
+			"id":		id,
+			"rm_string":	db_r1['rm_string'],
+			"f_ts":		db_r1['f_ts'],
+			"img_count":	db_r2,
+			"img":		db_r3,
+			"mid":		enc.get("mid"),
+			"ack":		db_r1['ack'],
+			"ack_ts":	db_r1['ack_ts'],
+			"ack_by":	db_r1['ack_by']
+		}
+		msg_q_ws.append((msg,ws))
+########### HANDLE ws get alarm details ################
+
+########### HANDLE ws get send alert ################
+def handle_ws_send_alert(enc,ws):
+	id=enc.get("aid")
+
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["mid"]=enc.get("mid")
+	msg["aid"]=id
+	msg["status"]=-1
+
+	if(id!=-1 and ws.email!=""):
+		p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" to mail","v")
+		## get picture path for 0..100 
+		db_r3=db.get_img_for_alerts(id,0)
+		db_account=db.get_account_for_path(db_r3[0]['path'])
+		if(str(db_account)==str(ws.account)):
+			file_lst=[]
+			for f in db_r3:
+				file_lst.append(upload_dir+f['path'])
+				# TODO
+			send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to=ws.email,send_from="koljasspam493@gmail.com", server="localhost")		
+		msg["status"]=1
+	else:
+		p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Invalid request for alarm: "+str(id)+" to mail "+str(ws.email),"v")
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws get send alert ################
+
+########### HANDLE ws reset countdown ################
+def handle_ws_reset_countdown(enc,ws):
+	ws.webcam_countdown=99
+	p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received countdown reset from "+str(ws.login),"v") 
+########### HANDLE ws reset countdown ################
+
+########### HANDLE ws get image ################
+def handle_ws_get_image(enc,ws):
+	path=enc.get("path")
+	p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for img: "+str(path)+", sending","v")
+	if(db.get_account_for_path(path)==ws.account):
+		msg={}
+		msg["cmd"]="recv_req_file"
+		msg["path"]=path
+		msg["height"]=enc.get("height")
+		msg["width"]=enc.get("width")
+
+		try:
+			img = open(upload_dir+path,'rb')
+		except:
+			img = open("../webserver/images/filenotfound.jpg",'rb')
+			
+		strng=img.read(512000-100)
+		img.close()
+		msg["img"]=base64.b64encode(strng).decode('utf-8')
+		msg_q_ws.append((msg,ws))
+########### HANDLE ws get image ################
+
+########### HANDLE ws ack / ack all / del alert ################
+def handle_ws_ack_del_alert(enc,ws):
+	if(enc.get("cmd")=="ack_alert"):
+		db.ack_alert(enc.get("mid"),enc.get("aid"),ws.login)
+	elif(enc.get("cmd")=="ack_all_alert"):
+		db.ack_all_alert(enc.get("mid"),ws.login)
+	elif(enc.get("cmd")=="del_alert"):
+		db.del_alert(enc.get("mid"),enc.get("aid"),ws.login)
+	msg={}
+	msg["cmd"]="update_open_alerts"
+	msg["mid"]=enc.get("mid")
+	msg["open_alarms"]=db.get_open_alert_count(ws.account,enc.get("mid"))
+	for cam in server_m2m.clients:
+		if(cam.mid==enc.get("mid")):
+			for v in cam.m2v:
+				msg_q_ws.append((msg,v))
+			break
+########### HANDLE ws ack / ack all / del alert ################
+
+########### HANDLE ws register a new login ################
+def handle_ws_new_register(enc,ws):
+	res=db.register_ws(enc.get("user"),enc.get("pw"),enc.get("email"))		
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["status"]=res
+	msg_q_ws.append((msg,ws))
+	p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] new register from "+str(enc.get("user")),"d")
+########### HANDLE ws register a new login ################
+
+########### HANDLE ws get area data ################
+def handle_ws_get_areas(enc,ws):
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	areas=db.get_areas_for_account(ws.account)
+	if(areas!=-1):
+		msg["ok"]=1
+		msg["areas"]=[]#areas
+		for a in areas:
+			msg["areas"].append((a))
+	else:
+		msg["ok"]=-1
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws get area data ################
+
+########### HANDLE ws get rules ################
+def handle_ws_get_rules(enc,ws):
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["rules"]=rm.get_account(ws.account).print_account(m_dict=1)
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws get rules ################
+
+########### HANDLE ws get logins ################
+def handle_ws_get_logins(enc,ws):
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	all_logins4account=db.get_logins4account(ws.account)
+	if(type(all_logins4account) is int):
+		p.rint("Error getting login-data for account "+str(ws.account),"d")
+		msg["ok"]=-1
+	else:
+		msg["ok"]=1
+		msg["m2m"]=all_logins4account
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws get logins ################
+
+########### HANDLE ws hb ################
+def handle_ws_hb(enc,ws):
+	# respond
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"'@'"+str(ws.account)+"' HB","h")
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["ok"]=1
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws hb ################
+
+########### HANDLE ws update area ################
+def handle_ws_update_area(enc,ws):
+	area_id=enc.get("id","0")
+	area_old_name=""
+	# 1. get old name of area id
+	areas=db.get_areas_for_account(ws.account)
+	for a in areas:
+		if(str(a["id"])==str(area_id)):
+			area_old_name=a["area"]
+			break
+
+	# 2. save new parameter
+	for m2m in server_m2m.clients:
+		if(m2m.area==area_old_name):
+			# it might sound rough, but we have to reloader all the rules, 
+			# change the area, inform all clients. If we just disconnect to box
+			# it will redial in in 3 sec and everything will run on its own
+			server_m2m.disconnect(m2m)
+
+	# 3. update database
+	db.update_area(enc.get("id",0), enc.get("name",""), enc.get("latitude","0.0"), enc.get("longitude","0.0"), ws.account)
+
+	# 4. send ok response to ws
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["ok"]=1
+	msg["id"]=enc.get("id");
+	msg["name"]=enc.get("name");
+	msg["latitude"]=enc.get("latitude");
+	msg["longitude"]=enc.get("longitude");
+
+	msg_q_ws.append((msg,ws))
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated area parameter for '"+enc.get("name","")+"'","d")
+########### HANDLE ws update area ################			
+
+
+########### HANDLE ws get cams ################
+def handle_ws_get_cams(enc,ws):
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["v_short"]=str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+	msg["v_hash"]=str(subprocess.Popen(["git","log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+
+	all_m2m4account=db.get_m2m4account(ws.account)
+	# if it failed
+	if(type(all_m2m4account) is int):
+		p.rint("Error getting data for account "+str(ws.account),"d")
+		msg["ok"]=-1
+	else:
+		# is cam online
+		for m2m in all_m2m4account:
+			m2m["online"]=0
+			for cli in server_m2m.clients:
+				if(str(cli.mid) == str(m2m["mid"])):
+					m2m["online"]=1
+					break
+
+		msg["ok"]=1
+		msg["m2m"]=all_m2m4account
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws get cams ################
+
+########### HANDLE ws update rule geo ################
+def handle_ws_update_rule_geo(enc,ws):
+	t_area=enc.get("name","")
+	msg={}
+	msg["ok"]=-1
+
+	# 3. no go, get it
+	rules=rm.get_account(ws.account).get_area(t_area).rules
+
+	# 4. check if geo rules exists
+	id=-1
+	for rule in rules:
+		if(rule.conn=="nobody_at_my_geo_area"):
+			id=rule.id
+			break
+	
+	# 5.1. add rule, only if not existing
+	if(str(enc.get("geo","0"))==str("1") and id==-1):
+		rm.get_account(ws.account).get_area(t_area).append_rule("nobody_at_my_geo_area",0,0)
+		msg["ok"]=1
+	# 5.2. remove rule, only if existing
+	elif(str(enc.get("geo","1"))==str("0") and id!=-1):
+		rm.get_account(ws.account).get_area(t_area).rm_rule(id)
+		msg["ok"]=1
+
+	# 6. send response
+	msg["cmd"]=enc.get("cmd")
+	msg_q_ws.append((msg,ws))
+
+	# 7. resend rules to refresh user dash
+	msg={}
+	msg["cmd"]="get_rules"
+	msg["rules"]=rm.get_account(ws.account).print_account(m_dict=1)
+	msg_q_ws.append((msg,ws))
+
+	# 8. rescan all rules to update booble
+	rm_check_rules(ws.account,ws.login,0)
+########### HANDLE ws update rule geo ################
+
+########### HANDLE ws git update ################
+def handle_ws_git_update(enc,ws):
+	p.rint2("Received request to update mid:"+str(enc.get("mid","-")),"d","A ws")
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["ok"]=-1
+
+	for cam in server_m2m.clients:
+		if(enc.get("mid")==cam.mid and cam.account==ws.account):
+			msg["ok"]=0
+			# send msg to m2m
+			msg2={}
+			msg2["cmd"]=enc.get("cmd")
+			msg_q_m2m.append((msg2,cam))
+			break
+
+	# send msg back to ws
+	msg_q_ws.append((msg,ws))
+########### HANDLE ws git update ################
+
+########### HANDLE ws toggle pin ################
+def handle_ws_toggle_external_pin(enc,ws):
+	mid=enc.get("mid","0")
+
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["mid"]=mid
+	msg["ok"]=-1
+	state=0
+
+	# search the right cam, based on the MID and account
+	for cam in server_m2m.clients:
+		if(enc.get("mid")==cam.mid and cam.account==ws.account):
+			cam.external_state=int(not(cam.external_state))
+			state=cam.external_state
+			msg["ok"]=0
+			msg["state"]=state
+
+			# send msg to m2m
+			msg2={}
+			msg2["cmd"]=enc.get("cmd")
+			msg2["state"]=state
+			msg_q_m2m.append((msg2,cam))
+
+			# send a message to al listeners
+			for l in cam.m2v:
+				msg_q_ws.append((msg,l))
+			break
+
+	# send the message once more, in case we couldn't find the m2m
+	msg_q_ws.append((msg,ws))			
+	db.update_external_state(mid,state)
+	p.rint2("User '"+str(ws.login)+"' asked to toggle the pin '"+str(mid)+"'","d","A ws")
+########### HANDLE ws toggle pin ################
+
+########### HANDLE ws set override ws ################
+def handle_ws_set_override(enc,ws):
+	area=enc.get("area")
+	rule=enc.get("rule") # can be "*" for on or "/" for off
+	duration=int(enc.get("duration"))
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' sets a override '"+str(rule)+"' for area '"+str(area)+"'","v")
+			
+	# prepare msg
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+
+	r=rm.get_account(ws.account)
+	if(r!=0):
+		rule_area=r.get_area(area)
+		if(rule_area!=0):
+			# check if opposit rule existed and remove up front
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] RM, remove override rule","r")
+			rule_area.rm_override("/")
+			rule_area.rm_override("*")
+					
+			if(rule!=""): # add new override as no one was in place to remove
+				if(duration>0): # duration can be a time in sec or -1 = forever
+					duration=int(time.time()+duration)
+				rule_area.append_rule(rule,duration,0)	
+				
+			msg["status"]="running rule check"
+			msg["ok"]=1
+			msg["rm_override"]=""
+			if(rule_area.has_override_detection_off):
+				 msg["rm_override"]="/"
+			elif(rule_area.has_override_detection_on):
+				msg["rm_override"]="*"
+		else:
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] Can't find area '"+str(area)+"' on this account, camera online?","r")
+			msg["status"]="area not found"
+			msg["ok"]=0
+
+				
+		# update next timestamp (the override could be timelimited) and run a rulecheck as the szenario has most certainly changed		
+		rm.get_account(ws.account).update_next_ts()
+		rm_check_rules(ws.account,ws.login,1)
+	else:
+		#return bad ack
+		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] can't find account '"+str(ws.account)+"' on rulemanager, camera online?","r")
+		msg["ok"]=0
+		msg["status"]="account not found"
+	
+	# send an update that the server has received the request
+	if(msg["ok"]==1): # new override set successful, inform every viewer
+		msg["area"]=enc.get("area")
+		msg["account"]=ws.account
+		for v in server_ws.clients:
+			if(v.account==ws.account):
+				msg_q_ws.append((msg,v))
+	else: # update failed, send message just to the requester
+		msg_q_ws.append((msg,ws))
+########### HANDLE ws set override ws ################
+
+
+########### HANDLE ws set color ################
+def handle_ws_set_color(enc,ws):
+	r = enc.get("r","0")
+	g = enc.get("g","0")
+	b = enc.get("b","0")
+	# respond
+	msg={
+		"cmd": 	enc.get("cmd"),
+		"r":	r,
+		"g":	g,
+		"b":	b
+	}
+	for m2m in ws.v2m:
+		if(enc.get("mid")==m2m.mid):
+			db.update_color(m2m,int(r),int(g),int(b),int(enc.get("brightness_pos")),int(enc.get("color_pos")))
+			
+			m2m.color_pos=int(enc.get("color_pos"))
+			m2m.brightness_pos=int(enc.get("brightness_pos"))
+			p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' change color","v")
+			msg_q_m2m.append((msg,m2m))
+			break
+########### HANDLE ws set color ################
+
+########### HANDLE cam parameter ################
+def handle_update_cam_parameter(enc,ws):
+	in_mid=enc.get("mid",0)
+	in_alarm_while_stream=enc.get("alarm_while_stream","no_alarm")
+	in_resolution=enc.get("qual","HD")
+	in_frame_dist=float(enc.get("fps","0.5"))
+	in_area=enc.get("area","-1")
+	in_alarm_ws="1"
+	in_name=enc.get("name")
+
+	# outside of loop to update cams that are offline
+	db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name)
+
+	# save new parameter
+	found=0
+	for m2m in server_m2m.clients:
+		if(m2m.mid==in_mid):
+			found=1
+			m2m.alarm_while_streaming=in_alarm_while_stream
+			m2m.resolution=in_resolution
+			m2m.frame_dist=in_frame_dist
+			m2m.alarm_ws=in_alarm_ws
+
+			if(str(m2m.alias)!=str(in_name)):
+				# if the name (and probably more) has change, reboot cam
+				msg={}
+				msg["cmd"]="set_alias"
+				msg["alias"]=in_name
+				msg_q_m2m.append((msg,m2m))
+			elif(str(m2m.area_id)!=str(in_area)):
+				# if then name has not change, but the area, just reconnect it
+				# it might sound rough, but we have to reloader all the rules, 
+				# change the area, inform all clients. If we just disconnect to box
+				# it will redial in in 3 sec and everything will run on its own
+				server_m2m.disconnect(m2m)
+			else:
+				# inform the webcam about the new parameter
+				msg={}
+				msg["cmd"]="update_parameter"
+				msg["qual"]=m2m.resolution
+				msg["alarm_while_streaming"]=m2m.alarm_while_streaming
+				msg["interval"]=m2m.frame_dist
+				msg_q_m2m.append((msg,m2m))
+			break;
+
+	# if not found, aka offline, just create a temporary box and send the update info
+	if(found==0):
+		m2m = m2m_clients("")
+		m2m.mid=in_mid
+		populate_m2m(m2m)
+		# send this message to all ws with the same account
+		for a_ws in server_ws.clients:
+			if(a_ws.account == ws.account):
+				connect_ws_m2m(m2m,a_ws,update_m2m=0)
+
+	# send ok response to ws
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["ok"]=1
+	msg_q_ws.append((msg,ws))
+	p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' updated cam parameter for  '"+in_mid+"'","d")
+########### HANDLE cam parameter ################
+
+########### HANDLE ws prelogin ################
+def handle_ws_prelogin(enc,ws):
+	msg={}
+	msg["cmd"]=enc.get("cmd")
+	msg["challange"]=ws.challange
+	msg_q_ws.append((msg,ws))
+
+	try:
+		ip=ws.conn.getpeername()[0]
+	except:
+		ip="???"
+
+	p.rint2(str(ip)+" requested prelogin","l","A_ws")
+	#rint("received prelogin request, sending challange "+m2m.challange)
+########### HANDLE ws prelogin ################
+
+########### HANDLE ws login ################
+def handle_ws_login(enc,ws):
+	global db
+	msg_ws={}
+	msg_ws["cmd"]=enc.get("cmd")
+	# data base has to give us this values
+	ws.login=enc.get("login")
+			
+	# data base has to give us this values based on login
+	db_r=db.get_ws_data(ws.login)
+	if(type(db_r) is int): #user not found results in return -1 or so
+		#rint("db error")
+		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' not found in DB, log-in: failed","l")
+		msg_ws["ok"]=-3 # not logged in
+		msg_q_ws.append((msg_ws,ws))
+	else:
+		# generate hash for DB passwort and challange, client will generate hash_of(hash_of(passwort) + challange)
+		# this enables us to save only the hash_of(password) instead of clear text password in the db!
+		h = hashlib.md5()
+		hashme=(str(db_r["pw"])+ws.challange).encode("UTF-8")
+		h.update(hashme)
+		#rint("for secure login we have: pw="+str(db_r["pw"])+" challange="+str(ws.challange)+" together="+str(hashme)+" hash="+str(h.hexdigest())+" vs received="+enc.get("client_pw"))
+				
+		# check parameter
+		if(h.hexdigest()==enc.get("client_pw") and db_r["account"]!=""):
+			# complete message
+			msg_ws["ok"]=1 # logged in
+			msg_q_ws.append((msg_ws,ws))
+		
+			# add socket infos
+			ws.logged_in=1
+			ws.account=db_r["account"]
+			ws.email=db_r["email"]
+			ws.uuid=enc.get("uuid","")
+			ws.alarm_view=enc.get("alarm_view",0) #1,0 depending on service or app
+				
+			# rint and update db, as this fails when the client already disconnected, surrond with try catch
+			p.ws_login(ws)
+			try:
+				ip=ws.conn.getpeername()[0]
+			except:
+				ip="???"
+			db.update_last_seen_ws(ws.login, ip)
+				
+			# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
+			# introduce them to each other
+			for m2m in server_m2m.clients:
+				if(m2m.account==ws.account):
+					connect_ws_m2m(m2m,ws)
+			# and finally connect all disconnected m2m to the ws
+			all_m2m4account=db.get_m2m4account(ws.account)
+			if(type(all_m2m4account) is int):
+				p.rint("Error getting data for account "+str(ws.account),"d")
+			else:	# loop over all results, and make sure that they are not online
+				for all_m2m in all_m2m4account:
+					if(is_mid_online(all_m2m["mid"])==0):
+						# we are still here, so box is offline, lets create a empty object
+						m2m = m2m_clients("")
+						m2m.mid=all_m2m["mid"]
+						populate_m2m(m2m)
+						connect_ws_m2m(m2m,ws,update_m2m=0)
+		
+			# check if the same UUID has another open connection
+			if(str(ws.uuid)!=""):
+				for cli_ws in server_ws.clients:
+					disconnect=0
+					if(cli_ws.uuid==ws.uuid and cli_ws!=ws and cli_ws.login==ws.login):
+						p.rint2("disconnecting '"+str(cli_ws.login)+"' / '"+str(cli_ws.uuid)+"' as that has the same UUID","d","A")
+						disconnect=1
+					if(cli_ws.logged_in!=1 and time.time()-cli_ws.last_comm>10*60):
+						p.rint2("disconnecting an unlogged client as the last comm was "+str(time.time()-cli_ws.last_comm)+"sec ago","d","A")
+						disconnect=1
+
+					if(disconnect):
+						cli_ws.conn.close()
+						recv_ws_con_handle("disconnect", cli_ws)
+				
+			# check if the user has areas which have been un-protected for a long long time
+			areas=db.get_areas_for_account(ws.account)
+			if(areas!=-1):
+				for a in areas:
+					a=a["area"]
+					#rint("check for area "+a)
+					data=db.get_areas_state(ws.account,a)
+					if(data!=-1):
+						#rint(data)
+						a_ts=int(data['updated'])
+						a_state=int(data['state'])
+						if(a_state<=0 and (a_ts+5*86400)<time.time()):
+							#rint("Area "+a+" is not active for more than 5 days")
+							# area is not protected
+							msg_add={}
+							msg_add["cmd"]="msg"
+							msg_add["msg"]="check_area,"+str(a)+",unprotected,"+str(a_ts)
+							msg_q_ws.append((msg_add,ws))
+			#end of long unprotection check
+							
+		# end of successful login
+		else:
+			try:
+				ip=ws.conn.getpeername()[0]
+			except:
+				ip="???"
+			p.rint2("log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l","A_ws", p.bcolors.WARNING)
+			msg_ws["ok"]=-2 # not logged in
+			msg_q_ws.append((msg_ws,ws))
+########### HANDLE ws login ################
+
+########### HANDLE ws refresh ws ################
+def handle_ws_refresh_ws(enc,ws):
+	# search for all (active and logged-in) camera modules with the same account and tell them that we'd like to be updated
+	# introduce them to each other
+	for m2m in server_m2m.clients:
+		if(m2m.account==ws.account):
+			connect_ws_m2m(m2m,ws,0) # call with 0 will avoid that we append us to a list
+	# and finally connect all disconnected m2m to the ws
+	all_m2m4account=db.get_m2m4account(ws.account)
+	if(type(all_m2m4account) is int):
+		p.rint("Error getting data for account "+str(ws.account),"d")
+	else:	# loop over all results, and make sure that they are not online
+		for all_m2m in all_m2m4account:
+			if(is_mid_online(all_m2m["mid"])==0):
+				# we are still here, so box is offline, lets create a empty object
+				m2m = m2m_clients("")
+				m2m.mid=all_m2m["mid"]
+				populate_m2m(m2m)
+				connect_ws_m2m(m2m,ws,update_m2m=0)
+########### HANDLE ws refresh ws ################
+
+
 #***************************************************************************************#
 #*********************************** End of WebSockets *********************************#
 #***************************************************************************************#
@@ -1313,6 +1391,16 @@ def snd_ws_msg_dq_handle():
 #**************************************** Common  **************************************#
 #***************************************************************************************#
 # common function more than one of ws or m2m uses
+
+#***************************************************#
+# is the m2m with this mid online?
+def is_mid_online(mid):
+	ret=0
+	for online_m2m in server_m2m.clients:
+		if(mid==online_m2m):
+			ret=1
+			break
+	return ret
 
 #***************************************************#
 # copy all infor from the database to this m2m
@@ -1553,7 +1641,6 @@ def check_alerts():
 	ret=-1
 	for cli in server_m2m.clients:
 		if(cli.alert.notification_send==0 and cli.alert.collecting==1):
-		#if(cli.alert.notification_send_ts==-1): # -1 = we switch to alert, we haven't switched back to "no alert" otherwise send_ts=0 and we haven't send the mail for this alert, otherwise this would be a timestamp
 			# found client in "alert but not yet notified" state, see if it is time to notify
 			send = 0
 			# if the gab between the last_upload and now is > timeout, last_upload will be set every time a file arrives, and initialized to 0 once the state changes to alert
@@ -1653,15 +1740,15 @@ def rm_check_rules(account,login,use_db):
 
 				# step 9: even if the detection might have not changed, the rm might have. 
 				# send an updated state to all ws clients of this m2m box
+				msg2={}
+				msg2["cmd"]="state_change"
+				msg2["account"]=m2m.account	
+				msg2["area"]=m2m.area
+				msg2["state"]=m2m.state
+				msg2["detection"]=m2m.detection
+				msg2["alarm_ws"]=m2m.alarm_ws
+				msg2["rm"]=acc.get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 				for ws in m2m.m2v:
-					msg2={}
-					msg2["cmd"]="state_change"
-					msg2["account"]=m2m.account	
-					msg2["area"]=m2m.area
-					msg2["state"]=m2m.state
-					msg2["detection"]=m2m.detection
-					msg2["alarm_ws"]=m2m.alarm_ws
-					msg2["rm"]=acc.get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 					msg_q_ws.append((msg2,ws))
 
 #******************************************************#
@@ -1838,15 +1925,7 @@ while 1:
 		p.rint("[A_RM  "+time.strftime("%H:%M:%S")+"] Check took "+str(debug_ts),"r")
 
 		# sneak in the "client still there"-check
-		server_m2m.check_clients()
-		
-
-			
+		server_m2m.check_clients()			
 #***************************************************************************************#
 #********************************** End of Main loop ***********************************#
 #***************************************************************************************#
-	
-
-
-					
-
