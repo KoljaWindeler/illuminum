@@ -193,7 +193,7 @@ def err(input):
 def warn(input):
 	try:
 		rint2("==============================================","e","ERR",bcolors.WARNING)
-		rint2(input,"e","ERR",bcolors.FAIL)
+		rint2(input,"e","ERR",bcolors.WARNING)
 		input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
 		with open("err.txt", "a") as log_file:
 			log_file.write(input_log)
@@ -270,7 +270,7 @@ def show_m2m(id,l,m2m):
 			p_detection=(str(m2m.detection)+"                  ")[0:9]
 		p_state=(m2m_state[int(m2m.state)]+"                   ")[0:13]
 		output=str(m2m.mid)[-5:]+"/"+p_alias+" | "+p_account+" | "+str(p_detection)+" | "+(p_state)+" | "+str(p_ip)+" | "+str(m2m.logged_in)+"    | "
-		output+=p_last_seen+" | "+p_area+" | "+str(m2m.v_short)+"/"+str(m2m.v_hash)+"/"+str(m2m.sec)
+		output+=p_last_seen+" | "+p_area+" | "+str(m2m.v_short)+"/"+str(m2m.v_hash)+"/"+str(m2m.v_sec)
 		print(bcolors.WARNING+output+bcolors.ENDC)
 	elif(id==1):
 		print(bcolors.WARNING+"-------------------------------------------------------------------------------------------------------------------------------------------------------"+bcolors.ENDC)
