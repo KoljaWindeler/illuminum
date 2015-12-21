@@ -1440,6 +1440,7 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	m2m.v_hash=enc.get("v_hash","-")
 	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
 	m2m.v_short="error"
+	m2m.v_sec=str(enc.get("v_sec","-"))
 	try:
 		m2m.v_short=str(int(str(subprocess.Popen(["git","-C", os.path.dirname(os.path.realpath(__file__)), "rev-list", "--count", m2m.v_hash],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")))
 	except:

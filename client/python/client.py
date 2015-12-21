@@ -347,7 +347,7 @@ def parse_incoming_msg(con):
 				pw_c = h.hexdigest()
 				#print("result="+pw_c)
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
-				v_short=SEC_VERSION
+				v_sec=SEC_VERSION
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
 				msg = {}
@@ -358,7 +358,7 @@ def parse_incoming_msg(con):
 				msg["detection"] = trigger.s.detection
 				msg["ts"] = time.strftime("%d.%m.%Y || %H:%M:%S")
 				msg["ack"] = 1
-				msg["v_short"] = v_short
+				msg["v_sec"] = v_sec
 				msg["v_hash"] = v_hash
 				con.msg_q.append(msg)
 
