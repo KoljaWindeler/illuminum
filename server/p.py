@@ -256,7 +256,7 @@ def show_m2m(id,l,m2m):
 		show_m2m(1,l,m2m)
 		print(bcolors.WARNING+"we got "+str(l)+" m2m-clients connected"+bcolors.ENDC)
 	elif(id==-1):
-		print(bcolors.WARNING+"M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Version"+bcolors.ENDC)
+		print(bcolors.WARNING+"M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Version (nr/hash/sec)"+bcolors.ENDC)
 		show_m2m(1,l,m2m)
 	elif(id==0):
 		p_alias=(m2m.alias+"                        ")[0:15]
