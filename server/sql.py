@@ -829,4 +829,23 @@ class sql:
 			ret = -1
 
 		return ret
-		
+	#############################################################
+	def e_update(self,mid):
+		ret = 1
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "SELECT COUNT(*) FROM `alert`.`emergency_update` WHERE  `mid` = %s"
+				cursor.execute(req, str(mid) )
+				result = cursor.fetchone()
+				if(result['COUNT(*)']>0):
+					ret = 1
+					req = "DELETE FROM `alert`.`emergency_update` WHERE `mid`=%s"
+					cursor.execute(req, str(mid) )
+					self.connection.commit()
+				else:
+					ret = 0
+		except:
+			self.he()
+			ret = -1
+		return ret

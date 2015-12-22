@@ -185,6 +185,11 @@ def recv_m2m_msg_handle(data,m2m):
 					for m2m_old in server_m2m.clients:
 						if(m2m_old.mid==m2m.mid and m2m_old!=m2m):
 							server_m2m.disconnect(m2m_old)
+					# check if emergency updates are available
+					if(db.e_update(m2m.mid)==1):
+						p.rint2("Sending an emergency update request for m2m "+str(m2m.alias),"d","A_m2m",p.bcolors.WARNING)
+						msg2 = { "cmd": "git_update" }
+						msg_q_m2m.append((msg2,m2m))
 				else:
 					p.rint2("'"+str(enc.get('mid'))+"' log-in: failed","l","A_m2m",p.bcolors.FAIL)
 					msg["ok"]=-2 # not logged in
