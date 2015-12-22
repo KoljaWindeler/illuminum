@@ -400,7 +400,7 @@ def recv_m2m_msg_handle(data,m2m):
 		############## M2M CMD ############# response on the previously send git update command ####
 		elif(enc.get("cmd")=="git_update"):
 			r = enc.get("cmd_result","no cmd_result")
-			if(r.find("up-to-date")==-1 and r.find("Updating")==-1):
+			if(r.find("up-to-date")==-1 and r.find("Updating")==-1 and r.find("Aktualisiere")==-1):
 				ignore = 1  # 2do, analyse if that was a success
 				p.err("git update response: "+r)
 			msg={"cmd":"reboot"}
