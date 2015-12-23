@@ -148,7 +148,6 @@ class sql:
 				else:
 					result = -1
 					p.err("SQL get data for ->%s<- did not return 1 line but %s"%(str(mid),str(result_count["COUNT(*)"])))
-					p.err(req)
 				#rint(result)
 		except:
 			self.he()
@@ -727,7 +726,7 @@ class sql:
 					cursor.execute(req, (str(name), str(latitude), str(longitude), str(id)) )
 				else:
 					req = "INSERT INTO  `area_state` (`area` ,`account`, `latitude`, `longitude` ,`login`) VALUES (%s, %s, %s, %s, 'create')"
-					print(req %  (str(name), str(account), str(latitude), str(longitude)) )
+					#rint(req %  (str(name), str(account), str(latitude), str(longitude)) )
 					cursor.execute(req, (str(name), str(account), str(latitude), str(longitude)) )
 				self.connection.commit()
 			ret = 0
@@ -748,7 +747,7 @@ class sql:
 				result = result['COUNT(*)']
 				if(result>0):
 					req = "UPDATE  `alert`.`ws` SET  `pw` =  %s, `login` = %s, `email` = %s  WHERE  `id` = %s and `account` = %s"
-					print(req % (str(pw), str(name), str(email), str(id), str(account)) )
+					#rint(req % (str(pw), str(name), str(email), str(id), str(account)) )
 					cursor.execute(req, (str(pw), str(name), str(email), str(id), str(account)) )
 					ret = 0
 				else:

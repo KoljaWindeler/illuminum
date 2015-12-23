@@ -168,8 +168,16 @@ def recv_m2m_msg_handle(data,m2m):
 
 			# get data, based on submitted MID
 			db_r=db.get_data(enc.get("mid"))
-			if(type(db_r) is int or db_r["area"]==""): #user not found
-				p.rint2("'"+str(enc.get("mid"))+"' not found in DB or area='"+str(db_r["area"])+"', log-in: failed","l","A_m2m",p.bcolors.WARNING)
+			if(type(db_r) is int): #user not found
+				try:
+					ip=m2m.conn.getpeername()[0]
+				except:
+					ip="???"
+
+				p.rint2("'"+str(enc.get("mid"))+"' ("+str(ip)+") not found in DB, log-in: failed","l","A_m2m",p.bcolors.WARNING)
+				msg["ok"]=-3 # not logged in
+			elif(db_r["area"]==""): #user not found
+				p.rint2("'"+str(enc.get("mid"))+"' has a empty area='"+str(db_r["area"])+"', log-in: failed","l","A_m2m",p.bcolors.WARNING)
 				msg["ok"]=-3 # not logged in
 			else:
 				h = hashlib.md5()
