@@ -447,7 +447,7 @@ def parse_incoming_msg(con):
 					cam.alarm_while_streaming = 0
 ######### SPY MODE #########
 				if(enc.get("interval",0)>0):
-					light.add_q_entry(time.time(),0,100,0,1000) # 4 sec to dimm to off - in 10 min from now
+					light.add_q_entry(time.time(),0,255,0,1000) # 4 sec to dimm to off - in 10 min from now
 				else:
 					light.add_q_entry(time.time(),-1,-1,-1,1000) # 4 sec to dimm to off - in 10 min from now
 ######### SPY MODE #########
