@@ -24,7 +24,7 @@ class sql:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "SELECT now()"
-				cursor.execure(req)
+				cursor.execute(req)
 				result = cursor.fetchall()
 				self.close()
 				return 0
@@ -849,3 +849,31 @@ class sql:
 			self.he()
 			ret = -1
 		return ret
+	#############################################################
+	def get_delete_pics(self):
+		try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "SELECT `path` FROM `alert_pics` WHERE alert_id in (SELECT id FROM `alerts` where `del_by` is not NULL and `del_by`!='')"
+				cursor.execute(req)
+				result = cursor.fetchall()
+				self.close()
+		except:
+			self.he()
+			return -1
+		return result
+	#############################################################	
+	def rem_delete_pics(self):
+		if(1):#try:
+			self.connect()
+			with self.connection.cursor() as cursor:
+				req = "DELETE FROM `alert_pics` WHERE alert_id in (SELECT id FROM `alerts` where `del_by` is not NULL and `del_by`!='')"
+				cursor.execute(req)
+				req = "DELETE FROM `alerts` WHERE `del_by` is not NULL and `del_by`!=''"
+				cursor.execute(req)
+				self.connection.commit()
+				self.close()
+		else:#except:
+			self.he()
+			return -1
+
