@@ -1,6 +1,7 @@
 import time,json,os,base64,hashlib,string,random, subprocess, traceback
 from clients import alert_event,webcam_viewer,det_state
-import server_m2m, server_ws
+import server_m2m
+import server_ws2 as server_ws
 import send_mail
 import p
 from clients import m2m_clients
@@ -510,7 +511,7 @@ def recv_ws_con_handle(data,ws):
 	#rint("[A_ws "+time.strftime("%H:%M:%S")+"] connection change")
 	if(data=="disconnect"):
 		try:
-			ip=ws.conn.getpeername()[0]
+			ip=ws.ip
 		except:
 			ip="???"
 
@@ -828,8 +829,8 @@ def handle_ws_send_alert(enc,ws):
 	msg["aid"]=id
 	msg["status"]=-1
 
+	p.rint2("Received request for alarm: "+str(id)+" to mail","v","A_ws")
 	if(id!=-1 and ws.email!=""):
-		p.rint("[A_WS  "+time.strftime("%H:%M:%S")+"] Received request for alarm: "+str(id)+" to mail","v")
 		## get picture path for 0..100 
 		db_r3=db.get_img_for_alerts(id,0)
 		db_account=db.get_account_for_path(db_r3[0]['path'])
@@ -837,7 +838,6 @@ def handle_ws_send_alert(enc,ws):
 			file_lst=[]
 			for f in db_r3:
 				file_lst.append(upload_dir+f['path'])
-				# TODO
 			send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to=ws.email,send_from="koljasspam493@gmail.com", server="localhost")		
 		msg["status"]=1
 	else:
@@ -1258,7 +1258,7 @@ def handle_ws_prelogin(enc,ws):
 	msg_q_ws.append((msg,ws))
 
 	try:
-		ip=ws.conn.getpeername()[0]
+		ip=ws.ip
 	except:
 		ip="???"
 
@@ -1305,7 +1305,7 @@ def handle_ws_login(enc,ws):
 			# rint and update db, as this fails when the client already disconnected, surrond with try catch
 			p.ws_login(ws)
 			try:
-				ip=ws.conn.getpeername()[0]
+				ip=ws.ip
 			except:
 				ip="???"
 			db.update_last_seen_ws(ws.login, ip)
@@ -1340,7 +1340,7 @@ def handle_ws_login(enc,ws):
 						disconnect=1
 
 					if(disconnect):
-						cli_ws.conn.close()
+						cli_ws.ws.disconnect()
 						recv_ws_con_handle("disconnect", cli_ws)
 				
 			# check if the user has areas which have been un-protected for a long long time
@@ -1366,7 +1366,7 @@ def handle_ws_login(enc,ws):
 		# end of successful login
 		else:
 			try:
-				ip=ws.conn.getpeername()[0]
+				ip=ws.ip
 			except:
 				ip="???"
 			p.rint2("log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l","A_ws", p.bcolors.WARNING)
@@ -1792,6 +1792,10 @@ def helper_output(input):
 			p.show_m2m(0,0,m2m)
 		p.show_m2m(1,0,0)
 	
+	elif(input=="quit"):
+		print("shutting down")
+		sys.exit()
+	
 	else:
 		print("whoot? ->"+input+"<-")
 		print("your choices are:")
@@ -1824,9 +1828,9 @@ server_m2m.subscribe_callback(recv_m2m_con_q_handle,"con")
 recv_ws_msg_q=[]	# incoming
 recv_ws_con_q=[]	# incoming
 msg_q_ws=[] 		# outgoing
-server_ws.start()
 server_ws.subscribe_callback(recv_ws_msg_q_handle,"msg")
 server_ws.subscribe_callback(recv_ws_con_q_handle,"con")
+server_ws.start()
 
 # DB Structure used for the login
 db=sql()

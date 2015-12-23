@@ -45,11 +45,10 @@ class m2m_clients:
 		self.external_state = 0					# state of the external pin
 # dies ist der WEBSOCKET client
 class ws_clients:
-	def __init__(self, addr):
-		self.ip = addr.getpeername()[0] 	# the IP adress of the viewr	
-		self.port = addr.getpeername()[1]	# the client port
+	def __init__(self, port, ip):
+		self.ip = str(ip)					# the IP adress of the viewr	
+		self.port = str(port)					# the client port
 		self.uuid = ""						# IMEI/?
-		self.conn=addr						# this is the socket
 		self.logged_in=0					# 1 if log-in ok
 		self.last_comm=0					# timestamp of the last incoming msg
 		self.v2m=[]							# list of all active subscribers. those will get a message for e.g. alert->sharp
