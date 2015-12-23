@@ -128,7 +128,7 @@ def recv_m2m_msg_handle(data,m2m):
 		enc=json.loads(data)
 	except:
 		enc=""
-		p.rint("-d--> json decoding failed on:" + data,"d")
+		p.rint("-d--> json decoding failed","d")
 
 	if(type(enc) is dict):
 		# if the message would like to be debugged
