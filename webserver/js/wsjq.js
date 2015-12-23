@@ -529,7 +529,7 @@ function parse_alert_ids(ids_open,ids_closed,open_max,closed_max,mid){
 					"id":"alert_"+mid+"_"+i+"_ack_all",
 					"class":"button"
 				});
-				ack.text("Acknowledge all alert");
+				ack.text("Check all alert");
 				ack.click(function(){
 					var mid_int=mid;
 					return function(){
@@ -1426,7 +1426,7 @@ function check_append_m2m(msg_dec){
 	var b=$("<div></div>");
 	b.addClass("m2m_alarm_headline");
 	open.append(b);
-	b.append($("<div></div>").text("Not-acknowledged").addClass("m2m_text").addClass("inline_block"));
+	b.append($("<div></div>").text("Unchecked").addClass("m2m_text").addClass("inline_block"));
 	// upper navigation elements
 	b.append($("<div></div>").attr("id",mid+"_alarms_open_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation").addClass("float_right"));
 	a=$("<div></div>").attr("id",mid+"_alarms_open_display");
@@ -1443,7 +1443,7 @@ function check_append_m2m(msg_dec){
 	var close=$("<div></div>").attr("id",mid+"_alarms_closed");
 	var b=$("<div></div>");
 	b.addClass("m2m_alarm_headline");
-	b.append($("<div></div>").text("Acknowledged").addClass("m2m_text").addClass("inline_block"));
+	b.append($("<div></div>").text("Checked").addClass("m2m_text").addClass("inline_block"));
 	b.append($("<div></div>").attr("id",mid+"_alarms_closed_navigation").text("Navigation").addClass("m2m_text").addClass("alert_navigation"));
 	open.append(b);
 	a=$("<div></div>").attr("id",mid+"_alarms_closed_display");
