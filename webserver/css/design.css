@@ -88,7 +88,9 @@ a.button:active{
 }
 
 
-.material-icons.md-dark.md-inactive { color: rgba(0, 0, 0, 0.26); }
+.material-icons.md-dark.md-inactive { 
+	color: rgba(0, 0, 0, 0.26); 
+}
 
 div.float_left, img.float_left {
 	float: left;
@@ -106,7 +108,8 @@ div.clear_both {
 	clear: both;
 }
 
-div.center, img.center, a.center {
+/*div.center, img.center, a.center {*/
+.center {
 	margin: 0 auto;  /* setzt den block mittig */
 	text-align: center!important;
 	margin-left: auto;
@@ -227,9 +230,15 @@ div.area_m2m {
 	background: rgba(143, 152, 162,0.8);
 	padding-top: 1%;
 	padding-left: 1%;
+	padding-right: 1%;
 	padding-bottom: 2%;
 	margin-left: 2%;
 	margin-right: 2%;
+}
+
+div.m2m_alarm_headline {
+	background: rgba(255,255,255,0.35);
+	padding-left: 5px;
 }
 
 div.m2m_text, a.m2m_text{
@@ -559,6 +568,15 @@ i.sidebar_icons {
 	cursor:pointer;
 	margin-right: 10px;
 }
+
+i.icons {
+	cursor:pointer;
+}
+
+i.icons_activ { 
+	color: rgba(162, 0, 0, 1.00); 
+}
+
 /******************************************** MENU ***************************************************/
 /*********************************** different resolutions *******************************************/
 /* BIG screen */
