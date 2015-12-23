@@ -48,7 +48,7 @@ class MyServerProtocol(WebSocketServerProtocol):
 		clients.append(self.ws)
 		p.rint2("Connection from: "+ str(m_ip)+". Serving "+str(len(clients))+" ws_clients now","l","S_wss")
 		for callb in callback_con:
-			callb("conn",self.ws)
+			callb("connect",self.ws)
 
 
 	def onOpen(self):

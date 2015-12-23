@@ -203,7 +203,7 @@ def start_server ():
 			threading.Thread(target = handle, args = (new_client,addr)).start()
 			# send every subscr
 			for callb in callback_con:
-				callb("conn",new_client)
+				callb("connect",new_client)
 		except Exception as n:
 			p.rint("[S_wss "+time.strftime("%H:%M:%S")+"] exception before starting connect thread","d")
 			print(n)
