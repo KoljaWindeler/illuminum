@@ -147,7 +147,7 @@ class sql:
 					
 				else:
 					result = -1
-					p.err("SQL get data for ->%s<- did not return 1 line but %s"%(str(mid),str(result_count["COUNT(*)"])))
+					p.warn("SQL get data for ->%s<- did not return 1 line but %s"%(str(mid),str(result_count["COUNT(*)"])))
 				#rint(result)
 		except:
 			self.he()
