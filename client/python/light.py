@@ -39,9 +39,9 @@ class led:
 		self.t_b = 0		# target blue 0-255 when ever we call dimm_to
 		self.t_t = 0		# target time
 
-		self.o_rd = 0		# place to save the old red (in 0-100), used to run "return_to_old()"
-		self.o_gd = 0		# place to save the old green (in 0-100), used to run "return_to_old()"
-		self.o_bd = 0		# place to save the old blue (in 0-100), used to run "return_to_old()"
+		self.o_rd = 0		# place to save the old red (in 0-255), used to run "return_to_old()"
+		self.o_gd = 0		# place to save the old green (in 0-255), used to run "return_to_old()"
+		self.o_bd = 0		# place to save the old blue (in 0-255), used to run "return_to_old()"
 
 		self.c_rd = 0		# place to save the current red (in 0-100),
 		self.c_gd = 0		# place to save the current green (in 0-100)
@@ -158,20 +158,22 @@ def return_to_old(ms):
 def dimm_to(r,g,b,ms):
 	global l
 
-	# selection is 0-255 based, but it lreally means 0-100%
-	r=r/2.55
-	g=g/2.55
-	b=b/2.55
+	# selection is 0-255 based, but it really means 0-100%
+	######## calculate target value 0-255 (half-log) out of the input value 0-255 (linear) #######
+	_r=r/2.55
+	_g=g/2.55
+	_b=b/2.55
 
 	intens=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,27,28,29,30,31,32,33,34,35,36,38,39,40,41,43,44,45,47,48,50,51,53,55,57,58,60,62,64,66,68,70,73,75,77,80,82,85,88,91,93,96,99,103,106,109,113,116,120,124,128,132,136,140,145,150,154,159,164,170,175,181,186,192,198,205,211,218,225,232,239,247,255]
 
-	r=int(max(min(len(intens)-1,r),0)) 			# just to make sure that we don't take an element outside the array 0-100
-	g=int(max(min(len(intens)-1,g),0))
-	b=int(max(min(len(intens)-1,b),0))
+	r=int(max(min(len(intens)-1,_r),0)) 			# just to make sure that we don't take an element outside the array 0-100
+	g=int(max(min(len(intens)-1,_g),0))
+	b=int(max(min(len(intens)-1,_b),0))
 
-	l.t_r=intens[r]							# convert percentage to half-logarithmical brightness
-	l.t_g=intens[g]
-	l.t_b=intens[b]
+	l.t_r=intens[_r]							# convert percentage to half-logarithmical brightness
+	l.t_g=intens[_g]
+	l.t_b=intens[_b]
+	######## calculate target value 0-255 (half-log) out of the input value 0-255 (linear) #######
 
 	max_diff=max([abs(l.t_g-l.c_g),abs(l.t_r-l.c_r),abs(l.t_b-l.c_b)]) # find out what color has to do the most steps, this will determine the time between our single steps
 
@@ -180,7 +182,7 @@ def dimm_to(r,g,b,ms):
 		l.o_gd=l.c_gd
 		l.o_bd=l.c_bd
 
-		l.c_rd=r							# target 0-100 color in the structure
+		l.c_rd=r						# current target linear 0-255 color in the structure
 		l.c_gd=g
 		l.c_bd=b
 
