@@ -192,13 +192,13 @@ def err(input):
 
 def warn(input):
 	try:
-		rint2("==============================================","e","ERR",bcolors.WARNING)
-		rint2(input,"e","ERR",bcolors.WARNING)
+		rint2("==============================================","e","WARN",bcolors.WARNING)
+		rint2(input,"e","WARN",bcolors.WARNING)
 		input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
 		with open("err.txt", "a") as log_file:
 			log_file.write(input_log)
 			log_file.close()
-		rint2("==============================================","e","ERR",bcolors.WARNING)
+		rint2("==============================================","e","WARN",bcolors.WARNING)
     									
 	except:
 		ignore=1
@@ -259,6 +259,7 @@ def show_m2m(id,l,m2m):
 		print(bcolors.WARNING+"M2M (short mid/alias) | Account    | Detection | State         | IP             | l-in | last_seen  | Area            | Version (nr/hash/sec)"+bcolors.ENDC)
 		show_m2m(1,l,m2m)
 	elif(id==0):
+		p_mid=("                       "+str(m2m.mid))[-5:]
 		p_alias=(m2m.alias+"                        ")[0:15]
 		p_account=(m2m.account+"                    ")[0:10]
 		p_ip=(str(m2m.ip)+"                         ")[0:14]
@@ -269,7 +270,7 @@ def show_m2m(id,l,m2m):
 		else:
 			p_detection=(str(m2m.detection)+"                  ")[0:9]
 		p_state=(m2m_state[int(m2m.state)]+"                   ")[0:13]
-		output=str(m2m.mid)[-5:]+"/"+p_alias+" | "+p_account+" | "+str(p_detection)+" | "+(p_state)+" | "+str(p_ip)+" | "+str(m2m.logged_in)+"    | "
+		output=p_mid+"/"+p_alias+" | "+p_account+" | "+str(p_detection)+" | "+(p_state)+" | "+str(p_ip)+" | "+str(m2m.logged_in)+"    | "
 		output+=p_last_seen+" | "+p_area+" | "+str(m2m.v_short)+"/"+str(m2m.v_hash)+"/"+str(m2m.v_sec)
 		print(bcolors.WARNING+output+bcolors.ENDC)
 	elif(id==1):
