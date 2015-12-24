@@ -512,10 +512,9 @@ def recv_ws_con_handle(data,ws):
 	if(data=="disconnect"):
 		try:
 			ip=ws.ip
+			p.rint2("WS "+str(ip)+"/"+str(ws.login)+" disconneted","l","A_ws")
 		except:
-			ip="???"
-
-		p.rint2("WS "+str(ip)+"/"+str(ws.login)+" disconneted","l","A_ws")
+			p.rint2("WS disconneted","l","A_ws")
 		# try to find that websockets in all client lists, so go through all clients and their lists
 		for m2m in server_m2m.clients:
 			for viewer in m2m.m2v:
