@@ -1339,8 +1339,13 @@ def handle_ws_login(enc,ws):
 						disconnect=1
 
 					if(disconnect):
-						cli_ws.ws.disconnect()
+                                          
+						if(cli_ws.conn):
+							cli_ws.conn.close()
+						else:
+							cli_ws.ws.disconnect()
 						recv_ws_con_handle("disconnect", cli_ws)
+
 				
 			# check if the user has areas which have been un-protected for a long long time
 			areas=db.get_areas_for_account(ws.account)
