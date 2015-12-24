@@ -166,9 +166,9 @@ def dimm_to(r,g,b,ms):
 
 	intens=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,27,28,29,30,31,32,33,34,35,36,38,39,40,41,43,44,45,47,48,50,51,53,55,57,58,60,62,64,66,68,70,73,75,77,80,82,85,88,91,93,96,99,103,106,109,113,116,120,124,128,132,136,140,145,150,154,159,164,170,175,181,186,192,198,205,211,218,225,232,239,247,255]
 
-	r=int(max(min(len(intens)-1,_r),0)) 			# just to make sure that we don't take an element outside the array 0-100
-	g=int(max(min(len(intens)-1,_g),0))
-	b=int(max(min(len(intens)-1,_b),0))
+	_r=int(max(min(len(intens)-1,_r),0)) 			# just to make sure that we don't take an element outside the array 0-100
+	_g=int(max(min(len(intens)-1,_g),0))
+	_b=int(max(min(len(intens)-1,_b),0))
 
 	l.t_r=intens[_r]							# convert percentage to half-logarithmical brightness
 	l.t_g=intens[_g]
