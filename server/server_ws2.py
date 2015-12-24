@@ -135,12 +135,13 @@ def start():
 		PORT=9779
 		print("!!!!! RUNNING EXPERIMENTAL VERSION OF WS SERVER !!!!!!")
 
-	#contextFactory = ssl.DefaultOpenSSLContextFactory('startssl.key','startssl.cert')
-	contextFactory = ChainedOpenSSLContextFactory('startssl.key','startssl.cert')
-	factory = WebSocketServerFactory(u"wss://127.0.0.1:"+str(PORT),debug=False,debugCodePaths=False)
 
+	log.startLogging(sys.stdout)
+	contextFactory = ChainedOpenSSLContextFactory('startssl.key','startssl.cert')
+	factory = WebSocketServerFactory(u"wss://127.0.0.1:"+str(PORT),debug=True,debugCodePaths=True, externalPort=PORT)
 	factory.protocol = MyServerProtocol
-	listenWS(factory, contextFactory)
+
+	reactor.listenSSL(PORT, factory, contextFactory)
 
 	threading.Thread(target=reactor.run, args=(False,)).start()
 	p.rint2("Waiting on wss_clients on Port "+str(PORT),"l","S_wss")
