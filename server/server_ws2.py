@@ -33,9 +33,24 @@ from twisted.web.static import File
 from clients import ws_clients
 from base64 import b64encode
 from hashlib import sha1
+from OpenSSL import SSL
 
 from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol, listenWS
 
+#******************************************************#
+class ChainedOpenSSLContextFactory(ssl.DefaultOpenSSLContextFactory):
+	def __init__(self, privateKeyFileName, certificateChainFileName,sslmethod=SSL.SSLv23_METHOD):
+		self.privateKeyFileName = privateKeyFileName
+		self.certificateChainFileName = certificateChainFileName
+		self.sslmethod = sslmethod
+		self.cacheContext()
+
+	def cacheContext(self):
+		ctx = SSL.Context(self.sslmethod)
+		ctx.use_certificate_chain_file(self.certificateChainFileName)
+		ctx.use_privatekey_file(self.privateKeyFileName)
+		self._context = ctx
+#******************************************************#
 
 class MyServerProtocol(WebSocketServerProtocol):
 	ws = "";
@@ -79,8 +94,7 @@ def send_data(client, data):
 #************* DISCONNECT *****************************************#
 def disconnect(client):
 	try:
-		if client.ws.sock:
-			client.ws.disconnect()
+		client.disconnect()
 	except:
 		pass
 			
@@ -121,7 +135,8 @@ def start():
 		PORT=9779
 		print("!!!!! RUNNING EXPERIMENTAL VERSION OF WS SERVER !!!!!!")
 
-	contextFactory = ssl.DefaultOpenSSLContextFactory('startssl.key','startssl.cert')
+	#contextFactory = ssl.DefaultOpenSSLContextFactory('startssl.key','startssl.cert')
+	contextFactory = ChainedOpenSSLContextFactory('startssl.key','startssl.cert')
 	factory = WebSocketServerFactory(u"wss://127.0.0.1:"+str(PORT),debug=False,debugCodePaths=False)
 
 	factory.protocol = MyServerProtocol
