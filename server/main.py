@@ -1339,11 +1339,14 @@ def handle_ws_login(enc,ws):
 						disconnect=1
 
 					if(disconnect):
-                                          
-						if(cli_ws.conn):
-							cli_ws.conn.close()
-						else:
-							cli_ws.ws.disconnect()
+						try:
+							if(hasattr(cli_ws.ws, 'sock')): 	# server v1 
+								cli_ws.ws.sock.close()
+							else:					# server v2
+								#rint("server_ws.clients.ws.socket does not exists")
+								cli_ws.ws.disconnect()
+						except:
+							pass
 						recv_ws_con_handle("disconnect", cli_ws)
 
 				
@@ -1456,6 +1459,10 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	m2m.state=enc.get("state")
 	m2m.v_hash=enc.get("v_hash","-")
 	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
+	m2m.with_neo=enc.get("with_neo","0")
+	m2m.with_pwm=enc.get("with_pwm","0")
+	m2m.with_pir=enc.get("with_pir","0")
+	m2m.with_cam=enc.get("with_cam","0")
 	m2m.v_short="error"
 	m2m.v_sec=str(enc.get("v_sec","-"))
 	try:
@@ -1567,6 +1574,10 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 	msg_ws2["alias"]=m2m.alias
 	msg_ws2["last_seen"]=m2m.last_comm
 	msg_ws2["color_pos"]=m2m.color_pos
+	msg_ws2["with_neo"]=m2m.with_neo
+	msg_ws2["with_pwm"]=m2m.with_pwm
+	msg_ws2["with_pir"]=m2m.with_pir
+	msg_ws2["with_cam"]=m2m.with_cam
 	msg_ws2["external_state"]=m2m.external_state
 	msg_ws2["brightness_pos"]=m2m.brightness_pos
 	msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)

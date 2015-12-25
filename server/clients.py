@@ -43,6 +43,11 @@ class m2m_clients:
 		self.v_hash = "-"					# hash of git state
 		self.v_sec = "-"					# manual sec key
 		self.external_state = 0					# state of the external pin
+		self.with_neo = "0"					# neo pixel support existing
+		self.with_pwm = "0"					# pwm suuport (monochrome)
+		self.with_pir = "0"					# is motione detection supported
+		self.with_cam = "0"					# is a camera attached
+
 # dies ist der WEBSOCKET client
 class ws_clients:
 	def __init__(self, port, ip):
