@@ -71,7 +71,7 @@ def handle (client, addr):
 		try:
 			rList, wList, xList = select([client.conn], [client.conn], [client.conn], 3)
 		except Exception as n:
-			p.warn("Select() return an exception for connection "+str(addr)+":"+str(n))
+			p.warn("S_m2m Select() return an exception for connection "+str(addr)+":"+str(n))
 			disconnect(client)
 			break
 

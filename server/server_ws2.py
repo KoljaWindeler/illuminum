@@ -136,9 +136,9 @@ def start():
 		print("!!!!! RUNNING EXPERIMENTAL VERSION OF WS SERVER !!!!!!")
 
 
-	log.startLogging(sys.stdout)
+	#log.startLogging(sys.stdout)
 	contextFactory = ChainedOpenSSLContextFactory('startssl.key','startssl.cert')
-	factory = WebSocketServerFactory(u"wss://127.0.0.1:"+str(PORT),debug=True,debugCodePaths=True, externalPort=PORT)
+	factory = WebSocketServerFactory(u"wss://127.0.0.1:"+str(PORT),debug=False,debugCodePaths=False, externalPort=PORT)
 	factory.protocol = MyServerProtocol
 
 	reactor.listenSSL(PORT, factory, contextFactory)
