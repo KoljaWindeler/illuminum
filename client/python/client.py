@@ -5,6 +5,7 @@ import time
 import json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess
 import light, p
+from config import *
 
 register_mode=0
 if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"))):
@@ -358,6 +359,10 @@ def parse_incoming_msg(con):
 				msg["ack"] = 1
 				msg["v_sec"] = v_sec
 				msg["v_hash"] = v_hash
+				msg["with_neo"] = config.with_neo
+				msg["with_pwm"] = config.with_pwm
+				msg["with_cam"] = config.with_cam
+				msg["with_pir"] = config.with_pir
 				con.msg_q.append(msg)
 
 			elif(enc.get("cmd") == "prelogin" and register_mode==1):
@@ -597,6 +602,7 @@ cam = WebCam() 				# webcam
 con = WebSocketConnection()	# connection
 d = Debugging()				# debug handle
 b = CPUsaver()
+config = config()
 
 trigger.start()
 trigger.s.subscribe_callback(trigger_handle)
