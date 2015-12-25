@@ -258,7 +258,10 @@ def recv_m2m_msg_handle(data,m2m):
 				"area":		m2m.area,
 				"account":	m2m.account,
 				"detection":	m2m.detection,
-				"rm":		rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
+				"rm":		rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0),
+				"with_cam":	m2m.with_cam,
+				"with_pwm":	m2m.with_pwm,
+				"with_neo":	m2m.with_neo
 			}
 			informed=0
 			for subscriber in m2m.m2v:
