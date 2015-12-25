@@ -606,6 +606,7 @@ light.start()
 #only start listening to keyboard input if we are not in register mode
 p.start(not(register_mode))
 
+print("== Starting main loop ==")
 # Main programm
 #******************************************************#
 
