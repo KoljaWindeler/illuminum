@@ -3,25 +3,7 @@ import threading
 import time
 import RPi.GPIO as GPIO
 import importlib
-
-LED_DEBUG=0
-with_neo=1
-with_pwm=1
-
-# import neopixel if posible
-try:
-	from neopixel import *
-except:
-	with_neo=0
-	print("running without neopixel support")
-
-# import pwm if posible
-try:
-	import wiringpi2 as wiringpi 
-except:
-	with_pwm=0
-	print("running without pwm support")
-
+from config import *
 
 class led:
 	def __init__(self):
@@ -55,6 +37,38 @@ class led:
 		self.state = 0		# not dimming
 		self.last_ts = 0	# ts of last action
 
+
+LED_DEBUG=0
+config=config()
+	
+print("[startup] == My config ==")
+print("[startup] neo choosen: "+str(config.with_neo))
+print("[startup] pwm choosen: "+str(config.with_pwm))
+print("[startup] trying to load required modules")
+
+# import neopixel if posible
+if(config.with_neo):
+	try:
+		from neopixel import *
+		print("[startup] neo support loaded!")
+	except:
+		print("[startup] loading neo support failed")
+		config.with_neo=0
+# import pwm if posible
+if(config.with_pwm):
+	try:
+		import wiringpi2 as wiringpi 
+		print("[startup] pwm support loaded!")
+	except:
+		print("[startup] loading pwm support failed")
+		config.with_pwm=0
+
+if(config.with_pwm and config.with_neo):
+	print("[startup] you've activted both, neo and pwm active. only one")
+	print("[startup] can be used at the time. falling to neo support now")
+	config.with_pwm=0
+
+
 l = led()					# initialize one object of the class LED to have all vars set.
 
 # LED strip configuration:
@@ -74,12 +88,12 @@ def start():
 def start_light():
 	global l # use the object from above
 	# Create NeoPixel object with appropriate configuration.
-	if(with_neo):
+	if(config.with_neo and 0):
 		strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
 		# Intialize the library (must be called once before other functions).
 		strip.begin()
 		strip.show()
-	elif(with_pwm):
+	elif(config.with_pwm):
 		wiringpi.wiringPiSetupPhys()
 		wiringpi.pinMode(12,2)		
 
@@ -136,12 +150,12 @@ def start_light():
 				#strip.setPixelColor(2,Color(0,0,255))		# set value
 				#strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
 				# neo pixel
-				if(with_neo):
+				if(config.with_neo and 0):
 					for i in range(0,LED_COUNT):
 						strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
 					strip.show()
 				# pwm controll on pin 12
-				elif(with_pwm):
+				elif(config.with_pwm):
 					wiringpi.pwmWrite(12, l.c_r*4)
 				time.sleep(0.8*l.ms_step/1000) # we can wait here a little while because we know that nothing will happen for us earlier than that anyway
 
@@ -215,3 +229,5 @@ def set_old_color(r,g,b,):
 	l.o_rd=r
 	l.o_gd=g
 	l.o_bd=b
+
+
