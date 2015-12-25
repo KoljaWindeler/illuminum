@@ -7,15 +7,13 @@ import hashlib, select, trigger, uuid, os, sys, subprocess
 import light, p
 
 register_mode=0
-
 if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"))):
 	from login import *
 	l = login()					# login
 	m2m_pw=l.pw
-
 else:
 	register_mode=1
-	print("register mode")
+	print("no login.py found, running in register mode")
 
 
 class CPUsaver:
