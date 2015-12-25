@@ -130,7 +130,8 @@ function parse_msg(msg_dec){
 		// check if m2m is already visible, if not append it. Then update the state and timestamp
 		check_append_m2m(msg_dec);
 		update_hb(mid,msg_dec["last_seen"]);
-		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"]);
+
+		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"],msg_dec["with_cam"],msg_dec["with_pwm"],msg_dec["with_neo"]);
 		// do it again here, to update a m2m that was existing (reconnect situation)
 		set_alert_button_state($("#"+mid+"_alarm_counter"),$("#"+mid+"_toggle_alarms"),$("#"+mid+"_toggle_alarms_text"),msg_dec["open_alarms"]);
 		set_override_buttons(msg_dec["account"],msg_dec["area"],msg_dec["rm_override"]);
@@ -165,7 +166,7 @@ function parse_msg(msg_dec){
 
 	// update the state, we only receive that if a box changes its state. E.g. to alarm or to disarm
 	else if(msg_dec["cmd"]=="state_change"){
-		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"]);
+		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"],msg_dec["with_cam"],msg_dec["with_pwm"],msg_dec["with_neo"]);
 	}
 
 	// show a picture, we'll receive this because we requested it. Alarm will not send us pictures directly
@@ -176,7 +177,7 @@ function parse_msg(msg_dec){
 
 	// an m2m unit disconnects
 	else if(msg_dec["cmd"]=="disconnect"){
-		update_state(msg_dec["account"],msg_dec["area"],mid,-1,msg_dec["detection"],"",0);
+		update_state(msg_dec["account"],msg_dec["area"],mid,-1,msg_dec["detection"],"",0,0,0,0); // no alarm_ws, no cam, no pwm, no neo
 	}
 
 	// we'll request the alerts by sending "get_alert_ids" and the server will responde with this dataset below
@@ -1187,54 +1188,74 @@ function check_append_m2m(msg_dec){
 	node.append(m2m_header_button);
 
 	//////////// live view button /////////////
-	var wb=$("<div></div>");
+	var wb=$("<div></div>");	// create button
 	wb.addClass("inline_block");
 	button=$("<a></a>");
 	button.attr({
 		"id": msg_dec["mid"]+"_toggle_liveview",
 	});
 	button.text("set_via_css");
-	button.addClass("live_sym");
-	button.click(function(){
-		var msg_int=msg_dec;
-		return function(){
-			toggle_liveview(msg_int["mid"]);
-		};
-	}());
-	set_button_state(button,msg_dec["state"]);
 	wb.append(button);
-	var wl=$("<div></div>");
+
+	var wl=$("<div></div>");			// create text
 	wl.attr("id",mid+"_toggle_liveview_text");
-	wl.addClass("toggle_liveview_text");
-	wl.addClass("toggle_text");
+	wl.addClass("toggle_liveview_text"); 		// text
+	wl.addClass("toggle_text");	 		// size
 	wb.append(wl);
 	m2m_header_button.append(wb);
+
+	// m2m has no cam support
+	if(parseInt(msg_dec["with_cam"])!=1){	
+		set_button_state(button,-1);			// button deactvated
+		button.addClass("live_sym_not_available"); 	// gray symbol
+		wl.addClass("sym_text_not_available");		// gray text
+                wl.removeClass("toggle_liveview_text_active"); 	// avoid red text in any case
+	} 
+	// m2m has cam support
+	else {
+		button.addClass("live_sym");		// black icon
+		button.click(function(){		// click event
+			var msg_int=msg_dec;
+			return function(){
+				toggle_liveview(msg_int["mid"]);
+			};
+		}());
+	}
 	//m2m_header_button.append(button);
 	//////////// live view button /////////////
 		
 	//////////// setup controll button /////////////
-	wb=$("<div></div>");
+	wb=$("<div></div>");		// parent
 	wb.addClass("inline_block");
-	button=$("<a></a>");
-	button.attr({
-		"id": msg_dec["mid"]+"_toggle_setupcontrol",
-	});
-	button.addClass("color_sym");
-	button.click(function(){
-		var msg_int=msg_dec;
-		return function(){
-			toggle_setupcontrol(msg_int["mid"]);
-		};
-	}());
+	button=$("<a></a>");		// create button
+	button.attr("id", msg_dec["mid"]+"_toggle_setupcontrol");
 	button.text("set_via_css");
 	set_button_state(button,msg_dec["state"]);
 	wb.append(button);
+
 	wl=$("<div></div>");
 	wl.attr("id",mid+"_toggle_setupcontrol_text");
 	wl.addClass("toggle_setupcontrol_text");
 	wl.addClass("toggle_text");
 	wb.append(wl);
 	m2m_header_button.append(wb);
+	// m2m has no color control
+	if(parseInt(msg_dec["with_pwm"])!=1 && parseInt(msg_dec["with_neo"])!=1){
+		set_button_state(button,-1);
+		button.addClass("color_sym_not_available");
+		wl.addClass("sym_text_not_available");
+		wl.removeClass("toggle_setupcontrol_text_active");
+	}
+	// m2m has color control
+	else {
+		button.addClass("color_sym");
+		button.click(function(){
+			var msg_int=msg_dec;
+			return function(){
+				toggle_setupcontrol(msg_int["mid"]);
+			};
+		}());
+	}
 	//m2m_header_button.append(button);
 	//////////// setup controll button /////////////
 
@@ -1259,6 +1280,7 @@ function check_append_m2m(msg_dec){
 	button.attr({
 		"id": msg_dec["mid"]+"_toggle_alarms",
 	});
+
 	button.addClass("alarm_sym");
 	button.click(function(){
 		var msg_int=msg_dec;
@@ -1305,7 +1327,6 @@ function check_append_m2m(msg_dec){
 	txt.addClass("tiny_text");
 	txt.hide();
 	liveview.append(txt);
-	
 
 	// fancybox link around the liveview
 	var rl = $("<a></a>");
@@ -1341,11 +1362,17 @@ function check_append_m2m(msg_dec){
 	setupcontrol.hide();
 	node.append(setupcontrol);
 
+	////////////////////// color ////////////////////
+	// this is the rainbow color thing
 	var scroller=$("<div></div>");
 	scroller.append(createRainbowDiv(100));
 	scroller.addClass("setup_controll_color");
+	// hide the scroller if no neo pixel and no pwm support
+	if(parseInt(msg_dec["with_neo"])!=1){
+		scroller.hide();
+	}
 	setupcontrol.append(scroller);
-
+	// this is the rainbow scroller
 	scroller=$("<div></div>");
 	scroller.attr({
 		"id":"colorslider_"+mid,
@@ -1364,13 +1391,26 @@ function check_append_m2m(msg_dec){
 				send_color(msg_int["mid"]);
 			};
 		}()});
+	// hide the scroller if no neo pixel and no pwm support
+	if(parseInt(msg_dec["with_neo"])!=1){
+		scroller.hide();
+		scroller.val(0);
+	}
 	setupcontrol.append(scroller);
+	////////////////////// color ////////////////////
 
+	////////////////////// brightness ////////////////////
+	///// this is the blackwhite display thing ///////
 	scroller=$("<div></div>");
 	scroller.append(createRainbowDiv(0));
 	scroller.addClass("setup_controll_color");
+	// hide the scroller if no neo pixel and no pwm support
+	if(parseInt(msg_dec["with_neo"])!=1 && parseInt(msg_dec["with_pwm"])!=1){
+		scroller.hide();
+	}
 	setupcontrol.append(scroller);
 
+	///// this is the blackwhite scroller thing ///////
 	scroller=$("<div></div>");
 	scroller.attr({
 		"id":"brightnessslider_"+mid,
@@ -1389,9 +1429,15 @@ function check_append_m2m(msg_dec){
 				send_color(msg_int["mid"]);
 			};
 		}()});
+	// hide the scroller if no neo pixel and no pwm support
+	if(parseInt(msg_dec["with_neo"])!=1 && parseInt(msg_dec["with_pwm"])!=1){
+		scroller.hide();
+	}
 	setupcontrol.append(scroller);
 	setupcontrol.append($("<br>"));
+	////////////////////// brightness ////////////////////
 
+	////////////////////// external pin ////////////////////
 	var c=$("<div></div>");
 	c.addClass("center");
 	c.css("width","100%");
@@ -1413,6 +1459,7 @@ function check_append_m2m(msg_dec){
 		}
 	}());
 	c.append(button);
+	////////////////////// external pin ////////////////////
 	////////////////// COLOR SLIDER ////////////////////////////
 
 	////////////////// ALARM MANAGER ////////////////////////////
@@ -2008,7 +2055,10 @@ function update_hb(mid,ts){
 // why: 	 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function update_state(account,area,mid,state,detection,rm,alarm_ws){
+function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with_pwm,with_neo){
+	with_neo=parseInt(with_neo);
+	with_pwm=parseInt(with_pwm);
+	with_cam=parseInt(with_cam);
 	//console.log("running update state on "+mid+"/"+state+"/"+rm);
 
 	// set the rulemanager text explainaition for the complete area
@@ -2114,15 +2164,19 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws){
 		hide_liveview(mid,true);
 		hide_setupcontrol(mid);
 	} else {
-		lv.removeClass("button_deactivated");
-		lv.removeClass("live_sym_not_available");
-		lv.addClass("live_sym");		
-		lt.removeClass("sym_text_not_available");
+		if(with_cam==1){
+			lv.removeClass("button_deactivated");
+			lv.removeClass("live_sym_not_available");
+			lv.addClass("live_sym");		
+			lt.removeClass("sym_text_not_available");
+		}
 
-		cv.removeClass("button_deactivated");
-		cv.removeClass("color_sym_not_available");
-		cv.addClass("color_sym");
-		ct.removeClass("sym_text_not_available");
+		if(with_pwm==1 || with_neo==1){
+			cv.removeClass("button_deactivated");
+			cv.removeClass("color_sym_not_available");
+			cv.addClass("color_sym");
+			ct.removeClass("sym_text_not_available");
+		}
 	}
 	// make buttons available/unavailable
 
