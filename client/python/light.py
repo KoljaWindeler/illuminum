@@ -88,7 +88,7 @@ def start():
 def start_light():
 	global l # use the object from above
 	# Create NeoPixel object with appropriate configuration.
-	if(config.with_neo and 0):
+	if(config.with_neo):
 		strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
 		# Intialize the library (must be called once before other functions).
 		strip.begin()
@@ -150,7 +150,7 @@ def start_light():
 				#strip.setPixelColor(2,Color(0,0,255))		# set value
 				#strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
 				# neo pixel
-				if(config.with_neo and 0):
+				if(config.with_neo):
 					for i in range(0,LED_COUNT):
 						strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
 					strip.show()
