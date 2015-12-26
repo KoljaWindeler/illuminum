@@ -1,3 +1,4 @@
+###################### import libs #######################
 import OpenSSL
 import RPi.GPIO as GPIO
 import socket
@@ -6,17 +7,21 @@ import json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess
 import light, p
 from config import *
+###################### import libs #######################
 
+###################### try import login #######################
 register_mode=0
 if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"))):
 	from login import *
 	l = login()					# login
 	m2m_pw=l.pw
+	p.rint("STARTUP, login.py found, password loaded","l")
 else:
 	register_mode=1
-	print("no login.py found, running in register mode")
+	p.rint("STARTUP, no login.py found, running in register mode","l")
+###################### try import login #######################
 
-
+###################### sleep to avoid cpu usage #######################
 class CPUsaver:
 	def __init__(self):
 		self.state = 1  	# 1=I am busy
@@ -27,18 +32,22 @@ class CPUsaver:
 		self.state = 0
 	def set(self):
 		self.state = 1
+###################### sleep to avoid cpu usage #######################
 
+###################### webcam properties #######################
 class WebCam:
 	def __init__(self):
 		self.interval = 0
-		self.quality = "HD" # 1= high, 0 low
+		self.quality = "HD" # HD=high, VGA=low
 		self.last_picture_taken_ts = 0
 		self.webview_active = 0
-		self.alarm_interval = 0.34 # 3fps
+		self.alarm_interval = 1 # 1fps, if faster network gets in trouble with multiple cams
 		self.alarm_pictures_remaining = 0
 		self.alarm_in_alarm_state = 0
 		self.alarm_while_streaming = 0
+###################### webcam properties #######################
 
+###################### connection properties #######################
 class WebSocketConnection:
 	def __init__(self):
 		self.recv_buffer = ""
@@ -56,20 +65,24 @@ class WebSocketConnection:
 		self.server_port = 9875
 		if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"experimental"))):
 			self.server_port = 9775
-			print("!!!!!!!!! RUNNING ON EXPERIMENTAL PORT !!!!!!!!!!!")
+			p.rint("!!!!!!!!! RUNNING ON EXPERIMENTAL PORT !!!!!!!!!!!","l")
 		self.server_timeout = 15
 		self.max_outstanding_acks = 2
+###################### connection properties #######################
 
-#******************************************************#
+###################### debugging #######################
 class Debugging:
 	def __init__(self):
 		self.active_since_ts = 0
 		self.frames_uploaded_since_active = 0
 		self.last_pic_taken_ts = 0
+###################### debugging #######################
 
-#******************************************************#
+###################### koljas cams are running on ro-filesystems #######################
 def rw(): #remounts the filesystem read-write
-	print(subprocess.Popen(["mount","-o","remount,rw", "/"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate())
+	subprocess.Popen(["mount","-o","remount,rw", "/"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+###################### koljas cams are running on ro-filesystems #######################
+
 #******************************************************#
 def pin_config():
 	GPIO.setwarnings(False)
@@ -96,7 +109,7 @@ def trigger_handle(event, data):
 		_detection = data[1]
 
 		if(register_mode==0):
-			print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+trigger.m2m_state[_state]+"' with detection '"+trigger.det_state[_detection]+"'")
+			p.rint("Switch to state '"+trigger.m2m_state[_state]+"' with detection '"+trigger.det_state[_detection]+"'","v")
 
 		msg = {}
 		msg["cmd"] = event
@@ -142,7 +155,7 @@ def trigger_handle(event, data):
 				light.add_q_entry(time.time()+delay_off, 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
 			else:
 				light.set_old_color(0, 0, 0) # set the color to which we return as soon as the webfeed is closed
-			#print("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+delay_off)))).strftime('%y_%m_%d %H:%M:%S')))
+			#rint("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+delay_off)))).strftime('%y_%m_%d %H:%M:%S')))
 		elif(_detection == 1 and _state == 1): # alarm, go red, now
 			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
 				light.add_q_entry(time.time(), 100, 0, 0, 4000)
@@ -186,10 +199,10 @@ def get_time():
 #******************************************************#
 def upload_picture(_con, res):
 #	rint(str(time.time())+" -> this is upload_file")
-	if(STEP_DEBUG):
-		print("[A "+time.strftime("%H:%M:%S")+"] Step 5. this is upload_file with "+str(len(_con.msg_q))+" msg in q")
+#	if(STEP_DEBUG):
+#		p.rint("Step 5. this is upload_file with "+str(len(_con.msg_q))+" msg in q")
 	if(len(_con.msg_q) > 0):
-		print("skip picture, q full")
+		p.rint("skip picture, q full","d")
 		return 1
 
 	p.set_last_action("loading img")
@@ -207,7 +220,7 @@ def upload_picture(_con, res):
 		# should realy read it in once, 10MB buffer
 		strng = img.read(_con.max_msg_size-100)
 		if not strng:
-			#print("could not read")
+			#rint("could not read")
 			break
 
 		msg = {}
@@ -223,17 +236,17 @@ def upload_picture(_con, res):
 		#msg["ts"]=td
 		if(len(strng) != (_con.max_msg_size-100)):
 			msg["eof"] = 1
-		#print('sending('+str(i)+') of '+path+'...')
+		#rint('sending('+str(i)+') of '+path+'...')
 
 		msg["td"] = ((time.time(), "send"), (time.time(), "send"))
 		_con.msg_q.append(msg)
-		if(STEP_DEBUG):
-			print("[A "+time.strftime("%H:%M:%S")+"] Step 6  upload appended message")
+		#if(STEP_DEBUG):
+		#	rint("[A "+time.strftime("%H:%M:%S")+"] Step 6  upload appended message")
 		i = i+1
 
 	p.set_last_action("loading img done")
 
-	#print(str(time.time())+' all messages for '+path+' are in buffer.. i guess')
+	#rint(str(time.time())+' all messages for '+path+' are in buffer.. i guess')
 	img.close()
 	cam.last_picture_taken_ts = time.time()
 	return 0
@@ -242,7 +255,7 @@ def upload_picture(_con, res):
 #******************************************************#
 def connect(con):
 	global register_mode
-	print("[A "+time.strftime("%H:%M:%S")+"] -> connecting ...")
+	p.rint("connecting to illuminum server ...","l")
 	p.set_last_action("connecting")
 
 	context = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
@@ -251,16 +264,16 @@ def connect(con):
 	try:
 		c_socket.connect((con.server_ip, con.server_port))
 	except:
-		print("Could not connect to server")
-		print("retrying in 3 sec")
+		p.rint("Could not connect to server","l")
+		p.rint("retrying in 3 sec","l")
 		time.sleep(3)
 		return -1
 
-	print("[A "+time.strftime("%H:%M:%S")+"] -> connected. ",end="")
+	p.rint("connected to server. ","l")
 	if(register_mode==0):
-		print("Loggin in...")
+		p.rint("Starting log-in process","l")
 	else:
-		print("Begin register process...")
+		p.rint("Begin register process...","l")
 	p.set_last_action("connecting done")
 
 	#### prelogin
@@ -268,7 +281,7 @@ def connect(con):
 	msg["mid"] = mid
 	msg["cmd"] = "prelogin"
 	con.msg_q.append(msg)
-	#print("sending prelogin request")
+	#int("sending prelogin request")
 
 	return c_socket
 
@@ -286,7 +299,7 @@ def parse_incoming_msg(con):
 	try:
 		data = con.sock.recv(con.max_msg_size)
 		if(len(data) == 0):
-			print("disconnect")
+			p.rint("disconnect","l")
 			client_socket = ""
 			p.set_last_action("disconnected")
 
@@ -295,9 +308,9 @@ def parse_incoming_msg(con):
 		p.rint("received "+str(len(data))+" byte", "v")
 		p.set_last_action("decoding")
 		data_dec = data.decode("UTF-8")
-		#print("Data received:"+str(data))
+		#rint("Data received:"+str(data))
 	except:
-		print('client_socket.recv detected error')
+		p.rint('client_socket.recv detected error',"d")
 		return -1
 
 	p.set_last_action("start parse")
@@ -311,15 +324,15 @@ def parse_incoming_msg(con):
 		try:
 			enc = json.loads(data_array[a])
 		except:
-			print("json decode failed on:"+data_array[a])
+			p.rint("json decode failed on:"+data_array[a],"l")
 			p.set_last_action("decoding bad")
 
 			return -2 # bad message, reconnect
 
 		if(type(enc) is dict):
 			con.last_transfer = time.time()
-			#print("json decoded msg")
-			#print(enc)
+			#rint("json decoded msg")
+			#rint(enc)
 			# ack ok packets are always send alone, they carry the cmd to acknowledge, but the reason will be a separate msg
 			if(enc.get("ack_ok", 0) == 1):
 				#rint("this is an ack ok package "+str(len(con.unacknowledged_msg)))
@@ -336,15 +349,16 @@ def parse_incoming_msg(con):
 					con.ack_request_ts = con.unacknowledged_msg[0][1]		# move to latest ts
 
 			elif(enc.get("cmd") == "prelogin" and register_mode==0):
+				p.rint("encryption challange received, sending encryped login data","l")
 				#### send login
-				#print("received challange "+enc.get("challange"))
+				#rint("received challange "+enc.get("challange"))
 				h = hashlib.md5()
 
 				# hash the login with the challange
 				h.update(str(m2m_pw+enc.get("challange")).encode("UTF-8"))
-				#print("total to code="+str(pw+enc.get("challange")))
+				#rint("total to code="+str(pw+enc.get("challange")))
 				pw_c = h.hexdigest()
-				#print("result="+pw_c)
+				#rint("result="+pw_c)
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				v_sec=SEC_VERSION
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
@@ -405,7 +419,7 @@ def parse_incoming_msg(con):
 				msg["alias"] = alias
 				con.msg_q.append(msg)
 
-				#print(msg)
+				#rint(msg)
 
 			elif(enc.get("cmd") == "login"):
 				if(enc.get("ok") == 1):
@@ -415,21 +429,22 @@ def parse_incoming_msg(con):
 					light.l.d_g = enc.get("mGreen",0)
 					light.l.d_b = enc.get("mBlue",0)
 
-					print("[A "+time.strftime("%H:%M:%S")+"] -> log-in OK")
-					print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("detection")))
+					p.rint("received log-in OK","l")
+					p.rint("setting detection to "+str(enc.get("detection")),"l")
 					trigger.s.set_detection(int(enc.get("detection")))
 				else:
 					con.logged_in = 0
-					print("[A "+time.strftime("%H:%M:%S")+"] -> log-in failed")
+					p.rint("ERROR log-in failed","l")
 			elif(enc.get("cmd") == "m2m_hb"):
 				con.hb_out = 0
-				print("[A "+time.strftime("%H:%M:%S")+"] -> connection OK")
+				p.rint("connection checked OK","l")
 			elif(enc.get("cmd") == "set_detection"):
-				print("[A "+time.strftime("%H:%M:%S")+"] setting detection to "+str(enc.get("state")))
+				p.rint("received request to change detection state to "+str(enc.get("state")),"l")
 				trigger.s.set_detection(enc.get("state"))
 			elif(enc.get("cmd") == "wf"):
 				ignore = 1
 			elif(enc.get("cmd") == "set_color"):
+				# avoid light output message, like to many many commands
 				light.l.d_r = enc.get("r", 0)
 				light.l.d_g = enc.get("g", 0)
 				light.l.d_b = enc.get("b", 0)
@@ -439,9 +454,11 @@ def parse_incoming_msg(con):
 				if(enc.get("interval", 0) == 0):
 					cam.webview_active = 0
 					GPIO.output(PIN_CAM,0)
+					p.rint("switching webcam off","l")
 				else:
 					cam.webview_active = 1
 					GPIO.output(PIN_CAM,1)
+					p.rint("switching webcam on","l")
 				cam.interval = (enc.get("interval", 0))
 				cam.quality = (enc.get("qual", "HD"))
 				if(enc.get("alarm_while_streaming","no_alarm")=="alarm"):
@@ -456,10 +473,10 @@ def parse_incoming_msg(con):
 ######### SPY MODE #########
 			elif(enc.get("cmd") == "register"):
 				if(enc.get("ok",0) == 1):
-					print("[A "+time.strftime("%H:%M:%S")+"] -> successful registered, sending sign in")
+					p.rint("successful registered, sending sign in","l")
 					register_mode=0
 				else:
-					print("registration was not successful, status: "+str(enc.get("ok"))+". Starting over")
+					p.rint("registration was not successful, status: "+str(enc.get("ok"))+". Starting over","l")
 
 				msg = {}
 				msg["mid"] = mid
@@ -467,6 +484,7 @@ def parse_incoming_msg(con):
 				con.msg_q.append(msg)
 	
 			elif(enc.get("cmd") == "update_parameter"):
+				p.rint("Received Parameter update from server","l")
 				if(enc.get("alarm_while_streaming","no_alarm")=="alarm"):
 					cam.alarm_while_streaming = 1
 				else:
@@ -480,6 +498,8 @@ def parse_incoming_msg(con):
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
+				p.rint("version request received from server, returning "+str(v_hash),"l")
+
 				msg = {}
 				msg["mid"] = mid
 				msg["cmd"] = enc.get("cmd")
@@ -489,14 +509,13 @@ def parse_incoming_msg(con):
 
 			# run a git update
 			elif(enc.get("cmd") == "git_update"):
+				p.rint("update request received from server","l")
 				# remount root rw
 				rw() 
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				# run the update
 				result=subprocess.Popen(["sudo","-u","pi", "git", "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 				ret_res=result[0].decode().replace("\n","")
-				print("git update: ",end="")
-				print(result)
 				# get new version
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
@@ -524,6 +543,7 @@ def parse_incoming_msg(con):
 				state = 0
 				if(str(enc.get("state",0))=="1"):
 					state = 1
+				p.rint("switching external pin to "+str(state),"l")
 				GPIO.output(PIN_USER,state)
 
 				msg = {}
@@ -535,7 +555,7 @@ def parse_incoming_msg(con):
 			# set alias
 			elif(enc.get("cmd") == "set_alias"):
 				alias = enc.get("alias","-")
-				print("Trying to set a new name: "+str(alias))
+				p.rint("Trying to set a new name: "+str(alias),"l")
 				msg = {}
 				msg["mid"] = mid
 				msg["cmd"] = enc.get("cmd")
@@ -552,7 +572,7 @@ def parse_incoming_msg(con):
 						file.close()
 						subprocess.Popen(os.path.join(path,"generate_config.sh"),stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 						msg["ok"] = "1"
-						print("ok")
+						p.rint("Setting new alias, ok","l")
 				except:
 					import sys, traceback
 					print("sys:")
@@ -563,7 +583,7 @@ def parse_incoming_msg(con):
 				con.msg_q.append(msg)
 
 			else:
-				print("unsopported command:"+enc.get("cmd"))
+				p.rint("unsopported command received:"+enc.get("cmd"),"l")
 
 
 		#end of "if"
@@ -575,13 +595,25 @@ def parse_incoming_msg(con):
 	else:
 		# but if we grabbed something like 1.5 messages, we should buffer $
 		con.recv_buffer = data_array[len(data_array)-1]
-		#print("using buffer!")
+		#rint("using buffer!")
 
 	p.set_last_action("recv done")
 	return 0
 #********************************************************#
 
+# manual version 
+SEC_VERSION="201251215"
 
+
+p.rint("STARTUP, reading configuration from config.py","l")
+config = config()
+if(config.with_neo and config.with_pwm):
+	p.rint("STARTUP, pwm AND neo activated but only one possible")
+	p.rint("STARTUP, falling back to neo support")
+	config.with_pwm=0
+
+
+p.rint("STARTUP, settings pins","l")
 # init objects and vars
 STEP_DEBUG = 0
 TIMING_DEBUG = 1
@@ -589,30 +621,32 @@ PIN_MOVEMENT = 11
 PIN_DETECTION = 13
 PIN_USER = 15
 PIN_CAM = 16
-
-# manual version 
-SEC_VERSION="201251215"
-
 #start pin config
 pin_config()
 
 mid = str(uuid.getnode())
 
+p.rint("STARTUP, creating webcam","l")
 cam = WebCam() 				# webcam
+
+p.rint("STARTUP, creating connection","l")
 con = WebSocketConnection()	# connection
+
+p.rint("STARTUP, creating debug","l")
 d = Debugging()				# debug handle
+
+p.rint("STARTUP, creating CPUsaver","l")
 b = CPUsaver()
-config = config()
 
 trigger.start()
 trigger.s.subscribe_callback(trigger_handle)
 
-light.start()
+light.start(config)
 
 #only start listening to keyboard input if we are not in register mode
 p.start(not(register_mode))
 
-print("== Starting main loop ==")
+p.rint("== STARTUP FINISHED, running main loop ==","l")
 # Main programm
 #******************************************************#
 
@@ -632,24 +666,23 @@ while 1:
 		#************* receiving start ******************#
 		try:
 			ready_to_read, ready_to_write, in_error = select.select([con.sock], [con.sock,], [], 0)
-			#print(str(len(ready_to_read))+"/"+str(len(ready_to_write))+"/"+str(len(in_error)))
+			#rint(str(len(ready_to_read))+"/"+str(len(ready_to_write))+"/"+str(len(in_error)))
 		except:
-			print("select detected a broken connection")
+			p.rint("select detected a broken connection, reconnecting","d")
 			con.sock = ""
 			break
 
 			## react on msg in
 		if(len(ready_to_read) > 0):
-			b.set()
-			#print("read process is ready")
+			b.set() # busy, avoid cpu sleep
 			if(parse_incoming_msg(con) < 0):
 				break
 		#************* receiving end ******************#
 
 		#************* timeout check start ******************#
 		if(time.time()-con.last_transfer > 60*5 and con.hb_out == 0):
-			b.set()
-			print("[A "+time.strftime("%H:%M:%S")+"] -> checking connection")
+			b.set() # busy, avoid cpu sleep
+			p.rint("checking connection","l")
 			msg = {}
 			msg["cmd"] = "m2m_hb"
 			con.msg_q.append(msg)
@@ -659,24 +692,24 @@ while 1:
 
 		#************* sending start ******************#
 		if(len(con.msg_q) > 5):
-			print("!!!!!!!!!!!!!!!!!!!!!! con.msg_q is very long: "+str(len(con.msg_q))+", comm wait: "+str(len(con.unacknowledged_msg))+", logged in: "+str(con.logged_in))
+			p.rint("!!!!!!!!!!!!!!!!!!!!!! con.msg_q is very long: "+str(len(con.msg_q))+", comm wait: "+str(len(con.unacknowledged_msg))+", logged in: "+str(con.logged_in),"l")
 
 		# we have a message waiting and either we have an empty unacknowledged_msg_queue or we are not logged in, or both!
 		if(len(con.msg_q) > 0 and (len(con.unacknowledged_msg) < con.max_outstanding_acks or not(con.logged_in))):
-			b.set()
+			b.set() # busy, avoid cpu sleep
 			msg = ""
 			if(con.logged_in != 1):	 	# check if we have a login msg in the q
 				for msg_i in con.msg_q:
 					if(msg_i["cmd"] == "prelogin"):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> requesting challange")
+						p.rint("requesting encryption challange","d")
 						msg = msg_i
 						con.msg_q.remove(msg_i)
 					if(msg_i["cmd"] == "register"):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> requesting registration")
+						p.rint("requesting registration","d")
 						msg = msg_i
 						con.msg_q.remove(msg_i)
 					if(msg_i["cmd"] == "login"):
-						print("[A "+time.strftime("%H:%M:%S")+"] -> sending login")
+						p.rint("sending login","d")
 						msg = msg_i
 						con.msg_q.remove(msg_i)
 
@@ -685,20 +718,20 @@ while 1:
 				con.msg_q.remove(msg)
 
 			if(msg != ""):
-				#print("A message is ready to send")
+				#rint("A message is ready to send")
 				p.set_last_action("json / encode / sendall")
 
 				send_msg = json.dumps(msg)
 				send_msg_enc = send_msg.encode("UTF-8")
 				try:
-					#print("Wait to send at ",end="")
-					#print(time.time(),end="")
+					#rint("Wait to send at ",end="")
+					#rint(time.time(),end="")
 					con.sock.sendall(send_msg)
-					#	print(" sent " at ",end="")
-					#	print(time.time())
+					#rint(" sent " at ",end="")
+					#rint(time.time())
 				except:
 					con.sock = ""
-					print("init reconnect")
+					p.rint("ERROR while sending data, init reconnect","l")
 					break
 
 				p.set_last_action("send all done")
@@ -709,13 +742,13 @@ while 1:
 					con.ack_request_ts = time.time()
 					#rint("increased con.unacknowledged_msg to "+str(len(con.unacknowledged_msg))+" entries for cmd "+msg["cmd"])
 
-				#print("message send")
+				#rint("message send")
 				if(msg.get("cmd", " ") == "wf"):
 					if(msg.get("eof", 0) == 1):
 						if(TIMING_DEBUG):
 							if(time.time()-d.last_pic_taken_ts > 15):
 								d.active_since_ts = 0
-								print("reset fps")
+								p.rint("reset fps","d")
 
 							d.last_pic_taken_ts = time.time()
 							d.frames_uploaded_since_active = d.frames_uploaded_since_active+1
@@ -724,43 +757,41 @@ while 1:
 								d.active_since_ts = time.time()
 								d.frames_uploaded_since_active = 0
 							else:
-								print(str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+"fps")
-#								print("Uploaded "+str(d.frames_uploaded_since_active)+" Frames in "+str((time.time()-d.active_since_ts))+" this is "+str(d.frames_uploaded_since_active*25/(time.time()-d.active_since_ts))+"kBps or "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+"fps")
-#							print("\r\n\r\n")
+								p.rint("uploading frame at "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+" fps","d")
+#								rint("Uploaded "+str(d.frames_uploaded_since_active)+" Frames in "+str((time.time()-d.active_since_ts))+" this is "+str(d.frames_uploaded_since_active*25/(time.time()-d.active_since_ts))+"kBps or "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+"fps")
+#							rint("\r\n\r\n")
 
 
 		############## at this point we consider to upload a picture #####################
 		if(len(con.msg_q) == 0 and con.logged_in == 1):
 			if(cam.webview_active == 1 and cam.last_picture_taken_ts+cam.interval < time.time()):
-				upload_picture(con, cam.quality) #highres?
-				b.set()
+				upload_picture(con, cam.quality)
+				b.set() # busy, avoid cpu sleep
 			elif(cam.alarm_pictures_remaining > 0 and cam.last_picture_taken_ts+cam.alarm_interval < time.time()):
 				cam.alarm_pictures_remaining = max(0, cam.alarm_pictures_remaining-1)
-				upload_picture(con, cam.quality) #highres?
-				b.set()
+				upload_picture(con, cam.quality)
+				b.set() # busy, avoid cpu sleep
 		############## at this point we consider to upload a picture #####################
 
 		############## free us if there is a lost packet #####################
 		if(len(con.unacknowledged_msg) > 0 and con.logged_in == 1):
-			b.set()
+			b.set() # busy, avoid cpu sleep
 			if(len(con.msg_q) > 0 and con.ack_request_ts != 0 and con.ack_request_ts+con.server_timeout < time.time()):
-				print("[A "+time.strftime("%H:%M:%S")+"] -> server did not send ack")
+				p.rint("ERROR server did not send ack","l")
 				con.unacknowledged_msg = []
 		############## free us if there is a lost packet #####################
 
 		############## reconnect us if there is no response #####################
 		if(con.hb_out == 1 and con.hb_out_ts+con.server_timeout < time.time()):
-			b.set()
-			print("[A "+time.strftime("%H:%M:%S")+"] -> server did not respond to ack,reconnecting")
+			b.set() # busy, avoid cpu sleep
+			p.rint("server did not respond to hb,reconnecting","l")
 			con.hb_out = 0
 			break
 		############## reconnect us if there is no response #####################
 
 		#************* sending end ******************#
-	print("connection destroyed, reconnecting")
+	p.rint("connection destroyed, reconnecting","l")
 	p.set_last_action("connection destroyed")
 
 	cam.webview_active = 0 # switch off the webstream, we wouldn't have ws beeing connected to us anyway after resign on
 	cam.alarm_pictures_remaining = 0
-
-#exit()

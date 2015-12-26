@@ -27,7 +27,6 @@ def start(alive):
 	threading.Thread(target = start_listen, args = (alive,)).start()
 
 def start_listen(alive):
-	print_out.append(poe("v","Verbose","Shows a lot output, like requests etc",0))
 
 	while(alive):
 		input=sys.stdin.readline()
@@ -103,8 +102,8 @@ def rint(input,sc):
 			if(a.shortcut==sc):
 				found=1
 				if(a.state==1):
-					input="("+str(sc)+")"+input
-					print(input)
+					input_p="("+str(sc)+")["+time.strftime("%Y_%m_%d %H:%M:%S")+"] "+input
+					print(input_p)
 					
 					input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
 					with open("log.txt", "a") as log_file:
@@ -147,7 +146,11 @@ def show_status():
 		
 
 callback = [subscribe_callback]
+
 print_out =[]
+print_out.append(poe("v","Verbose","Shows a lot output, like requests etc",0))
+print_out.append(poe("l","Logging","Regular logging",1))
+print_out.append(poe("d","Debug","Debug information",1))
 
 con=[]
 con.append(0)

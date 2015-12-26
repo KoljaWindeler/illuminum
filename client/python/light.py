@@ -3,6 +3,7 @@ import threading
 import time
 import RPi.GPIO as GPIO
 import importlib
+import p
 from config import *
 
 class led:
@@ -39,34 +40,19 @@ class led:
 
 
 LED_DEBUG=0
-config=config()
-	
-print("[startup] == My config ==")
-print("[startup] neo choosen: "+str(config.with_neo))
-print("[startup] pwm choosen: "+str(config.with_pwm))
-print("[startup] trying to load required modules")
+neo_support=1
+pwm_support=1
 
 # import neopixel if posible
-if(config.with_neo):
-	try:
-		from neopixel import *
-		print("[startup] neo support loaded!")
-	except:
-		print("[startup] loading neo support failed")
-		config.with_neo=0
+try:
+	from neopixel import *
+except:
+	neo_support=0
 # import pwm if posible
-if(config.with_pwm):
-	try:
-		import wiringpi2 as wiringpi 
-		print("[startup] pwm support loaded!")
-	except:
-		print("[startup] loading pwm support failed")
-		config.with_pwm=0
-
-if(config.with_pwm and config.with_neo):
-	print("[startup] you've activted both, neo and pwm active. only one")
-	print("[startup] can be used at the time. falling to neo support now")
-	config.with_pwm=0
+try:
+	import wiringpi2 as wiringpi 
+except:
+	pwm_supoort=0
 
 
 l = led()					# initialize one object of the class LED to have all vars set.
@@ -81,19 +67,27 @@ LED_INVERT     = False   # True to invert the signal (when using NPN transistor
 
 light_dimming_q=[]
 #******************************************************#
-def start():
+def start(config):
+	if(config.with_neo):
+		p.rint("STARTUP, LIGHT: Neo choosen","l")
+		if(neo_support!=1):
+			p.rint("STARTUP, LIGHT ERROR Neo choosen but not supported","l")
+	if(config.with_pwm):
+		p.rint("STARTUP, LIGHT: PWM choosen","l")
+		if(pwm_support!=1):
+			p.rint("STARTUP, LIGHT ERROR PWM choosen but not supported","l")
 	# start a sub thread, runs the function start_light
-	threading.Thread(target = start_light, args = ()).start()
+	threading.Thread(target = start_light, args = ([config,])).start()
 #******************************************************#
-def start_light():
+def start_light(config):
 	global l # use the object from above
 	# Create NeoPixel object with appropriate configuration.
-	if(config.with_neo):
+	if(config.with_neo and neo_support):
 		strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
 		# Intialize the library (must be called once before other functions).
 		strip.begin()
 		strip.show()
-	elif(config.with_pwm):
+	elif(config.with_pwm and pwm_support):
 		wiringpi.wiringPiSetupPhys()
 		wiringpi.pinMode(12,2)		
 
@@ -150,12 +144,12 @@ def start_light():
 				#strip.setPixelColor(2,Color(0,0,255))		# set value
 				#strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
 				# neo pixel
-				if(config.with_neo):
+				if(config.with_neo and neo_support):
 					for i in range(0,LED_COUNT):
 						strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
 					strip.show()
 				# pwm controll on pin 12
-				elif(config.with_pwm):
+				elif(config.with_pwm and pwm_support):
 					wiringpi.pwmWrite(12, l.c_r*4)
 				time.sleep(0.8*l.ms_step/1000) # we can wait here a little while because we know that nothing will happen for us earlier than that anyway
 
