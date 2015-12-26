@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import time
 import threading
+import p
 
 m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
 det_state = ["off","on,single","on,permanent","error"]
@@ -24,7 +25,7 @@ class Sensor:
 	def set_detection(self,_detection):
 		self.state_change_event=1
 		self.detection=_detection
-		print("[T "+time.strftime("%H:%M:%S")+"] detection set to "+str(det_state[_detection]))
+		p.rint("TRIGGER detection set to "+str(det_state[_detection]),"l")
 
 s = Sensor()					# initialize one object of the class LED to have all vars set.
 
@@ -52,7 +53,7 @@ def start_trigger():
 			try:
 				gpio_state=GPIO.input(7)
 			except:
-				print("Trouble reading GPIO, trying to reconfigure")
+				p.rint("Trouble reading GPIO, trying to reconfigure","d")
 				break
 
 			# set detection on / off
@@ -67,7 +68,7 @@ def start_trigger():
 				s.state=gpio_state
 				busy=1
 
-				#print("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[s.state]+"' with detection '"+det_state[s.detection]+"'")
+				#rint("[A "+time.strftime("%H:%M:%S")+"] -> Switch to state '"+m2m_state[s.state]+"' with detection '"+det_state[s.detection]+"'")
 
 				# call everyone who subscribed to our update list
 				for callb in s.callback_action:
