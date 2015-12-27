@@ -1,3 +1,10 @@
+////////// illuminum base GUI code /////////////////
+// this is the jquery code for the illuminum webapp
+// it will create a connection and react on incoming 
+// messages from the server
+
+
+
 // connection
 var con = null;
 //var IP="52.24.157.229";
@@ -166,7 +173,7 @@ function parse_msg(msg_dec){
 
 	// update the state, we only receive that if a box changes its state. E.g. to alarm or to disarm
 	else if(msg_dec["cmd"]=="state_change"){
-		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"],msg_dec["with_cam"],msg_dec["with_pwm"],msg_dec["with_neo"]);
+		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"]); // run it will less parameter is fine
 	}
 
 	// show a picture, we'll receive this because we requested it. Alarm will not send us pictures directly
@@ -177,7 +184,7 @@ function parse_msg(msg_dec){
 
 	// an m2m unit disconnects
 	else if(msg_dec["cmd"]=="disconnect"){
-		update_state(msg_dec["account"],msg_dec["area"],mid,-1,msg_dec["detection"],"",0,0,0,0); // no alarm_ws, no cam, no pwm, no neo
+		update_state(msg_dec["account"],msg_dec["area"],mid,-1,msg_dec["detection"],"",0); // no alarm_ws, and without 'with_*' parameter
 	}
 
 	// we'll request the alerts by sending "get_alert_ids" and the server will responde with this dataset below
@@ -201,7 +208,7 @@ function parse_msg(msg_dec){
 				"width"	: msg_dec["width"],
 				"height": msg_dec["height"]
 			});
-		}else {
+		} else {
 			console.log("nicht gefunden");
 		};
 
@@ -844,9 +851,6 @@ function add_alert_details(msg_dec){
 			var slider_id="#alert_"+mid_int+"_"+msg_dec["id"]+"_slider";			// id for the div in which the slider should
 			var core_int=img[0]["path"].substr(0,img[0]["path"].indexOf("."));		// slider itself must have an unique id without "."
 			return function(){
-				var slider=$(slider_id);
-				slider.text("");
-				slider.show();
 				show_pic_slider(img_int,mid_int,core_int,slider_id);
 			}
 		}());
@@ -941,9 +945,9 @@ function ack_all_alert(mid){
 function show_pic_slider(img,mid,core,slider_id){
 	// slider_id == id of the div in which we should place our content
 	// core is the name for this slider
-
 	var view = $(slider_id);
 	view.html("");
+	view.hide(); 
 
 	// get best Resolution, for pictures
 	var w=$(window).width();
@@ -955,12 +959,13 @@ function show_pic_slider(img,mid,core,slider_id){
 	}
 
 	// create children and request them
-	for(var i=0;i<img.length;i++){
+	for(var i=0; i<img.length; i++){
 		//console.log("appending:"+img[i]["path"]);
 		var fb=$("<a></a>");				
 		fb.attr({
 			"rel":core,
-			"title":(img.length-i)+"/"+(img.length),
+			"class": "fancybox",
+			"title":(i+1)+"/"+(img.length),
 		});
 		
 		var pic=$("<img></img>");
@@ -973,15 +978,17 @@ function show_pic_slider(img,mid,core,slider_id){
 		
 		fb.append(pic);
 		view.append(fb);
-		var cmd_data = { "cmd":"get_img", "path":img[i]["path"], "height":720*scale*0.7, "width":1280*scale*0.7};
+		var cmd_data = { "cmd":"get_img", "path":img[i]["path"], "height":720*scale*0.7, "width":1280*scale*0.7}; 
 		con.send(JSON.stringify(cmd_data));
-		
-		//console.log("send request for:path "+img[i]["path"]);
 	}
-
 	
-	// fancybox the jQuery object is sorted, but the fancybox is not .. grmpf
-	$("a[rel="+core+"]").fancybox({"openEffect":"elastic"}).trigger("click");
+	// apply fancybox to all object with fancybox class again
+	$(".fancybox").fancybox({"openEffect":"elastic"});
+	// within the jQuery div we have the image sorted as 1,2,3,4,5; oldest to newest
+	// we"ll emulate a click on the first child, first image [1], with 1ms timeout
+	setTimeout(function(i) {
+		$(i).children(":first").trigger("click");
+	}, 1, slider_id);
 }
 
 /////////////////////////////////////////// REMOVE_M2M //////////////////////////////////////////
@@ -2049,16 +2056,16 @@ function update_hb(mid,ts){
 	}
 }
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
-// triggered by: 
-// arguemnts:	 
-// what it does: 
-// why: 	 
+// triggered by: messages from the sever: m2v_login, state_change, discconect 
+// arguemnts:	 e.g. movement in front of the sensor (state==1) 
+// what it does: updates the cam button, light button, rm text
+// why: 	 update GUI
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with_pwm,with_neo){
-	with_neo=parseInt(with_neo);
-	with_pwm=parseInt(with_pwm);
-	with_cam=parseInt(with_cam);
+	 if(typeof with_neo !== "undefined") {	with_neo=parseInt(with_neo);	};
+	 if(typeof with_pwm !== "undefined") {	with_pwm=parseInt(with_neo);	};
+	 if(typeof with_cam !== "undefined") {	with_cam=parseInt(with_neo);	};
 	//console.log("running update state on "+mid+"/"+state+"/"+rm);
 
 	// set the rulemanager text explainaition for the complete area
@@ -2108,16 +2115,6 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 	}
 	// text state of the area
 
-	// activate/deactivate buttons of the area
-/*	if(detection>0){
-		$("#"+account+"_"+area+"_on").hide();
-		$("#"+account+"_"+area+"_off").show();
-	} else {
-		$("#"+account+"_"+area+"_on").show();
-		$("#"+account+"_"+area+"_off").hide();
-	};*/
-	// activate/deactivate buttons of the area
-
 	// glow icon state of the m2m
 	if($("#"+mid+"_glow").length){
 		state2glow($("#"+mid+"_glow"),state,detection);
@@ -2146,7 +2143,7 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 	var lt=$("#"+mid+"_toggle_liveview_text");
 	var ct=$("#"+mid+"_toggle_setupcontrol_text");
 	var at=$("#"+mid+"_toggle_alarms_text");
-	if(state<0){
+	if(state<0){ // box offline
 		lv.addClass("button_deactivated"); // avoids clickability
 		lv.addClass("live_sym_not_available");
 		lv.removeClass("live_sym");
@@ -2163,18 +2160,18 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 
 		hide_liveview(mid,true);
 		hide_setupcontrol(mid);
-	} else {
+	} else { // box is online, maybe just a "motion -> no motion" change
 		if(with_cam==1){
 			lv.removeClass("button_deactivated");
 			lv.removeClass("live_sym_not_available");
-			lv.addClass("live_sym");		
+			lv.addClass("live_sym"); // jquery will check for duplicates
 			lt.removeClass("sym_text_not_available");
 		}
 
 		if(with_pwm==1 || with_neo==1){
 			cv.removeClass("button_deactivated");
 			cv.removeClass("color_sym_not_available");
-			cv.addClass("color_sym");
+			cv.addClass("color_sym"); // jquery checks for duplicates
 			ct.removeClass("sym_text_not_available");
 		}
 	}
@@ -2203,10 +2200,10 @@ function rem_menu(){
 
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
-// triggered by: 
-// arguemnts:	 
-// what it does: 
-// why: 	 
+// triggered by: on login
+// arguemnts:	 none
+// what it does: adds a hamb button that will slide in the menu on-click
+// why: 	 GUI
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
 function add_menu(){
@@ -2231,7 +2228,7 @@ function add_menu(){
 	add_sidebar_entry(menu,f,"rules","style");
 	var box=$("<div></div>");
 	box.attr("id","rm_box");
-	box.text("here is a lot of content needed, like a the current rm stuff per area and an area where we can add new rules");
+	box.text("loading content ... hang on");
 	box.hide();
 	menu.append(box);	
 	//////////////// rm setup //////////////////
@@ -2246,7 +2243,7 @@ function add_menu(){
 	add_sidebar_entry(menu,f,"areas","home");
 	var box=$("<div></div>");
 	box.attr("id","areas_box");
-	box.text("here is a lot of content needed, like a list of all aereas, how to set the coordiantes per cam and how to create and delete them");
+	box.text("loading content ... hang on");
 	box.hide();
 	menu.append(box);	
 	//////////////// area setup //////////////////
@@ -2261,7 +2258,7 @@ function add_menu(){
 	add_sidebar_entry(menu,f,"cameras","camera_enhance");
 	var box=$("<div></div>");
 	box.attr("id","cameras_box");
-	box.text("here is a lot of content needed, like a list of all cameras, if they stream in HD or vga, if there should be alerts during stream, what area thez belog to");
+	box.text("loading content ... hang on");
 	box.hide();
 	menu.append(box);	
 	//////////////// camera setup //////////////////
@@ -2277,7 +2274,7 @@ function add_menu(){
 	add_sidebar_entry(menu,f,"users","group");
 	var box=$("<div></div>");
 	box.attr("id","users_box");
-	box.text("here is a lot of content needed, like a list of all users, if they stream in HD or vga, if there should be alerts during stream, what area thez belog to");
+	box.text("loading content ... hang on");
 	box.hide();
 	menu.append(box);	
 	//////////////// user setup //////////////////
