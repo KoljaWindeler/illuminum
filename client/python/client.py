@@ -61,7 +61,7 @@ class WebSocketConnection:
 		self.ack_request_ts = 0		# used to save the time when the last message, requesting a ACK was send
 
 		self.max_msg_size = 10024000 # 10 MB?
-		self.server_ip = "52.24.157.229"
+		self.server_ip = "illuminum.de"
 		self.server_port = 9875
 		if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"experimental"))):
 			self.server_port = 9775
