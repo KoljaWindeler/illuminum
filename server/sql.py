@@ -546,7 +546,7 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Create a new record
 				if(int(century) >= 0 and int(century) < 100):
-					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` =%s ORDER BY `id` DESC LIMIT "+str(int(century)*10)+", "+str((int(century)+1)*20)
+					req = "SELECT  `path` , `ts` FROM  `alert_pics` WHERE  `alert_id` =%s ORDER BY `id` ASC LIMIT "+str(int(century)*10)+", "+str((int(century)+1)*20)
 					cursor.execute(req, (str(alert_id)) )
 					result = cursor.fetchall()
 					#rint(req)
