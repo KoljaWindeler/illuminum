@@ -7,9 +7,7 @@
 
 // connection
 var con = null;
-//var IP="52.24.157.229";
-//var IP="illuminum.speedoino.de";
-var IP="illuminum.de";
+var IP=document.domain;
 var host="https://"+IP+"/";
 var prelogin="";
 var fast_reconnect=0;
