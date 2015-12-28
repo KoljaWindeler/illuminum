@@ -8,6 +8,7 @@
 // connection
 var con = null;
 var IP=document.domain;
+if(IP==""){ IP="illuminum.de"; };
 var host="https://"+IP+"/";
 var prelogin="";
 var fast_reconnect=0;
