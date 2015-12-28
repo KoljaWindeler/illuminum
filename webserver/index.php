@@ -4,7 +4,7 @@ if($_GET['useas']=="dummy"){
 	exit(0);
 };
 ///////////////// server status ///////////////////////////
-$v=exec('git -C /home/ubuntu/python/illumino/ rev-list HEAD --count');
+$v=exec('git -C '.realpath(dirname(__FILE__)).' rev-list HEAD --count');
 $body='<div class="logo_l1">welcome to </div><div class="logo_l2">illuminum</div>';
 unset($output);
 exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_var);
