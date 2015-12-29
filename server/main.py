@@ -1868,8 +1868,10 @@ last_rulecheck_ts=0
 
 
 # document root
-upload_dir="/home/ubuntu/python/illumino/uploads/"
-
+upload_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","uploads")
+if(not(os.path.isdir(upload_dir))):
+	p.rint2("Creating upload dir","v","A Server")
+	os.mkdir(upload_dir)
 #***************************************************************************************#
 #********************************** End of Variables ***********************************#
 #***************************************************************************************#
