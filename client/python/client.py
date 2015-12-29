@@ -6,7 +6,6 @@ import time
 import json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess
 import light, p
-from config import *
 ###################### import libs #######################
 
 ###################### try import login #######################
@@ -33,6 +32,16 @@ class CPUsaver:
 	def set(self):
 		self.state = 1
 ###################### sleep to avoid cpu usage #######################
+
+###################### config properties #######################
+class config:
+	def __init__(self):
+		self.with_cam="0"
+		self.with_neo="0"
+		self.with_pwm="0"
+		self.with_pir="0"
+		self.with_ext="0"
+###################### config properties #######################
 
 ###################### webcam properties #######################
 class WebCam:
@@ -373,10 +382,6 @@ def parse_incoming_msg(con):
 				msg["ack"] = 1
 				msg["v_sec"] = v_sec
 				msg["v_hash"] = v_hash
-				msg["with_neo"] = config.with_neo
-				msg["with_pwm"] = config.with_pwm
-				msg["with_cam"] = config.with_cam
-				msg["with_pir"] = config.with_pir
 				con.msg_q.append(msg)
 
 			elif(enc.get("cmd") == "prelogin" and register_mode==1):
@@ -491,7 +496,13 @@ def parse_incoming_msg(con):
 					cam.alarm_while_streaming = 0
 				cam.interval = (enc.get("interval", 0))
 				cam.quality = (enc.get("qual", "HD"))
-				
+				config.with_pir = enc.get("with_pir", "0")
+				config.with_neo = enc.get("with_neo", "0")
+				config.with_pwm = enc.get("with_pwm", "0")
+				config.with_ext = enc.get("with_ext", "0")
+				config.with_cam = enc.get("with_cam", "0")
+				p.rint("running with "+str(with_cam)+","+str(with_neo)+","+str(with_pwm)+","+str(with_pir)+","+str(with_ext)+",","l")				
+
 			# get the git version
 			elif(enc.get("cmd") == "get_version"):
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
