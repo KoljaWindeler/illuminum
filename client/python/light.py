@@ -2,9 +2,8 @@ import subprocess
 import threading
 import time
 import RPi.GPIO as GPIO
-import importlib
+#import importlib
 import p
-from config import *
 
 class led:
 	def __init__(self):
@@ -38,7 +37,6 @@ class led:
 		self.state = 0		# not dimming
 		self.last_ts = 0	# ts of last action
 
-
 LED_DEBUG=0
 neo_support=1
 pwm_support=1
@@ -55,173 +53,226 @@ except:
 	pwm_supoort=0
 
 
-l = led()					# initialize one object of the class LED to have all vars set.
+#####################################################
+class illumination(threading.Thread):
+	def __init__(self,pwm_support,neo_support):
+		# LED strip configuration:
+		self.neo_LED_COUNT      = 8      # Number of LED pixels.
+		self.neo_LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
+		self.neo_LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
+		self.neo_LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
+		self.neo_LED_BRIGHTNESS = 255     # Set to 0 for darkest and 255 for brightest
+		self.neo_LED_INVERT     = False   # True to invert the signal (when using NPN transistor
 
-# LED strip configuration:
-LED_COUNT      = 8      # Number of LED pixels.
-LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
-LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
-LED_DMA        = 5       # DMA channel to use for generating signal (try 5)
-LED_BRIGHTNESS = 255     # Set to 0 for darkest and 255 for brightest
-LED_INVERT     = False   # True to invert the signal (when using NPN transistor
+		self.l = led()			# initialize one object of the class LED to have all vars set.
+		self.light_dimming_q=[]
+		self.neo_support = neo_support
+		self.pwm_support = pwm_support
+		self.neo_loaded=0
+		self.alive = False
 
-light_dimming_q=[]
-#******************************************************#
-def start(config):
-	if(config.with_neo):
-		p.rint("STARTUP, LIGHT: Neo choosen","l")
-		if(neo_support!=1):
-			p.rint("STARTUP, LIGHT ERROR Neo choosen but not supported","l")
-	if(config.with_pwm):
-		p.rint("STARTUP, LIGHT: PWM choosen","l")
-		if(pwm_support!=1):
-			p.rint("STARTUP, LIGHT ERROR PWM choosen but not supported","l")
-	# start a sub thread, runs the function start_light
-	threading.Thread(target = start_light, args = ([config,])).start()
-#******************************************************#
-def start_light(config):
-	global l # use the object from above
-	# Create NeoPixel object with appropriate configuration.
-	if(config.with_neo and neo_support):
-		strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS)
-		# Intialize the library (must be called once before other functions).
-		strip.begin()
-		strip.show()
-	elif(config.with_pwm and pwm_support):
-		wiringpi.wiringPiSetupPhys()
-		wiringpi.pinMode(12,2)		
+	#******************************************************#
+	def run(self,config):		
+		self.config = config
+
+		while(1):
+			p.rint("LIGHT, thread started","l")
+			self.alive = True
 
 
-	while True:											# loop forever
-
-		### ------------ check if we have something to do ------------ ###
-		if(len(light_dimming_q) > 0):
-			for data in light_dimming_q:
-				if(data[0]<=time.time()):
-					light_action=data
-					light_dimming_q.remove(data)
-					if(light_action[1]==-1 and light_action[2]==-1 and light_action[3]==-1):
-						return_to_old(light_action[4])
-					else:
-						dimm_to(light_action[1],light_action[2],light_action[3],light_action[4])
-		### ------------ check if we have something to do ------------ ###
-
-		if(l.state==1):									# state= 1 means dimming is active
-			if(time.time()>=l.last_ts+l.ms_step/1000):	# last_ts holds time of last event, ms_step the time between two dimm steps, if that sum is smaller than NOW - we have work
-				l.last_ts=time.time()					# refresh last_ts to now
-				differ_r=l.s_r-l.t_r					# caluclate the difference of each color between the start and the end color
-				differ_g=l.s_g-l.t_g
-				differ_b=l.s_b-l.t_b
-				differ_time=(l.t_t-l.s_t)				# calulate the total time between the start and end (this should be the same as the "dimm time" specified by the user)
-				if(differ_time>0):						# if the user set instant switch, this time will be 0. avoid division by zero
-					ratio=(time.time()-l.s_t)/(l.t_t-l.s_t)	# ratio of the time that has passed, should be 0..1
-				else:
-					ratio=1
-				if(ratio<1):							# if ratio is below 1 we are still in the middle of the dimming
-					if(LED_DEBUG):
-						print(".", end="")
-					l.c_r=int(l.s_r-ratio*differ_r)		# refresh the r,g,b parts to the current dimm ratio (minus since we did a "l.s_r - l.t_r")
-					l.c_g=int(l.s_g-ratio*differ_g)
-					l.c_b=int(l.s_b-ratio*differ_b)
-
-				else:									# ratio is bigger than one, time has passed, set it to target color
-					l.c_r=int(l.t_r)
-					l.c_g=int(l.t_g)
-					l.c_b=int(l.t_b)
-					l.state=0 							# stop further dimming
-					if(LED_DEBUG):
-						print("LED stop at "+str(time.time())+" "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b))
-
-
-				l.c_r=max(min(255,l.c_r),0)				# avoid that we set a value bigger then 255 or smaller then 0
-				l.c_g=max(min(255,l.c_g),0)
-				l.c_b=max(min(255,l.c_b),0)
-
-				#print(str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b))
-
-				#strip.setPixelColor(0,Color(255,0,0))		# set value
-				#strip.setPixelColor(1,Color(0,255,0))		# set value
-				#strip.setPixelColor(2,Color(0,0,255))		# set value
-				#strip.setPixelColor(3,Color(l.c_r,l.c_g,l.c_b))		# set value
-				# neo pixel
-				if(config.with_neo and neo_support):
-					for i in range(0,LED_COUNT):
-						strip.setPixelColor(i,Color(l.c_r,l.c_g,l.c_b))		# set value
+			# Create NeoPixel object with appropriate configuration.
+			if(self.config.with_neo):
+				p.rint("LIGHT, configured with NEO usage","l")
+				if(self.neo_support and self.neo_loaded!=1):
+					p.rint("LIGHT, neopixel supported, starting","l")
+					strip = Adafruit_NeoPixel(self.neo_LED_COUNT, self.neo_LED_PIN, self.neo_LED_FREQ_HZ, self.neo_LED_DMA, self.neo_LED_INVERT, self.neo_LED_BRIGHTNESS)
+					# Intialize the library (must be called once before other functions).
+					strip.begin()
 					strip.show()
-				# pwm controll on pin 12
-				elif(config.with_pwm and pwm_support):
-					wiringpi.pwmWrite(12, l.c_r*4)
-				time.sleep(0.8*l.ms_step/1000) # we can wait here a little while because we know that nothing will happen for us earlier than that anyway
+					self.neo_loaded = 1 	# avoid loading it twice
+				elif(self.neo_support):
+					p.rint("LIGHT, neopixel already loaded","l")
+				else:
+					p.rint("LIGHT, ERROR neopixel not supported","l")
+			elif(self.config.with_pwm):
+				p.rint("LIGHT, configured with PWM usage","l")
+				if(self.pwm_support):
+					p.rint("LIGHT, PWM supported, starting","l")
+					wiringpi.wiringPiSetupPhys()
+					wiringpi.pinMode(12,2)
+				else:
+					p.rint("LIGHT, ERROR PWM not supported","l")
+			else:
+				p.rint("LIGHT, started without pwm and neo","l")
 
-		else:
-			time.sleep(0.01) # sleep to avoid 100% cpu
+			while self.alive:
+				### ------------ check if we have something to do ------------ ###
+				if(len(self.light_dimming_q) > 0):
+					for data in self.light_dimming_q:
+						if(data[0]<=time.time()):
+							light_action=data
+							self.light_dimming_q.remove(data)
+							if(light_action[1]==-1 and light_action[2]==-1 and light_action[3]==-1):
+								self.return_to_old(light_action[4])
+							else:
+								self.dimm_to(light_action[1],light_action[2],light_action[3],light_action[4])
+				### ------------ check if we have something to do ------------ ###
+
+				if(self.l.state==1):						# state= 1 means dimming is active
+					if(time.time()>=self.l.last_ts+self.l.ms_step/1000):	# last_ts holds time of last event, ms_step the time between two dimm steps, 
+											# if that sum is smaller than NOW - we have work
+						self.l.last_ts=time.time()			# refresh last_ts to now
+						differ_r=self.l.s_r-self.l.t_r			# caluclate the difference of each color between the start and the end color
+						differ_g=self.l.s_g-self.l.t_g
+						differ_b=self.l.s_b-self.l.t_b
+						differ_time=(self.l.t_t-self.l.s_t)		# calulate the total time between the start and end 
+											#(this should be the same as the "dimm time" specified by the user)
+						if(differ_time>0):			# if the user set instant switch, this time will be 0. avoid division by zero
+							ratio=(time.time()-self.l.s_t)/(self.l.t_t-self.l.s_t)	# ratio of the time that has passed, should be 0..1
+						else:
+							ratio=1
+						if(ratio<1):				# if ratio is below 1 we are still in the middle of the dimming
+							if(LED_DEBUG):
+								print(".", end="")
+							self.l.c_r=int(self.l.s_r-ratio*differ_r)	# refresh the r,g,b parts to the current dimm ratio (minus since we did a "self.l.s_r - self.l.t_r")
+							self.l.c_g=int(self.l.s_g-ratio*differ_g)
+							self.l.c_b=int(self.l.s_b-ratio*differ_b)
+
+						else:					# ratio is bigger than one, time has passed, set it to target color
+							self.l.c_r=int(self.l.t_r)
+							self.l.c_g=int(self.l.t_g)
+							self.l.c_b=int(self.l.t_b)
+							self.l.state=0 			# stop further dimming
+							if(LED_DEBUG):
+								print("LED stop at "+str(time.time())+" "+str(self.l.c_r)+"/"+str(self.l.c_g)+"/"+str(self.l.c_b))
 
 
+						self.l.c_r=max(min(255,self.l.c_r),0)		# avoid that we set a value bigger then 255 or smaller then 0
+						self.l.c_g=max(min(255,self.l.c_g),0)
+						self.l.c_b=max(min(255,self.l.c_b),0)
 
-#******************************************************#
-def return_to_old(ms):
-	global l
-	dimm_to(l.o_rd,l.o_gd,l.o_bd,ms)
+						# neo pixel
+						if(self.config.with_neo and self.neo_support):
+							for i in range(0,self.neo_LED_COUNT):
+								strip.setPixelColor(i,Color(self.l.c_r,self.l.c_g,self.l.c_b))		# set value
+							strip.show()
+						# pwm controll on pin 12
+						elif(self.config.with_pwm and self.pwm_support):
+							wiringpi.pwmWrite(12, self.l.c_r*4)
+						time.sleep(0.8*self.l.ms_step/1000) 		# we can wait here a little while because we know that nothing will happen for us earlier than that anyway
 
-def dimm_to(r,g,b,ms):
-	global l
+				else:
+					time.sleep(0.01) # sleep to avoid 100% cpu
+				# while
+		p.rint("LIGHT, thread stopped","l")
+		
+	#******************************************************#
+	def reload_config(self,config):
+		self.config = config
+		self.alive = False
 
-	# selection is 0-255 based, but it really means 0-100%
-	######## calculate target value 0-255 (half-log) out of the input value 0-255 (linear) #######
-	_r=r/2.55
-	_g=g/2.55
-	_b=b/2.55
+	#******************************************************#
+	def return_to_old(self,ms):
+		self.dimm_to(self.l.o_rd,self.l.o_gd,self.l.o_bd,ms)
+	#******************************************************#
+	def dimm_to(self,r,g,b,ms):
+		p.rint("LIGHT, dimming to "+str(r)+"/"+str(g)+"/"+str(b),"r")
+		# selection is 0-255 based, but it really means 0-100%
+		######## calculate target value 0-255 (half-log) out of the input value 0-255 (linear) #######
+		_r=r/2.55
+		_g=g/2.55
+		_b=b/2.55
 
-	intens=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,27,28,29,30,31,32,33,34,35,36,38,39,40,41,43,44,45,47,48,50,51,53,55,57,58,60,62,64,66,68,70,73,75,77,80,82,85,88,91,93,96,99,103,106,109,113,116,120,124,128,132,136,140,145,150,154,159,164,170,175,181,186,192,198,205,211,218,225,232,239,247,255]
+		intens=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,27,28,29,30,31,32,33,34,35,36,38,39,40,41,43,44,45,47,48,50,51,53,55,57,58,60,62,64,66,68,70,73,75,77,80,82,85,88,91,93,96,99,103,106,109,113,116,120,124,128,132,136,140,145,150,154,159,164,170,175,181,186,192,198,205,211,218,225,232,239,247,255]
 
-	_r=int(max(min(len(intens)-1,_r),0)) 			# just to make sure that we don't take an element outside the array 0-100
-	_g=int(max(min(len(intens)-1,_g),0))
-	_b=int(max(min(len(intens)-1,_b),0))
+		_r=int(max(min(len(intens)-1,_r),0)) 			# just to make sure that we don't take an element outside the array 0-100
+		_g=int(max(min(len(intens)-1,_g),0))
+		_b=int(max(min(len(intens)-1,_b),0))
 
-	l.t_r=intens[_r]							# convert percentage to half-logarithmical brightness
-	l.t_g=intens[_g]
-	l.t_b=intens[_b]
-	######## calculate target value 0-255 (half-log) out of the input value 0-255 (linear) #######
+		self.l.t_r=intens[_r]							# convert percentage to half-logarithmical brightness
+		self.l.t_g=intens[_g]
+		self.l.t_b=intens[_b]
+		######## calculate target value 0-255 (half-log) out of the input value 0-255 (linear) #######
 
-	max_diff=max([abs(l.t_g-l.c_g),abs(l.t_r-l.c_r),abs(l.t_b-l.c_b)]) # find out what color has to do the most steps, this will determine the time between our single steps
+		max_diff=max([abs(self.l.t_g-self.l.c_g),abs(self.l.t_r-self.l.c_r),abs(self.l.t_b-self.l.c_b)]) # find out what color has to do the most steps, this will determine the time between our single steps
 
-	if(max_diff>0):							# just go on, if at least one has to change the color by at least one step
-		l.o_rd=l.c_rd						# save current color as old
-		l.o_gd=l.c_gd
-		l.o_bd=l.c_bd
+		if(max_diff>0):							# just go on, if at least one has to change the color by at least one step
+			self.l.o_rd=self.l.c_rd						# save current color as old
+			self.l.o_gd=self.l.c_gd
+			self.l.o_bd=self.l.c_bd
 
-		l.c_rd=r						# current target linear 0-255 color in the structure
-		l.c_gd=g
-		l.c_bd=b
+			self.l.c_rd=r						# current target linear 0-255 color in the structure
+			self.l.c_gd=g
+			self.l.c_bd=b
 
 
-		l.s_t=time.time()					# copy the starttime
-		l.t_t=l.s_t+ms/1000					# set start time as starttime + time to dimm
+			self.l.s_t=time.time()					# copy the starttime
+			self.l.t_t=self.l.s_t+ms/1000					# set start time as starttime + time to dimm
 
-		l.state=1 							# state 1 means dimming
-		l.ĺast_ts=0							# last_ts=0 will result in instant execution of the first dimming step in the loop above
-		l.ms_step=ms/max_diff				# calc the time between the dimming steps as total time / max steps
-		#print("ms:"+str(ms)+" ms_step:"+str(l.ms_step))
-		l.s_r = l.c_r						# set start color as current color
-		l.s_g = l.c_g
-		l.s_b = l.c_b
-		if(LED_DEBUG):
-			print("start at "+str(time.time())+" to "+str(l.c_r)+"/"+str(l.c_g)+"/"+str(l.c_b)+" -> "+str(l.t_r)+"/"+str(l.t_g)+"/"+str(l.t_b)+" within "+str(ms))
-	#else:
-	#	print("no reason")
+			self.l.state=1 							# state 1 means dimming
+			self.l.ĺast_ts=0							# last_ts=0 will result in instant execution of the first dimming step in the loop above
+			self.l.ms_step=ms/max_diff				# calc the time between the dimming steps as total time / max steps
+			#print("ms:"+str(ms)+" ms_step:"+str(self.l.ms_step))
+			self.l.s_r = self.l.c_r						# set start color as current color
+			self.l.s_g = self.l.c_g
+			self.l.s_b = self.l.c_b
+			p.rint("LIGHT start at "+str(time.time())+" to "+str(self.l.c_r)+"/"+str(self.l.c_g)+"/"+str(self.l.c_b)+" -> "+str(self.l.t_r)+"/"+str(self.l.t_g)+"/"+str(self.l.t_b)+" within "+str(ms),"r")
+		#else:
+		#	print("no reason")
+	#******************************************************#
+	def clear_q(self):
+		for l in self.light_dimming_q:
+			self.light_dimming_q.remove(l)
+		return 0
+	#******************************************************#
+	def add_q_entry(self,when,r,g,b,duration_ms):
+		self.light_dimming_q.append((when,r,g,b,duration_ms))
+		return 0
+	#******************************************************#
+	def set_old_color(self,r,g,b,):
+		self.l.o_rd=r
+		self.l.o_gd=g
+		self.l.o_bd=b
+	#******************************************************#
+#####################################################
 
-def clear_q():
-	for l in light_dimming_q:
-		light_dimming_q.remove(l)
-	return 0
+runner = illumination(pwm_support,neo_support)
+t=""
+def start(config):
+	t=threading.Thread(target = runner.run, args = ([config]))
+	t.start()
+	#print("start preusdo")
 
-def add_q_entry(when,r,g,b,duration_ms):
-	light_dimming_q.append((when,r,g,b,duration_ms))
-	return 0
+def stop():
+	runner.stop()
+	#t.join()
+	a=0
+	while(not(runner.is_stop) and a<100):
+		time.sleep(0.1)
+		a=a+1
+	if(not(runner.is_stop)):
+		print("could not stop the thread")
+
+def restart(config):
+	if(runner.alive):
+		#rint("runner was alive, running reload_config")
+		runner.reload_config(config)
+	else:
+		#rint("runner was NOT alive, running start")
+		start(config)
 
 def set_old_color(r,g,b,):
-	l.o_rd=r
-	l.o_gd=g
-	l.o_bd=b
+	runner.set_old_color(r,g,b)
 
+def add_q_entry(when,r,g,b,duration_ms):
+	p.rint("LIGHT, add_q_entry: setting color "+str(r)+"/"+str(g)+"/"+str(b)+" in "+str(when-time.time())+" sec from now","r")
+	runner.add_q_entry(when,r,g,b,duration_ms)
 
+def clear_q():
+	runner.clear_q()
+
+def dimm_to(r,g,b,ms):
+	runner.dimm_to(r,g,b,ms)
+
+def return_to_old(ms):
+	runner.return_to_old(ms)
