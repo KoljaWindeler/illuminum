@@ -36,11 +36,18 @@ class CPUsaver:
 ###################### config properties #######################
 class config:
 	def __init__(self):
-		self.with_cam="0"
-		self.with_neo="0"
-		self.with_pwm="0"
-		self.with_pir="0"
-		self.with_ext="0"
+		self.with_cam=0
+		self.with_neo=0
+		self.with_pwm=0
+		self.with_pir=0
+		self.with_ext=0
+
+	def check(self):
+		if(self.with_neo and self.with_pwm):
+			p.rint("STARTUP, pwm AND neo activated but only one possible","l")
+			p.rint("STARTUP, falling back to neo support","l")
+			self.with_pwm=0
+
 ###################### config properties #######################
 
 ###################### webcam properties #######################
@@ -70,7 +77,7 @@ class WebSocketConnection:
 		self.ack_request_ts = 0		# used to save the time when the last message, requesting a ACK was send
 
 		self.max_msg_size = 10024000 # 10 MB?
-		self.server_ip = "illuminum.de"
+		self.server_ip = "37.120.160.46"
 		self.server_port = 9875
 		if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"experimental"))):
 			self.server_port = 9775
@@ -116,6 +123,7 @@ def trigger_handle(event, data):
 	if(event == "state_change"):
 		_state = data[0]
 		_detection = data[1]
+		#rint("setting in client.py "+str(_state)+" /  "+str(_detection))
 
 		if(register_mode==0):
 			p.rint("Switch to state '"+trigger.m2m_state[_state]+"' with detection '"+trigger.det_state[_detection]+"'","v")
@@ -152,9 +160,9 @@ def trigger_handle(event, data):
 		# set new color
 		if(_detection == 0 and _state == 1): # deactive and motion
 			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time(), light.l.d_r, light.l.d_g, light.l.d_b, 4000) # 4 sec to dimm to default color - now
+				light.add_q_entry(time.time(), light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b, 4000) # 4 sec to dimm to default color - now
 			else:
-				light.set_old_color(light.l.d_r, light.l.d_g, light.l.d_b) # set the color to which we return as soon as the webfeed is closed
+				light.set_old_color(light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b) # set the color to which we return as soon as the webfeed is closed
 		elif(_detection == 0 and _state == 0): # deactive and no motion
 			delay_off = 5*60 # usually 5 min
 			off_time = get_time()+delay_off
@@ -207,7 +215,7 @@ def get_time():
 
 #******************************************************#
 def upload_picture(_con, res):
-#	rint(str(time.time())+" -> this is upload_file")
+#	rint(str(time.time())+" --> this is upload_file")
 #	if(STEP_DEBUG):
 #		p.rint("Step 5. this is upload_file with "+str(len(_con.msg_q))+" msg in q")
 	if(len(_con.msg_q) > 0):
@@ -264,7 +272,7 @@ def upload_picture(_con, res):
 #******************************************************#
 def connect(con):
 	global register_mode
-	p.rint("connecting to illuminum server ...","l")
+	p.rint("--> connecting to illuminum server ...","l")
 	p.set_last_action("connecting")
 
 	context = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
@@ -278,11 +286,11 @@ def connect(con):
 		time.sleep(3)
 		return -1
 
-	p.rint("connected to server. ","l")
+	p.rint("<-- connected to server. ","l")
 	if(register_mode==0):
-		p.rint("Starting log-in process","l")
+		p.rint("--> Starting log-in process","l")
 	else:
-		p.rint("Begin register process...","l")
+		p.rint("--> Begin register process...","l")
 	p.set_last_action("connecting done")
 
 	#### prelogin
@@ -350,7 +358,7 @@ def parse_incoming_msg(con):
 						if(ele[0] == enc.get("cmd", 0)): # find the right entry
 							con.unacknowledged_msg.remove(ele)
 							break
-					#rint("comm wait dec at "+str(time.time())+" -> "+str(len(con.unacknowledged_msg)))
+					#rint("comm wait dec at "+str(time.time())+" --> "+str(len(con.unacknowledged_msg)))
 				# recalc timestamp
 				if(len(con.unacknowledged_msg) == 0):
 					con.ack_request_ts = 0					# clear ts
@@ -358,7 +366,7 @@ def parse_incoming_msg(con):
 					con.ack_request_ts = con.unacknowledged_msg[0][1]		# move to latest ts
 
 			elif(enc.get("cmd") == "prelogin" and register_mode==0):
-				p.rint("encryption challange received, sending encryped login data","l")
+				p.rint("<-- encryption challange received","l")
 				#### send login
 				#rint("received challange "+enc.get("challange"))
 				h = hashlib.md5()
@@ -376,8 +384,8 @@ def parse_incoming_msg(con):
 				msg["mid"] = mid
 				msg["client_pw"] = pw_c
 				msg["cmd"] = "login"
-				msg["state"] = trigger.s.state
-				msg["detection"] = trigger.s.detection
+				msg["state"] = trigger.r.s.state
+				msg["detection"] = trigger.r.s.detection
 				msg["ts"] = time.strftime("%d.%m.%Y || %H:%M:%S")
 				msg["ack"] = 1
 				msg["v_sec"] = v_sec
@@ -430,40 +438,44 @@ def parse_incoming_msg(con):
 				if(enc.get("ok") == 1):
 					con.logged_in = 1
 
-					light.l.d_r = enc.get("mRed",0)
-					light.l.d_g = enc.get("mGreen",0)
-					light.l.d_b = enc.get("mBlue",0)
+					r = enc.get("mRed",0)
+					g = enc.get("mGreen",0)
+					b = enc.get("mBlue",0)
+	
+					light.runner.l.d_r = r
+					light.runner.l.d_g = g
+					light.runner.l.d_b = b
 
-					p.rint("received log-in OK","l")
-					p.rint("setting detection to "+str(enc.get("detection")),"l")
-					trigger.s.set_detection(int(enc.get("detection")))
+					p.rint("<-- received log-in OK","l")				
+					p.rint("<-- setting detection to "+str(enc.get("detection")),"l")
+					trigger.set_detection(int(enc.get("detection")))
 				else:
 					con.logged_in = 0
-					p.rint("ERROR log-in failed","l")
+					p.rint("<-- ERROR log-in failed","l")
 			elif(enc.get("cmd") == "m2m_hb"):
 				con.hb_out = 0
-				p.rint("connection checked OK","l")
+				p.rint("<-- connection checked OK","l")
 			elif(enc.get("cmd") == "set_detection"):
-				p.rint("received request to change detection state to "+str(enc.get("state")),"l")
-				trigger.s.set_detection(enc.get("state"))
+				p.rint("<-- received request to change detection state to "+str(enc.get("state")),"l")
+				trigger.set_detection(enc.get("state"))
 			elif(enc.get("cmd") == "wf"):
 				ignore = 1
 			elif(enc.get("cmd") == "set_color"):
 				# avoid light output message, like to many many commands
-				light.l.d_r = enc.get("r", 0)
-				light.l.d_g = enc.get("g", 0)
-				light.l.d_b = enc.get("b", 0)
-				light.add_q_entry(time.time(), light.l.d_r, light.l.d_g, light.l.d_b, 500) # 4 sec to dimm to warm orange - now
+				r = enc.get("r", 0)
+				g = enc.get("g", 0)
+				b = enc.get("b", 0)
+				light.add_q_entry(time.time(), r, g, b, 500) # 4 sec to dimm to warm orange - now
 
 			elif(enc.get("cmd") == "set_interval"):
 				if(enc.get("interval", 0) == 0):
 					cam.webview_active = 0
 					GPIO.output(PIN_CAM,0)
-					p.rint("switching webcam off","l")
+					p.rint("<-- switching webcam off","l")
 				else:
 					cam.webview_active = 1
 					GPIO.output(PIN_CAM,1)
-					p.rint("switching webcam on","l")
+					p.rint("<-- switching webcam on","l")
 				cam.interval = (enc.get("interval", 0))
 				cam.quality = (enc.get("qual", "HD"))
 				if(enc.get("alarm_while_streaming","no_alarm")=="alarm"):
@@ -478,10 +490,10 @@ def parse_incoming_msg(con):
 ######### SPY MODE #########
 			elif(enc.get("cmd") == "register"):
 				if(enc.get("ok",0) == 1):
-					p.rint("successful registered, sending sign in","l")
+					p.rint("<-- successful registered, sending sign in","l")
 					register_mode=0
 				else:
-					p.rint("registration was not successful, status: "+str(enc.get("ok"))+". Starting over","l")
+					p.rint("<-- registration was not successful, status: "+str(enc.get("ok"))+". Starting over","l")
 
 				msg = {}
 				msg["mid"] = mid
@@ -489,19 +501,38 @@ def parse_incoming_msg(con):
 				con.msg_q.append(msg)
 	
 			elif(enc.get("cmd") == "update_parameter"):
-				p.rint("Received Parameter update from server","l")
+				p.rint("<-- Received Parameter update from server","l")
 				if(enc.get("alarm_while_streaming","no_alarm")=="alarm"):
 					cam.alarm_while_streaming = 1
 				else:
 					cam.alarm_while_streaming = 0
 				cam.interval = (enc.get("interval", 0))
 				cam.quality = (enc.get("qual", "HD"))
-				config.with_pir = enc.get("with_pir", "0")
-				config.with_neo = enc.get("with_neo", "0")
-				config.with_pwm = enc.get("with_pwm", "0")
-				config.with_ext = enc.get("with_ext", "0")
-				config.with_cam = enc.get("with_cam", "0")
-				p.rint("running with "+str(with_cam)+","+str(with_neo)+","+str(with_pwm)+","+str(with_pir)+","+str(with_ext)+",","l")				
+
+				# save old parameter
+				old_with_cam = config.with_cam
+				old_with_neo = config.with_neo
+				old_with_pwm = config.with_pwm
+				old_with_ext = config.with_ext
+				old_with_pir = config.with_pir
+
+				# save new parameter
+				config.with_pir = int(enc.get("with_pir", "0"))
+				config.with_neo = int(enc.get("with_neo", "0"))
+				config.with_pwm = int(enc.get("with_pwm", "0"))
+				config.with_ext = int(enc.get("with_ext", "0"))
+				config.with_cam = int(enc.get("with_cam", "0"))
+
+				# re-starting the light and trigger with new parameter, if different
+				if(config.with_neo != old_with_neo or config.with_pwm != old_with_pwm):
+					p.rint("=== (re)start light, as configuration has changed","l")
+					light.restart(config)
+					time.sleep(1)
+				
+				if(config.with_pir != old_with_pir):
+					p.rint("=== (re)start trigger, as configuration has changed","l")
+					trigger.restart(config)
+
 
 			# get the git version
 			elif(enc.get("cmd") == "get_version"):
@@ -509,7 +540,7 @@ def parse_incoming_msg(con):
 				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
 
-				p.rint("version request received from server, returning "+str(v_hash),"l")
+				p.rint("<-> version request received from server, returning "+str(v_hash),"l")
 
 				msg = {}
 				msg["mid"] = mid
@@ -520,7 +551,7 @@ def parse_incoming_msg(con):
 
 			# run a git update
 			elif(enc.get("cmd") == "git_update"):
-				p.rint("update request received from server","l")
+				p.rint("<-- update request received from server","l")
 				# remount root rw
 				rw() 
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
@@ -543,9 +574,9 @@ def parse_incoming_msg(con):
 			elif(enc.get("cmd") == "reboot"):
 				con.sock.shutdown()
 				con.sock.close()
-				print("============================")
-				print("======== rebooting =========")
-				print("============================")
+				print("<- ============================")
+				print("<- ======== rebooting =========")
+				print("<- ============================")
 				result=str(subprocess.Popen("reboot",stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 
 				
@@ -554,7 +585,7 @@ def parse_incoming_msg(con):
 				state = 0
 				if(str(enc.get("state",0))=="1"):
 					state = 1
-				p.rint("switching external pin to "+str(state),"l")
+				p.rint("<-- switching external pin to "+str(state),"l")
 				GPIO.output(PIN_USER,state)
 
 				msg = {}
@@ -566,7 +597,7 @@ def parse_incoming_msg(con):
 			# set alias
 			elif(enc.get("cmd") == "set_alias"):
 				alias = enc.get("alias","-")
-				p.rint("Trying to set a new name: "+str(alias),"l")
+				p.rint("<-- Trying to set a new name: "+str(alias),"l")
 				msg = {}
 				msg["mid"] = mid
 				msg["cmd"] = enc.get("cmd")
@@ -583,18 +614,18 @@ def parse_incoming_msg(con):
 						file.close()
 						subprocess.Popen(os.path.join(path,"generate_config.sh"),stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 						msg["ok"] = "1"
-						p.rint("Setting new alias, ok","l")
+						p.rint("--> Setting new alias, ok","l")
 				except:
 					import sys, traceback
 					print("sys:")
 					print(str(sys.exc_info()[0]))
 					print(str(sys.exc_info()[1]))
 					print(str(repr(traceback.format_tb(sys.exc_info()[2]))))
-					print("setting new name failed")
+					print("--> setting new name failed")
 				con.msg_q.append(msg)
 
 			else:
-				p.rint("unsopported command received:"+enc.get("cmd"),"l")
+				p.rint("<-- unsopported command received:"+enc.get("cmd"),"l")
 
 
 		#end of "if"
@@ -616,12 +647,7 @@ def parse_incoming_msg(con):
 SEC_VERSION="201251215"
 
 
-p.rint("STARTUP, reading configuration from config.py","l")
 config = config()
-if(config.with_neo and config.with_pwm):
-	p.rint("STARTUP, pwm AND neo activated but only one possible")
-	p.rint("STARTUP, falling back to neo support")
-	config.with_pwm=0
 
 
 p.rint("STARTUP, settings pins","l")
@@ -649,15 +675,13 @@ d = Debugging()				# debug handle
 p.rint("STARTUP, creating CPUsaver","l")
 b = CPUsaver()
 
-trigger.start()
-trigger.s.subscribe_callback(trigger_handle)
 
-light.start(config)
+trigger.subscribe_callback(trigger_handle)
 
 #only start listening to keyboard input if we are not in register mode
 p.start(not(register_mode))
 
-p.rint("== STARTUP FINISHED, running main loop ==","l")
+p.rint("===== STARTUP FINISHED, running main loop =====","l")
 # Main programm
 #******************************************************#
 
@@ -691,9 +715,9 @@ while 1:
 		#************* receiving end ******************#
 
 		#************* timeout check start ******************#
-		if(time.time()-con.last_transfer > 60*5 and con.hb_out == 0):
+		if(time.time()-con.last_transfer > 60*5 and con.last_transfer!=0 and con.hb_out == 0):
 			b.set() # busy, avoid cpu sleep
-			p.rint("checking connection","l")
+			p.rint("<-> checking connection","l")
 			msg = {}
 			msg["cmd"] = "m2m_hb"
 			con.msg_q.append(msg)
@@ -712,15 +736,15 @@ while 1:
 			if(con.logged_in != 1):	 	# check if we have a login msg in the q
 				for msg_i in con.msg_q:
 					if(msg_i["cmd"] == "prelogin"):
-						p.rint("requesting encryption challange","d")
+						p.rint("--> requesting encryption challange","d")
 						msg = msg_i
 						con.msg_q.remove(msg_i)
 					if(msg_i["cmd"] == "register"):
-						p.rint("requesting registration","d")
+						p.rint("r--> equesting registration","d")
 						msg = msg_i
 						con.msg_q.remove(msg_i)
 					if(msg_i["cmd"] == "login"):
-						p.rint("sending login","d")
+						p.rint("--> sending encrypted login","d")
 						msg = msg_i
 						con.msg_q.remove(msg_i)
 
