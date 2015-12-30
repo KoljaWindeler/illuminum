@@ -255,6 +255,12 @@ div.m2m_header_button{
 	margin: 0 auto;  /* setzt den block mittig */
 	text-align: center;
 	clear:left;
+	display: flex;
+	justify-content: space-around;
+}
+
+div.m2m_header_button_spacer{
+	width: 10%;
 }
 
 /******************************** the box that holds an m2m ***********************************/
@@ -326,9 +332,9 @@ img.area_sym_not_protected{
 /*img.cam_sym{	content:url("../images/ic_camera_black_48dp.png");}*/
 
 /* M2M Section */
-.live_sym,.color_sym,.alarm_sym,
-.live_sym_not_available,.color_sym_not_available,.alarm_sym_not_available,
-.live_sym_active,.color_sym_active,.alarm_sym_active,.alarm_sym_open_alerts{
+.live_sym,.color_sym,.alarm_sym,.extension_sym,
+.live_sym_not_available,.color_sym_not_available,.alarm_sym_not_available,.extension_sym_not_available,
+.live_sym_active,.color_sym_active,.alarm_sym_active,.alarm_sym_open_alerts,.extension_sym_active{
 	cursor:pointer;
 	display:inline-block;
 	position:relative;
@@ -349,6 +355,12 @@ a.live_sym_active{ 			content:url("../images/ic_camera_red_48dp.png");	}
 div.toggle_liveview_text::after {	content:'live';	}
 div.toggle_liveview_text_active {	color:#d80000;		}
 
+a.extension_sym_not_available{ 		content:url("../images/ic_extension_gray_48dp.png");	}
+a.extension_sym{ 			content:url("../images/ic_extension_black_48dp.png"); }
+a.extension_sym_active{ 		content:url("../images/ic_extension_red_48dp.png");	}
+div.toggle_extension_text::after {	content:'';	}
+div.toggle_extension_text_active {	color:#d80000;		}
+
 a.color_sym_not_available{		content:url("../images/ic_flare_gray_48dp.png");	}
 a.color_sym{				content:url("../images/ic_flare_black_48dp.png");	}
 a.color_sym_active{			content:url("../images/ic_flare_red_48dp.png");	}
@@ -360,6 +372,7 @@ a.alarm_sym_open_alerts{		content:url("../images/ic_notifications_red_48dp.png")
 a.alarm_sym_active{			content:url("../images/ic_notifications_red_48dp.png");	}
 div.toggle_alarms_text::after {		content:'alarms';	}
 div.toggle_alarms_text_active {		color:#d80000;		}
+
 
 div.toggle_text {
 	height:20px;
@@ -658,13 +671,18 @@ i.icons_activ {
 		margin-bottom:3%;
 	}
 
+	div.m2m_header_button_spacer{
+		width: 5%;
+	}
+
+
 	div.m2m_text_name{
 		/*font-size:30px;*/
 	}
 
-	.live_sym,.color_sym,.alarm_sym,.alarm_sym_open_alerts, .button_deactivated{
-		margin-right: 20px;
-		margin-left: 20px;
+	.live_sym,.color_sym,.alarm_sym,.alarm_sym_open_alerts, .button_deactivated, .extension_sym{
+		margin-right: 10px;
+		margin-left: 10px;
 	}
 
 	div.m2m_header {
