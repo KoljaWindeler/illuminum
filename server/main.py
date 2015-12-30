@@ -258,10 +258,7 @@ def recv_m2m_msg_handle(data,m2m):
 				"area":		m2m.area,
 				"account":	m2m.account,
 				"detection":	m2m.detection,
-				"rm":		rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0),
-				"with_cam":	m2m.with_cam,
-				"with_pwm":	m2m.with_pwm,
-				"with_neo":	m2m.with_neo
+				"rm":		rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 			}
 			informed=0
 			for subscriber in m2m.m2v:
@@ -1198,9 +1195,14 @@ def handle_update_cam_parameter(enc,ws):
 	in_area=enc.get("area","-1")
 	in_alarm_ws="1"
 	in_name=enc.get("name")
+	in_cam=enc.get("with_cam","0")
+	in_neo=enc.get("with_neo","0")
+	in_pwm=enc.get("with_pwm","0")
+	in_pir=enc.get("with_pir","0")
+	in_ext=enc.get("with_ext","0")
 
 	# outside of loop to update cams that are offline
-	db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name)
+	db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name, in_cam, in_neo, in_pwm, in_pir, in_ext)
 
 	# save new parameter
 	found=0
@@ -1211,6 +1213,11 @@ def handle_update_cam_parameter(enc,ws):
 			m2m.resolution=in_resolution
 			m2m.frame_dist=in_frame_dist
 			m2m.alarm_ws=in_alarm_ws
+			m2m.with_cam=in_cam
+			m2m.with_neo=in_neo
+			m2m.with_pwm=in_pwm
+			m2m.with_pir=in_pir
+			m2m.with_ext=in_ext
 
 			if(str(m2m.alias)!=str(in_name)):
 				# if the name (and probably more) has change, reboot cam
@@ -1225,12 +1232,17 @@ def handle_update_cam_parameter(enc,ws):
 				# it will redial in in 3 sec and everything will run on its own
 				server_m2m.disconnect(m2m)
 			else:
-				# inform the webcam about the new parameter
+				# inform the webcam about the new parameter that the user has just set
 				msg={}
 				msg["cmd"]="update_parameter"
 				msg["qual"]=m2m.resolution
 				msg["alarm_while_streaming"]=m2m.alarm_while_streaming
 				msg["interval"]=m2m.frame_dist
+				msg["with_cam"]=m2m.with_cam
+				msg["with_pir"]=m2m.with_pir
+				msg["with_pwm"]=m2m.with_pwm
+				msg["with_neo"]=m2m.with_neo
+				msg["with_ext"]=m2m.with_ext
 				msg_q_m2m.append((msg,m2m))
 			break;
 
@@ -1239,10 +1251,10 @@ def handle_update_cam_parameter(enc,ws):
 		m2m = m2m_clients("")
 		m2m.mid=in_mid
 		populate_m2m(m2m)
-		# send this message to all ws with the same account
-		for a_ws in server_ws.clients:
-			if(a_ws.account == ws.account):
-				connect_ws_m2m(m2m,a_ws,update_m2m=0)
+	# send this message to all ws with the same account
+	for a_ws in server_ws.clients:
+		if(a_ws.account == ws.account):
+			connect_ws_m2m(m2m,a_ws,update_m2m=0)
 
 	# send ok response to ws
 	msg={}
@@ -1449,6 +1461,11 @@ def populate_m2m(m2m):
 	m2m.v_hash = db_r["v_hash"]
 	m2m.v_short = db_r["v_short"]
 	m2m.external_state = db_r["external_state"]
+	m2m.with_cam = db_r["with_cam"]
+	m2m.with_neo = db_r["with_neo"]
+	m2m.with_pwm = db_r["with_pwm"]
+	m2m.with_pir = db_r["with_pir"]
+	m2m.with_ext = db_r["with_ext"]
 
 
 #******************************************************#
@@ -1462,10 +1479,6 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	m2m.state=enc.get("state")
 	m2m.v_hash=enc.get("v_hash","-")
 	m2m.alert=alert_event() 	# TODO we should fill the alert with custom values like max photos etc
-	m2m.with_neo=enc.get("with_neo","0")
-	m2m.with_pwm=enc.get("with_pwm","0")
-	m2m.with_pir=enc.get("with_pir","0")
-	m2m.with_cam=enc.get("with_cam","0")
 	m2m.v_short="error"
 	m2m.v_sec=str(enc.get("v_sec","-"))
 	try:
@@ -1479,14 +1492,18 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	msg["mGreen"]=db_r["mGreen"]
 	msg["mBlue"]=db_r["mBlue"]
 	msg["external_state"]=db_r["external_state"]
-	msg["alarm_while_streaming"]=db_r["alarm_while_streaming"]	# TODO remove me!
 			
-	# send a second message to set the parameter, don't want to double it in the login	
+	# send a second message to set the parameter for the cam, don't want to double it in the login	
 	msg2={}
 	msg2["cmd"]="update_parameter"
 	msg2["qual"]=m2m.resolution	
 	msg2["alarm_while_streaming"]=m2m.alarm_while_streaming
 	msg2["interval"]=m2m.frame_dist
+	msg2["with_cam"]=m2m.with_cam
+	msg2["with_pir"]=m2m.with_pir
+	msg2["with_pwm"]=m2m.with_pwm
+	msg2["with_neo"]=m2m.with_neo
+	msg2["with_ext"]=m2m.with_ext
 	msg_q_m2m.append((msg2,m2m))
 
 
@@ -1581,6 +1598,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 	msg_ws2["with_pwm"]=m2m.with_pwm
 	msg_ws2["with_pir"]=m2m.with_pir
 	msg_ws2["with_cam"]=m2m.with_cam
+	msg_ws2["with_ext"]=m2m.with_ext
 	msg_ws2["external_state"]=m2m.external_state
 	msg_ws2["brightness_pos"]=m2m.brightness_pos
 	msg_ws2["rm"]=rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
@@ -1872,6 +1890,7 @@ upload_dir=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","upload
 if(not(os.path.isdir(upload_dir))):
 	p.rint2("Creating upload dir","v","A Server")
 	os.mkdir(upload_dir)
+
 #***************************************************************************************#
 #********************************** End of Variables ***********************************#
 #***************************************************************************************#
