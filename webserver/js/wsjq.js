@@ -134,10 +134,24 @@ function parse_msg(msg_dec){
 		//console.log("m2v_lgogin detected:"+msg_dec);
 
 		// check if m2m is already visible, if not append it. Then update the state and timestamp
-		check_append_m2m(msg_dec);
-		update_hb(mid,msg_dec["last_seen"]);
+		check_append_m2m(msg_dec);							// create structure within the DOM
+		update_hb(mid,msg_dec["last_seen"]);						// set current timestamp
+		set_ext_state(msg_dec["mid"],msg_dec["external_state"],msg_dec["state"]);	// sets external-output-button state
 
-		update_state(msg_dec["account"],msg_dec["area"],mid,msg_dec["state"],msg_dec["detection"],msg_dec["rm"],msg_dec["alarm_ws"],msg_dec["with_cam"],msg_dec["with_pwm"],msg_dec["with_neo"]);
+		update_state(									// set the 'area protection' status
+			msg_dec["account"],
+			msg_dec["area"],
+			mid,
+			msg_dec["state"],
+			msg_dec["detection"],
+			msg_dec["rm"],
+			msg_dec["alarm_ws"],
+			msg_dec["with_cam"],
+			msg_dec["with_pwm"],
+			msg_dec["with_neo"],
+			msg_dec["with_pir"],
+			msg_dec["with_ext"]
+		);
 		// do it again here, to update a m2m that was existing (reconnect situation)
 		set_alert_button_state($("#"+mid+"_alarm_counter"),$("#"+mid+"_toggle_alarms"),$("#"+mid+"_toggle_alarms_text"),msg_dec["open_alarms"]);
 		set_override_buttons(msg_dec["account"],msg_dec["area"],msg_dec["rm_override"]);
@@ -296,15 +310,7 @@ function parse_msg(msg_dec){
 	else if(msg_dec["cmd"]=="toggle_external_pin"){
 		var mid=msg_dec["mid"];
 		var state=msg_dec["state"];
-		var b=$("#"+mid+"_external");
-		if(b.length){
-			if(state=="1" || state==1){
-				b.text("switch off");
-			} else {
-				b.text("switch on");
-			};
-		};
-
+		set_ext_state(mid,state,1);
 	}
 
 	// response of deleteing a m2m, eventhough not this ws might have deltete it
@@ -1187,11 +1193,21 @@ function check_append_m2m(msg_dec){
 	text.addClass("clear_both");
 	//m2m_header_text.append(text);
 
+	// create element that shall hold all the buttons, plus thw two spacer
 	var m2m_header_button=$("<div></div>");
 	m2m_header_button.attr({
 		"class":"m2m_header_button"
 	});
 	node.append(m2m_header_button);
+
+	// create two spacer, one in the front one in the back 
+	var m2m_header_button_spacer1=$("<div></div>");
+	m2m_header_button_spacer1.addClass("m2m_header_button_spacer");
+	var m2m_header_button_spacer2=$("<div></div>");
+	m2m_header_button_spacer2.addClass("m2m_header_button_spacer");
+
+	// inser two spacer, one at the front one at the back, symbols in-between
+	m2m_header_button.append(m2m_header_button_spacer1);
 
 	//////////// live view button /////////////
 	var wb=$("<div></div>");	// create button
@@ -1212,10 +1228,7 @@ function check_append_m2m(msg_dec){
 
 	// m2m has no cam support
 	if(parseInt(msg_dec["with_cam"])!=1){	
-		set_button_state(button,-1);			// button deactvated
-		button.addClass("live_sym_not_available"); 	// gray symbol
-		wl.addClass("sym_text_not_available");		// gray text
-                wl.removeClass("toggle_liveview_text_active"); 	// avoid red text in any case
+		wb.hide();
 	} 
 	// m2m has cam support
 	else {
@@ -1247,10 +1260,7 @@ function check_append_m2m(msg_dec){
 	m2m_header_button.append(wb);
 	// m2m has no color control
 	if(parseInt(msg_dec["with_pwm"])!=1 && parseInt(msg_dec["with_neo"])!=1){
-		set_button_state(button,-1);
-		button.addClass("color_sym_not_available");
-		wl.addClass("sym_text_not_available");
-		wl.removeClass("toggle_setupcontrol_text_active");
+		wb.hide();
 	}
 	// m2m has color control
 	else {
@@ -1264,6 +1274,37 @@ function check_append_m2m(msg_dec){
 	}
 	//m2m_header_button.append(button);
 	//////////// setup controll button /////////////
+
+	//////////// extension button /////////////
+	wb=$("<div></div>");		// parent
+	wb.addClass("inline_block");
+	button=$("<a></a>");		// create button
+	button.attr("id", msg_dec["mid"]+"_toggle_extension");
+	button.text("set_via_css");
+	wb.append(button);
+
+	wl=$("<div></div>");
+	wl.attr("id",mid+"_toggle_extension_text");
+	wl.addClass("toggle_extension_text");
+	wl.addClass("toggle_text");
+	wb.append(wl);
+	m2m_header_button.append(wb);
+
+	// m2m has no extension support
+	if(parseInt(msg_dec["with_ext"])!=1){
+		wb.hide();
+	}
+	// m2m has extension control
+	else {
+		button.addClass("extension_sym");
+		button.click(function(){
+			var int_mid=msg_dec["mid"];
+			return function (){
+				toggle_external_pin(int_mid);
+			}
+		}());
+	}
+	//////////// extension button /////////////
 
 	//////////// alert button /////////////
 	wb=$("<div></div>");
@@ -1306,8 +1347,13 @@ function check_append_m2m(msg_dec){
 
 	// hide it if no alarm is available
 	set_alert_button_state(num_text,button,wl,msg_dec["open_alarms"]);
-	//////////// alert button /////////////
 
+	if(parseInt(msg_dec["with_pir"])!=1){
+		wb.hide();
+	}
+	//////////// alert button /////////////
+	// insert a spacer in the back
+	m2m_header_button.append(m2m_header_button_spacer2);
 
 
 	////////////////// LIVE VIEW ////////////////////////////
@@ -1442,30 +1488,6 @@ function check_append_m2m(msg_dec){
 	setupcontrol.append(scroller);
 	setupcontrol.append($("<br>"));
 	////////////////////// brightness ////////////////////
-
-	////////////////////// external pin ////////////////////
-	var c=$("<div></div>");
-	c.addClass("center");
-	c.css("width","100%");
-	setupcontrol.append(c);
-
-	var button=$("<a></a>");
-	button.attr("id",msg_dec["mid"]+"_external");
-	button.css("width","60%");
-	if(msg_dec["external_state"] == "1"){
-		button.text("switch off")
-	} else {
-		button.text("switch on")
-	};
-	button.addClass("button");
-	button.click(function(){
-		var int_mid=msg_dec["mid"];
-		return function (){
-			toggle_external_pin(int_mid);
-		}
-	}());
-	c.append(button);
-	////////////////////// external pin ////////////////////
 	////////////////// COLOR SLIDER ////////////////////////////
 
 	////////////////// ALARM MANAGER ////////////////////////////
@@ -1579,6 +1601,34 @@ function is_liveview_open(mid){
 	} else {
 		return false;
 	}
+};
+
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+// triggered by: 
+// arguemnts:	 
+// what it does: 
+// why: 	 
+/////////////////////////////////////////// UNSET //////////////////////////////////////////
+function set_ext_state(mid,ex_state,state){
+	var txt=$("#"+mid+"_toggle_extension_text");
+	var icon=$("#"+mid+"_toggle_extension");
+	if(txt.length && icon.length){
+		if(parseInt(state)>=0){ // box is online
+			if(parseInt(ex_state)==1){ // pin HIGH
+				icon.addClass("extension_sym_active");
+				txt.addClass("toggle_extension_text_active");
+				txt.text("ex is on");
+			} else { // pin LOW
+				icon.removeClass("extension_sym_active"); 
+				txt.removeClass("toggle_extension_text_active");
+				txt.text("ex is off");
+			};
+		} else { // box is offline, state -1 
+			icon.removeClass("extension_sym_active"); 
+			txt.removeClass("toggle_extension_text_active");
+			txt.text("extension");	
+		}
+	};
 };
 
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
@@ -1884,6 +1934,8 @@ function state2str(state,det){
 		} else if(det==2){
 			ret="Heavy protected";
 		}
+	} else if(state==5){ // empty text, return for no motion sensing supported
+		ret="";
 	} else {
 		ret = state.toString();
 	};
@@ -1986,15 +2038,19 @@ function createRainbowDiv(s){
 /////////////////////////////////////////// TOGGLE EXTERNAL PIN //////////////////////////////////////////
 
 function toggle_external_pin(mid){
-		var b=$("#"+mid+"_external");
-		if(b.length){
-			b.text("wait..");
-		};
+	if(is_button_active("#"+mid+"_toggle_setupcontrol")){
+		return;
+	};
 
-		var cmd_data = { 
-				"cmd":"toggle_external_pin", 
-				"mid":mid};
-		con.send(JSON.stringify(cmd_data));	
+	var b=$("#"+mid+"_toggle_extension_text");
+	if(b.length){
+		b.text("wait..");
+	};
+
+	var cmd_data = { 
+		"cmd":"toggle_external_pin", 
+		"mid":mid};
+	con.send(JSON.stringify(cmd_data));	
 }
 
 /////////////////////////////////////////// SEND COLOR //////////////////////////////////////////
@@ -2061,10 +2117,12 @@ function update_hb(mid,ts){
 // why: 	 update GUI
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with_pwm,with_neo){
+function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with_pwm,with_neo,with_pir,with_ext){
 	 if(typeof with_neo !== "undefined") {	with_neo=parseInt(with_neo);	};
 	 if(typeof with_pwm !== "undefined") {	with_pwm=parseInt(with_neo);	};
 	 if(typeof with_cam !== "undefined") {	with_cam=parseInt(with_neo);	};
+	 if(typeof with_pir !== "undefined") {	with_pir=parseInt(with_pir);	};
+	 if(typeof with_ext !== "undefined") {	with_ext=parseInt(with_ext);	};
 	//console.log("running update state on "+mid+"/"+state+"/"+rm);
 
 	// set the rulemanager text explainaition for the complete area
@@ -2081,7 +2139,11 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 	// text state of the m2m
 	var e=$("#"+mid+"_state");
 	if(e.length){
-		e.text(state2str(state,detection));
+		if(with_pir==0){ 	// no PIR sensor, show "detection disabled"
+			e.text(state2str(5,detection));
+		} else {		// with PIR, show regular state
+			e.text(state2str(state,detection));
+		}
 		if(alarm_ws==0){ // if alarm_ws is == 1, we'll send images to the WS on an alert and the site show show an popup (created below)
 			e.text(e.text()+", silent mode");
 		};
@@ -2139,10 +2201,15 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 	var lv=$("#"+mid+"_toggle_liveview");
 	var cv=$("#"+mid+"_toggle_setupcontrol");
 	var av=$("#"+mid+"_toggle_alarms");
+	var ev=$("#"+mid+"_toggle_extension");
+
 	var lt=$("#"+mid+"_toggle_liveview_text");
 	var ct=$("#"+mid+"_toggle_setupcontrol_text");
 	var at=$("#"+mid+"_toggle_alarms_text");
+	var et=$("#"+mid+"_toggle_extension_text");
+
 	if(state<0){ // box offline
+		// live view 
 		lv.addClass("button_deactivated"); // avoids clickability
 		lv.addClass("live_sym_not_available");
 		lv.removeClass("live_sym");
@@ -2150,6 +2217,15 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 		lt.addClass("sym_text_not_available");
 		lt.removeClass("toggle_liveview_text_active");
 	
+		// extension view
+		ev.addClass("button_deactivated"); // avoids clickability
+		ev.addClass("extension_sym_not_available");
+		ev.removeClass("extension_sym");
+
+		et.addClass("sym_text_not_available");
+		et.removeClass("toggle_extension_text_active");
+	
+		// color view
 		cv.addClass("button_deactivated"); // avoids clickability
 		cv.addClass("color_sym_not_available");
 		cv.removeClass("color_sym");
@@ -2165,6 +2241,13 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 			lv.removeClass("live_sym_not_available");
 			lv.addClass("live_sym"); // jquery will check for duplicates
 			lt.removeClass("sym_text_not_available");
+		}
+
+		if(with_ext==1){
+			ev.removeClass("button_deactivated");
+			ev.removeClass("extension_sym_not_available");
+			ev.addClass("extension_sym"); // jquery will check for duplicates
+			et.removeClass("extension_text_not_available");
 		}
 
 		if(with_pwm==1 || with_neo==1){
@@ -2254,7 +2337,7 @@ function add_menu(){
 			box.toggle();	
 		}
 	};
-	add_sidebar_entry(menu,f,"cameras","camera_enhance");
+	add_sidebar_entry(menu,f,"units","camera_enhance");
 	var box=$("<div></div>");
 	box.attr("id","cameras_box");
 	box.text("loading content ... hang on");
@@ -2384,6 +2467,85 @@ function add_camera_entry(m_m2m,field){
 	cam_name_edit.css("margin-left", "5px");
 	cam_name_edit.addClass("sidebar_area_name");
 	cam_field_wrapper.append(cam_name_edit);
+
+	//////////////// has camera ///////////////
+	var with_cam=$("<select></select>");
+	with_cam.css("width", "100%");
+	with_cam.css("margin-left", "5px");
+	with_cam.attr({
+		"id": "c_"+m_m2m["mid"]+"_with_cam",
+		"class":"sidebar_select"
+	});
+	var with_sel=true;
+	var without_sel=false;
+	if(m_m2m["with_cam"]!="1"){
+		with_sel=false;
+		without_sel=true;
+	}
+	with_cam.append($('<option></option>').val("1").html("camera is conneced").prop('selected', with_sel));
+	with_cam.append($('<option></option>').val("0").html("no camera connected").prop('selected', without_sel));
+	cam_field_wrapper.append(with_cam);
+
+	//////////////// has PIR ///////////////
+	var with_pir=$("<select></select>");
+	with_pir.css("width", "100%");
+	with_pir.css("margin-left", "5px");
+	with_pir.attr({
+		"id": "c_"+m_m2m["mid"]+"_with_pir",
+		"class":"sidebar_select"
+	});
+	var with_sel=true;
+	var without_sel=false;
+	if(m_m2m["with_pir"]!="1"){
+		with_sel=false;
+		without_sel=true;
+	}
+	with_pir.append($('<option></option>').val("1").html("motion sensor is conneced").prop('selected', with_sel));
+	with_pir.append($('<option></option>').val("0").html("no motion sensor connected").prop('selected', without_sel));
+	cam_field_wrapper.append(with_pir);
+
+	//////////////// has extension ///////////////
+	var with_ext=$("<select></select>");
+	with_ext.css("width", "100%");
+	with_ext.css("margin-left", "5px");
+	with_ext.attr({
+		"id": "c_"+m_m2m["mid"]+"_with_ext",
+		"class":"sidebar_select"
+	});
+	var with_sel=true;
+	var without_sel=false;
+	if(m_m2m["with_ext"]!="1"){
+		with_sel=false;
+		without_sel=true;
+	}
+	with_ext.append($('<option></option>').val("1").html("external relay is conneced").prop('selected', with_sel));
+	with_ext.append($('<option></option>').val("0").html("no external relay connected").prop('selected', without_sel));
+	cam_field_wrapper.append(with_ext);
+
+	//////////////// has pwm/neo ///////////////
+	var with_neopwm=$("<select></select>");
+	with_neopwm.css("width", "100%");
+	with_neopwm.css("margin-left", "5px");
+	with_neopwm.attr({
+		"id": "c_"+m_m2m["mid"]+"_with_neopwm",
+		"class":"sidebar_select"
+	});
+	var with_neo_sel=true;
+	var with_pwm_sel=false;
+	var without_sel=false;
+	if(m_m2m["with_neo"]!="1"){
+		with_neo_sel=false;
+		if(m_m2m["with_pwm"]!="1"){
+			with_pwm_sel=false;
+			without_sel=true;
+		} else {
+			with_pwm_sel=true;
+		}
+	}
+	with_neopwm.append($('<option></option>').val("1").html("Neopixel conneced").prop('selected', with_neo_sel));
+	with_neopwm.append($('<option></option>').val("2").html("PWM connected").prop('selected', with_pwm_sel));
+	with_neopwm.append($('<option></option>').val("0").html("no lights connected").prop('selected', without_sel));
+	cam_field_wrapper.append(with_neopwm);
 
 	//////////////// add fps dropdown ////////////////////
 	var fps_select=$("<select></select>");
@@ -3233,7 +3395,15 @@ function cam_entry_button_state(mid,state){
 	var edit = $("#c_"+mid+"_edit");
 	var name_edit = $("#c_"+mid+"_name_edit");
 	var update = $("#c_"+mid+"_update");
+	var with_cam = $("#c_"+mid+"_with_cam");
+	var with_pir = $("#c_"+mid+"_with_pir");
+	var with_neopwm = $("#c_"+mid+"_with_neopwm");
+	var with_ext = $("#c_"+mid+"_with_ext");
 
+	with_ext.hide();
+	with_cam.hide();
+	with_pir.hide();
+	with_neopwm.hide();
 	update.hide();
 	save.hide();
 	discard.hide();
@@ -3250,6 +3420,10 @@ function cam_entry_button_state(mid,state){
 		update.show();
 		name_display.show();
 	} else if(state=="edit"){
+		with_cam.show();
+		with_ext.show();
+		with_pir.show();
+		with_neopwm.show();
 		save.show();
 		discard.show();
 		name_edit.show();
@@ -3571,9 +3745,36 @@ function update_cam_parameter(mid){
 	var alarm_while_stream=$("#"+mid+"_alarm_while_stream_select");
 	var fps=$("#"+mid+"_fps_select");
 	var name_edit=$("#c_"+mid+"_name_edit");
+	var with_cam=$("#c_"+mid+"_with_cam");
+	var with_ext=$("#c_"+mid+"_with_ext");
+	var with_neopwm=$("#c_"+mid+"_with_neopwm");
+	var with_pir=$("#c_"+mid+"_with_pir");
 
-	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length){
-		var cmd_data = { "cmd":"update_cam_parameter", "mid":mid, "area":area.val(), "qual":qual.val(), "alarm_while_stream":alarm_while_stream.val(), "fps":fps.val(), "name":name_edit.val()};
+	var with_neo="1";
+	var with_pwm="0";
+
+	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length && with_neopwm.length){
+		if(with_neopwm.val()=="2"){
+			with_neo="0";
+			with_pwm="1";
+		} else if(with_neopwm.val()=="0"){
+			with_neo="0";
+			with_pwm="0";
+		}
+		var cmd_data = { 
+			"cmd":"update_cam_parameter", 
+			"mid":mid, 
+			"area":area.val(), 
+			"qual":qual.val(), 
+			"alarm_while_stream":alarm_while_stream.val(), 
+			"fps":fps.val(), 
+			"name":name_edit.val(),
+			"with_cam":with_cam.val(),
+			"with_neo":with_neo,
+			"with_pwm":with_pwm,
+			"with_ext":with_ext.val(),
+			"with_pir":with_pir.val()
+		};
 		console.log(cmd_data);
 		con.send(JSON.stringify(cmd_data));
 	}
