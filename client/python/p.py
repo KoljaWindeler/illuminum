@@ -151,6 +151,8 @@ print_out =[]
 print_out.append(poe("v","Verbose","Shows a lot output, like requests etc",0))
 print_out.append(poe("l","Logging","Regular logging",1))
 print_out.append(poe("d","Debug","Debug information",1))
+print_out.append(poe("r","RGB","led dimming information",0))
+print_out.append(poe("t","Trigger","printing changes from the trigger",0))
 
 con=[]
 con.append(0)
