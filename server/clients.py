@@ -47,6 +47,7 @@ class m2m_clients:
 		self.with_pwm = "0"					# pwm suuport (monochrome)
 		self.with_pir = "0"					# is motione detection supported
 		self.with_cam = "0"					# is a camera attached
+		self.with_ext = "0"					# is a relay attached
 
 # dies ist der WEBSOCKET client
 class ws_clients:
