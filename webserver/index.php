@@ -11,12 +11,12 @@ exec('ps -ax|grep "python3" | grep "main.py"| grep -v "grep"',$output,$return_va
 if(!empty($output[0])){	// python serer is running add everything
 	$extra_header='
 		<script src="https://maps.googleapis.com/maps/api/js"></script>
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 		<script src="js/md5.js"></script>
-		<script src="js/wsjq.js"></script>
-		<script src="js/jquery-ui.js"></script>
 		<script src="js/jquery.ui.touch-punch.min.js"></script>
 		<script src="js/fancyBox/jquery.fancybox.pack.js"></script>
+		<script src="js/wsjq.js"></script>
 
 		<link rel="stylesheet" href="css/jquery-ui.css"/>
 		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
