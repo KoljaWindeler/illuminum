@@ -427,7 +427,7 @@ def recv_m2m_msg_handle(data,m2m):
 
 		############## M2M CMD ############# unsupported command, for M2M
 		else:
-			p.rint("unsupported command: "+str(enc.get("cmd")),"d")
+			p.rint("unsupported m2m command: "+str(enc.get("cmd")),"d")
 
 		############### CONNECTION ##### send good ack
 		if(enc.get("ack",0)!=0):
@@ -675,7 +675,7 @@ def recv_ws_msg_handle(data,ws):
 
 		############## WS CMD ############# unsupported cmd, for WS
 		else:
-			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported command: "+enc.get("cmd")+ " from "+str(ws.login),"d")
+			p.rint("[A ws  "+time.strftime("%H:%M:%S")+"] unsupported ws command: "+enc.get("cmd")+ " from "+str(ws.login),"d")
 #******************************************************#
 #******************************************************#
 # and here again: the main loop will call us to check if there is a message to send back
