@@ -424,6 +424,9 @@ def recv_m2m_msg_handle(data,m2m):
 			else:
 				p.rint2("M2M "+m2m.alias+" update alias failed!","d","A_ws")
 
+		############## M2M CMD ############# response from the m2m that the external pin was toggled, ignore it for now ##
+		elif(enc.get("cmd")=="toggle_external_pin"):
+			ignore = 1
 
 		############## M2M CMD ############# unsupported command, for M2M
 		else:
