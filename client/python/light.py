@@ -24,6 +24,7 @@ class led:
 		self.o_rd = 0		# place to save the old red (in 0-255), used to run "return_to_old()"
 		self.o_gd = 0		# place to save the old green (in 0-255), used to run "return_to_old()"
 		self.o_bd = 0		# place to save the old blue (in 0-255), used to run "return_to_old()"
+		self.o_lifetime = 0	# placeholder until when this color is valid
 
 		self.c_rd = 0		# place to save the current red (in 0-100),
 		self.c_gd = 0		# place to save the current green (in 0-100)
@@ -173,7 +174,14 @@ class illumination(threading.Thread):
 
 	#******************************************************#
 	def return_to_old(self,ms):
-		self.dimm_to(self.l.o_rd,self.l.o_gd,self.l.o_bd,ms)
+		if(self.l.o_lifetime>time.time()):
+			p.rint("LIGHT return_to_old, goto backup color cause lifetime is "+str(self.l.o_lifetime-time.time()),"r")
+			self.add_q_entry(time.time(),self.l.o_rd,self.l.o_gd,self.l.o_bd,ms)	# first move back to old color as it is still valid
+			self.add_q_entry(self.l.o_lifetime,0,0,0,ms)				# remember to turn off at some point
+		else:
+			p.rint("LIGHT return_to_old, goto 0/0/0 lifetime is over","r")
+			self.add_q_entry(time.time(),0,0,0,ms)					# return to nothing, as the old color is not valid, turn off
+
 	#******************************************************#
 	def dimm_to(self,r,g,b,ms):
 		p.rint("LIGHT, dimming to "+str(r)+"/"+str(g)+"/"+str(b),"r")
@@ -229,10 +237,20 @@ class illumination(threading.Thread):
 		self.light_dimming_q.append((when,r,g,b,duration_ms))
 		return 0
 	#******************************************************#
-	def set_old_color(self,r,g,b,):
+	def set_color(self,r,g,b):
+		self.l.d_r=r
+		self.l.d_g=g
+		self.l.d_b=b
+	#******************************************************#
+	def get_color(self):
+		return((self.l.d_r,self.l.d_g,self.l.d_b))
+	#******************************************************#
+	def set_old_color(self,r,g,b,lifetime):
+		p.rint("LIGHT setting old color "+str(r)+"/"+str(g)+"/"+str(b)+" in "+str(lifetime-time.time())+" sec","r")
 		self.l.o_rd=r
 		self.l.o_gd=g
 		self.l.o_bd=b
+		self.l.o_lifetime = lifetime
 	#******************************************************#
 #####################################################
 
@@ -261,8 +279,8 @@ def restart(config):
 		#rint("runner was NOT alive, running start")
 		start(config)
 
-def set_old_color(r,g,b,):
-	runner.set_old_color(r,g,b)
+def set_old_color(r,g,b,lifetime):
+	runner.set_old_color(r,g,b, lifetime) # lifetime is a timestamp
 
 def add_q_entry(when,r,g,b,duration_ms):
 	p.rint("LIGHT, add_q_entry: setting color "+str(r)+"/"+str(g)+"/"+str(b)+" in "+str(when-time.time())+" sec from now","r")
@@ -276,3 +294,16 @@ def dimm_to(r,g,b,ms):
 
 def return_to_old(ms):
 	runner.return_to_old(ms)
+
+def set_color(r,g,b):
+	runner.set_color(r,g,b)
+
+def get_delay_off():
+	delay_off = 5*60 # usually 5 min
+	off_time = get_time()+delay_off
+	if(off_time > 22*60*60 or (off_time%86400) < 6*60*60): # switch off after 22h and before 6
+		delay_off = 0
+	return delay_off
+
+def get_time():
+	return time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]

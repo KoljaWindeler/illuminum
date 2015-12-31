@@ -162,27 +162,26 @@ def trigger_handle(event, data):
 			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
 				light.add_q_entry(time.time(), light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b, 4000) # 4 sec to dimm to default color - now
 			else:
-				light.set_old_color(light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b) # set the color to which we return as soon as the webfeed is closed
+				(r,g,b) = light.runner.get_color()
+				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
 		elif(_detection == 0 and _state == 0): # deactive and no motion
-			delay_off = 5*60 # usually 5 min
-			off_time = get_time()+delay_off
-			if(off_time > 22*60*60 or (off_time%86400) < 6*60*60): # switch off after 22h and before 6
-				delay_off = 0
 			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time()+delay_off, 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
+				light.add_q_entry(time.time()+light.get_delay_off(), 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
 			else:
-				light.set_old_color(0, 0, 0) # set the color to which we return as soon as the webfeed is closed
-			#rint("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+delay_off)))).strftime('%y_%m_%d %H:%M:%S')))
+				(r,g,b) = light.runner.get_color()
+				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
+			#rint("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+light.get_delay_off())))).strftime('%y_%m_%d %H:%M:%S')))
 		elif(_detection == 1 and _state == 1): # alarm, go red, now
 			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
 				light.add_q_entry(time.time(), 100, 0, 0, 4000)
 			else:
-				light.set_old_color(100, 0, 0)# set the color to which we return as soon as the webfeed is closed
+				light.set_old_color(100, 0, 0,time.time()+light.get_delay_off())# set the color to which we return as soon as the webfeed is closed
 		elif(_detection == 1 and _state == 0): # off while nobody is there
 			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
 				light.add_q_entry(time.time(), 0, 0, 0, 4000)
 			else:
-				light.set_old_color(0, 0, 0) # set the color to which we return as soon as the webfeed is closed
+				(r,g,b) = light.runner.get_color()
+				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
 		##### light dimming #########
 
 		##### camera picture upload #########
@@ -207,11 +206,6 @@ def trigger_handle(event, data):
 		##### set the gpio pins #####
 
 #******************************************************#
-#******************************************************#
-def get_time():
-	return time.localtime()[3]*3600+time.localtime()[4]*60+time.localtime()[5]
-#******************************************************#
-
 
 #******************************************************#
 def upload_picture(_con, res):
@@ -465,6 +459,7 @@ def parse_incoming_msg(con):
 				r = enc.get("r", 0)
 				g = enc.get("g", 0)
 				b = enc.get("b", 0)
+				light.set_color(r,g,b)
 				light.add_q_entry(time.time(), r, g, b, 500) # 4 sec to dimm to warm orange - now
 
 			elif(enc.get("cmd") == "set_interval"):
@@ -484,8 +479,11 @@ def parse_incoming_msg(con):
 					cam.alarm_while_streaming = 0
 ######### SPY MODE #########
 				if(enc.get("interval",0)>0):
+					(r,g,b) = light.runner.get_color()
+					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
 					light.add_q_entry(time.time(),0,255,0,1000) # 4 sec to dimm to off - in 10 min from now
 				else:
+					print("setting to -1,-1,-1")
 					light.add_q_entry(time.time(),-1,-1,-1,1000) # 4 sec to dimm to off - in 10 min from now
 ######### SPY MODE #########
 			elif(enc.get("cmd") == "register"):
