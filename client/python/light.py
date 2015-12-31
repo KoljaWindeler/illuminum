@@ -302,7 +302,7 @@ def get_delay_off():
 	delay_off = 5*60 # usually 5 min
 	off_time = get_time()+delay_off
 	if(off_time > 22*60*60 or (off_time%86400) < 6*60*60): # switch off after 22h and before 6
-		delay_off = 0
+		delay_off = 30 # just 30 sec
 	return delay_off
 
 def get_time():
