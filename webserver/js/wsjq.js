@@ -2236,21 +2236,21 @@ function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with
 		hide_liveview(mid,true);
 		hide_setupcontrol(mid);
 	} else { // box is online, maybe just a "motion -> no motion" change
-		if(with_cam==1){
+		if(lv.is(":visible") && lt.is(":visible")){
 			lv.removeClass("button_deactivated");
 			lv.removeClass("live_sym_not_available");
 			lv.addClass("live_sym"); // jquery will check for duplicates
 			lt.removeClass("sym_text_not_available");
 		}
 
-		if(with_ext==1){
+		if(ev.is(":visible") && et.is(":visible")){
 			ev.removeClass("button_deactivated");
 			ev.removeClass("extension_sym_not_available");
 			ev.addClass("extension_sym"); // jquery will check for duplicates
 			et.removeClass("extension_text_not_available");
 		}
 
-		if(with_pwm==1 || with_neo==1){
+		if(cv.is(":visible") && ct.is(":visible")){
 			cv.removeClass("button_deactivated");
 			cv.removeClass("color_sym_not_available");
 			cv.addClass("color_sym"); // jquery checks for duplicates
