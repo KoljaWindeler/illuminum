@@ -41,6 +41,7 @@ class led:
 LED_DEBUG=0
 neo_support=1
 pwm_support=1
+i2c_support=1
 
 # import neopixel if posible
 try:
@@ -52,11 +53,16 @@ try:
 	import wiringpi2 as wiringpi 
 except:
 	pwm_supoort=0
+# import i2c if posible
+try:
+	import quick2wire.i2c as i2c
+except:
+	i2c_supoort=0
 
 
 #####################################################
 class illumination(threading.Thread):
-	def __init__(self,pwm_support,neo_support):
+	def __init__(self,pwm_support,neo_support,i2c_support):
 		# LED strip configuration:
 		self.neo_LED_COUNT      = 8      # Number of LED pixels.
 		self.neo_LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
@@ -68,8 +74,10 @@ class illumination(threading.Thread):
 		self.l = led()			# initialize one object of the class LED to have all vars set.
 		self.light_dimming_q=[]
 		self.neo_support = neo_support
+		self.i2c_support = i2c_support
 		self.pwm_support = pwm_support
 		self.neo_loaded=0
+		self.i2c_loaded=0
 		self.alive = False
 
 	#******************************************************#
@@ -101,6 +109,14 @@ class illumination(threading.Thread):
 					p.rint("LIGHT, PWM supported, starting","l")
 					wiringpi.wiringPiSetupPhys()
 					wiringpi.pinMode(12,2)
+				else:
+					p.rint("LIGHT, ERROR PWM not supported","l")
+			elif(self.config.with_i2c and self.i2c_loaded!=1):
+				p.rint("LIGHT, configured with i2c usage","l")
+				if(self.i2c_support):
+					p.rint("LIGHT, i2c supported, starting","l")
+					bus = i2c.I2CMaster(1)
+					self.i2c_loaded = 1
 				else:
 					p.rint("LIGHT, ERROR PWM not supported","l")
 			else:
@@ -157,10 +173,27 @@ class illumination(threading.Thread):
 							for i in range(0,self.neo_LED_COUNT):
 								strip.setPixelColor(i,Color(self.l.c_r,self.l.c_g,self.l.c_b))		# set value
 							strip.show()
+						# neo pixel
 						# pwm controll on pin 12
 						elif(self.config.with_pwm and self.pwm_support):
 							wiringpi.pwmWrite(12, self.l.c_r*4)
-						time.sleep(0.8*self.l.ms_step/1000) 		# we can wait here a little while because we know that nothing will happen for us earlier than that anyway
+						# pwm controll on pin 12
+						# i2c controll
+						elif(self.config.with_i2c and self.i2c_support):
+							try:
+								address = 0x04
+								pin_r = 0x03
+								pin_g = 0x04
+								pin_b = 0x05
+								bus.transaction(i2c.writing_bytes(address, 0x09, pin_r, 0x09, 0x01, 0x09, self.l.c_r))
+								bus.transaction(i2c.writing_bytes(address, 0x09, pin_g, 0x09, 0x01, 0x09, self.l.c_g))
+								bus.transaction(i2c.writing_bytes(address, 0x09, pin_b, 0x09, 0x01, 0x09, self.l.c_b))
+							except:
+								print("LIGHT i2c bus transaction crashed")
+						# i2c controll
+
+						# we can wait here a little while because we know that nothing will happen for us earlier than that anyway
+						time.sleep(0.8*self.l.ms_step/1000) 		
 
 				else:
 					time.sleep(0.01) # sleep to avoid 100% cpu
