@@ -38,6 +38,7 @@ class config:
 	def __init__(self):
 		self.with_cam=0
 		self.with_neo=0
+		self.with_i2c=0
 		self.with_pwm=0
 		self.with_pir=0
 		self.with_ext=0
