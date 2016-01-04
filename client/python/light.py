@@ -57,7 +57,7 @@ except:
 try:
 	import quick2wire.i2c as i2c
 except:
-	i2c_supoort=0
+	i2c_support=0
 
 
 #####################################################
@@ -287,7 +287,7 @@ class illumination(threading.Thread):
 	#******************************************************#
 #####################################################
 
-runner = illumination(pwm_support,neo_support)
+runner = illumination(pwm_support,neo_support,i2c_support)
 t=""
 def start(config):
 	t=threading.Thread(target = runner.run, args = ([config]))
