@@ -280,7 +280,7 @@ def recv_m2m_msg_handle(data,m2m):
 						m2m.fp=""
 				m2m.openfile = enc.get("fn")
 				base_location=str(int(time.time()))+"_"+m2m.mid+"_"+m2m.openfile
-				des_location=upload_dir+base_location
+				des_location=os.path.join(upload_dir,base_location)
 				m2m.fp = open(des_location,'wb')
 				# this is the start of a transmission
 				# a client in ALERT state will send UP TO N pictures, but might be disconnected before he finished.
@@ -839,7 +839,7 @@ def handle_ws_send_alert(enc,ws):
 		if(str(db_account)==str(ws.account)):
 			file_lst=[]
 			for f in db_r3:
-				file_lst.append(upload_dir+f['path'])
+				file_lst.append(os.path.join(upload_dir,f['path']))
 			send_mail.send( "Request pictures for alarm "+str(id), "Bittesehr", files=file_lst, send_to=ws.email,send_from="koljasspam493@gmail.com", server="localhost")		
 		msg["status"]=1
 	else:
@@ -865,7 +865,7 @@ def handle_ws_get_image(enc,ws):
 		msg["width"]=enc.get("width")
 
 		try:
-			img = open(upload_dir+path,'rb')
+			img = open(os.path.join(upload_dir,path),'rb')
 		except:
 			img = open("../webserver/images/filenotfound.jpg",'rb')
 			
