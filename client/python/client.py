@@ -8,6 +8,28 @@ import hashlib, select, trigger, uuid, os, sys, subprocess, pwd
 import light, p
 ###################### import libs #######################
 
+# generate a random password
+#******************************************************#
+def get_pw(size=8, chars=string.ascii_uppercase + string.digits):
+	return ''.join(random.choice(chars) for _ in range(size))
+
+# generate or alter a login file
+#******************************************************#
+def create_login(m2m_mid, m2m_pw):
+	if(m2m_pw==""):
+		m2m_pw=str(get_pw())
+	
+	if(m2m_mid==""):
+		m2m_mid = str(uuid.getnode())
+
+	f_content='class login:\r\n	def __init__(self):\r\n		self.pw="'+m2m_pw+'"\n		self.mid="'+m2m_mid+'"\n'
+
+	file=open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"),"w")
+	file.write(f_content)
+	file.close()
+		
+	return (m2m_mid,m2m_pw)
+
 ###################### try import login #######################
 register_mode=0
 if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"))):
@@ -15,9 +37,21 @@ if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"logi
 	l = login()					# login
 	m2m_pw=l.pw
 	p.rint("STARTUP, login.py found, password loaded","l")
+
+	try: 
+		p.rint("STARTUP, login.py found, mid loaded","l")
+		m2m_mid = l.mid
+	except:
+		p.rint("STARTUP, login.py without mid loaded, create new one","l")
+		(m2m_mid,m2m_pw) = create_login("", m2m_pw)
+
 else:
 	register_mode=1
+	# first time connection, create a password and send it to the server
+	(m2m_mid,m2m_pw) = create_login("", "")
 	p.rint("STARTUP, no login.py found, running in register mode","l")
+
+
 ###################### try import login #######################
 
 ###################### sleep to avoid cpu usage #######################
@@ -195,6 +229,7 @@ def trigger_handle(event, data):
 #******************************************************#
 #******************************************************#
 def upload_picture(_con, res):
+	global m2m_mid
 #	rint(str(time.time())+" --> this is upload_file")
 #	if(STEP_DEBUG):
 #		p.rint("Step 5. this is upload_file with "+str(len(_con.msg_q))+" msg in q")
@@ -222,7 +257,7 @@ def upload_picture(_con, res):
 
 		msg = {}
 		msg["cmd"] = "wf"
-		msg["fn"] = mid+"_"+str(int(time.time()*100) % 10000)+'.jpg'
+		msg["fn"] = m2m_mid+"_"+str(int(time.time()*100) % 10000)+'.jpg'
 		msg["data"] = base64.b64encode(strng).decode('utf-8')
 		msg["sof"] = 0
 		if(i == 0):
@@ -251,7 +286,7 @@ def upload_picture(_con, res):
 
 #******************************************************#
 def connect(con):
-	global register_mode
+	global register_mode, m2m_mid
 	p.rint("--> connecting to illuminum server ...","l")
 	p.set_last_action("connecting")
 
@@ -275,7 +310,7 @@ def connect(con):
 
 	#### prelogin
 	msg = {}
-	msg["mid"] = mid
+	msg["mid"] = m2m_mid
 	msg["cmd"] = "prelogin"
 	con.msg_q.append(msg)
 	#int("sending prelogin request")
@@ -283,15 +318,10 @@ def connect(con):
 	return c_socket
 
 
-# generate a random password
-#******************************************************#
-def get_pw(size=8, chars=string.ascii_uppercase + string.digits):
-	return ''.join(random.choice(chars) for _ in range(size))
-
 # Parse the incoming msg and do something with it
 #******************************************************#
 def parse_incoming_msg(con):
-	global register_mode, m2m_pw
+	global register_mode, m2m_pw, m2m_mid
 	p.set_last_action("start recv")
 	try:
 		data = con.sock.recv(con.max_msg_size)
@@ -372,7 +402,7 @@ def parse_incoming_msg(con):
 				p.rint("<-> hash "+str(v_hash),"l")
 
 				msg = {}
-				msg["mid"] = mid
+				msg["mid"] = m2m_mid
 				msg["client_pw"] = pw_c
 				msg["cmd"] = "login"
 				msg["state"] = trigger.r.s.state
@@ -384,14 +414,6 @@ def parse_incoming_msg(con):
 				con.msg_q.append(msg)
 
 			elif(enc.get("cmd") == "prelogin" and register_mode==1):
-
-				# first time connection, create a password and send it to the server
-				m2m_pw=str(get_pw())
-				f_content='class login:\r\n	def __init__(self):\r\n		self.pw="'+m2m_pw+'"\n'
-
-				file=open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"),"w")
-				file.write(f_content)
-				file.close()
 				# try to get cam name from raspimjpeg config file
 				alias="SecretCam"
 				if(os.path.isfile(os.path.join(os.path.dirname(os.path.realpath(__file__)),"../gpucam/annotation.config"))):
@@ -415,10 +437,10 @@ def parse_incoming_msg(con):
 				ws_pw_ch_enc = h.hexdigest()
 
 				msg = {}
-				msg["mid"] = mid
+				msg["mid"] = m2m_mid
 				msg["login"] = ws_login
 				msg["password"] = ws_pw_ch_enc
-				msg["m2m_pw"]=m2m_pw
+				msg["m2m_pw"] = m2m_pw
 				msg["cmd"] = "register"
 				msg["alias"] = alias
 				con.msg_q.append(msg)
@@ -490,7 +512,7 @@ def parse_incoming_msg(con):
 					p.rint("<-- registration was not successful, status: "+str(enc.get("ok"))+". Starting over","l")
 
 				msg = {}
-				msg["mid"] = mid
+				msg["mid"] = m2m_mid
 				msg["cmd"] = "prelogin"
 				con.msg_q.append(msg)
 	
@@ -542,7 +564,7 @@ def parse_incoming_msg(con):
 				p.rint("<-> version request received from server, returning "+str(v_hash),"l")
 
 				msg = {}
-				msg["mid"] = mid
+				msg["mid"] = m2m_mid
 				msg["cmd"] = enc.get("cmd")
 				msg["v_short"] = v_short
 				msg["v_hash"] = v_hash
@@ -572,7 +594,7 @@ def parse_incoming_msg(con):
 
 
 				msg = {}
-				msg["mid"] = mid
+				msg["mid"] = m2m_mid
 				msg["cmd"] = enc.get("cmd")
 				msg["v_short"] = v_short
 				msg["v_hash"] = v_hash
@@ -598,7 +620,7 @@ def parse_incoming_msg(con):
 				gpio.output(gpio.PIN_USER,state)
 
 				msg = {}
-				msg["mid"] = mid
+				msg["mid"] = m2m_mid
 				msg["cmd"] = enc.get("cmd")
 				msg["ok"] = "1"
 				con.msg_q.append(msg)
@@ -608,7 +630,7 @@ def parse_incoming_msg(con):
 				alias = enc.get("alias","-")
 				p.rint("<-- Trying to set a new name: "+str(alias),"l")
 				msg = {}
-				msg["mid"] = mid
+				msg["mid"] = m2m_mid
 				msg["cmd"] = enc.get("cmd")
 				msg["ok"] = "-1"
 			
@@ -666,8 +688,6 @@ TIMING_DEBUG = 1
 
 #start pin config
 gpio.setup()
-
-mid = str(uuid.getnode())
 
 p.rint("STARTUP, creating webcam","l")
 cam = WebCam() 				# webcam
