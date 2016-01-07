@@ -1,8 +1,6 @@
 import subprocess
 import threading
 import time
-import RPi.GPIO as GPIO
-#import importlib
 import p
 
 class led:
