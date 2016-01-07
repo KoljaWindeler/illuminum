@@ -1,6 +1,6 @@
 ###################### import libs #######################
 import OpenSSL
-import RPi.GPIO as GPIO
+from u_gpio import u_gpio
 import socket
 import time
 import json, base64, datetime, string, random
@@ -93,27 +93,13 @@ class Debugging:
 		self.active_since_ts = 0
 		self.frames_uploaded_since_active = 0
 		self.last_pic_taken_ts = 0
+		self.estimated_fps = 0
 ###################### debugging #######################
 
 ###################### koljas cams are running on ro-filesystems #######################
 def rw(): #remounts the filesystem read-write
 	subprocess.Popen(["mount","-o","remount,rw", "/"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 ###################### koljas cams are running on ro-filesystems #######################
-
-#******************************************************#
-def pin_config():
-	GPIO.setwarnings(False)
-	GPIO.setmode(GPIO.BOARD)
-
-	GPIO.setup(PIN_MOVEMENT, GPIO.OUT)
-	GPIO.setup(PIN_DETECTION, GPIO.OUT)
-	GPIO.setup(PIN_USER, GPIO.OUT)
-	GPIO.setup(PIN_CAM, GPIO.OUT)
-
-	GPIO.output(PIN_MOVEMENT,0)
-	GPIO.output(PIN_DETECTION,0)
-	GPIO.output(PIN_USER,0)
-	GPIO.output(PIN_CAM,0)
 
 #******************************************************#
 def trigger_handle(event, data):
@@ -198,16 +184,15 @@ def trigger_handle(event, data):
 		g_state = 0
 		if(_state > 0):
 			g_state = 1
-		GPIO.output(PIN_MOVEMENT,g_state)
+		gpio.set(gpio.PIN_MOVEMENT,g_state)
 
 		g_detection = 0
 		if(_detection > 0):
 			g_detection = 1
-		GPIO.output(PIN_DETECTION,g_detection)
+		gpio.set(gpio.PIN_DETECTION,g_detection)
 		##### set the gpio pins #####
 
 #******************************************************#
-
 #******************************************************#
 def upload_picture(_con, res):
 #	rint(str(time.time())+" --> this is upload_file")
@@ -352,6 +337,11 @@ def parse_incoming_msg(con):
 					for ele in con.unacknowledged_msg:
 						if(ele[0] == enc.get("cmd", 0)): # find the right entry
 							con.unacknowledged_msg.remove(ele)
+							if(time.time()-d.last_pic_taken_ts<15):
+								if(d.estimated_fps==0):
+									d.estimated_fps = 1/(time.time()-d.last_pic_taken_ts)
+								else:
+									d.estimated_fps = 0.75 * d.estimated_fps + 0.25 / (time.time()-d.last_pic_taken_ts)
 							break
 					#rint("comm wait dec at "+str(time.time())+" --> "+str(len(con.unacknowledged_msg)))
 				# recalc timestamp
@@ -466,11 +456,11 @@ def parse_incoming_msg(con):
 			elif(enc.get("cmd") == "set_interval"):
 				if(enc.get("interval", 0) == 0):
 					cam.webview_active = 0
-					GPIO.output(PIN_CAM,0)
+					gpio.set(gpio.PIN_CAM,0)
 					p.rint("<-- switching webcam off","l")
 				else:
 					cam.webview_active = 1
-					GPIO.output(PIN_CAM,1)
+					gpio.set(gpio.PIN_CAM,1)
 					p.rint("<-- switching webcam on","l")
 				cam.interval = (enc.get("interval", 0))
 				cam.quality = (enc.get("qual", "HD"))
@@ -484,7 +474,6 @@ def parse_incoming_msg(con):
 					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
 					light.add_q_entry(time.time(),0,255,0,1000) # 4 sec to dimm to off - in 10 min from now
 				else:
-					print("setting to -1,-1,-1")
 					light.add_q_entry(time.time(),-1,-1,-1,1000) # 4 sec to dimm to off - in 10 min from now
 ######### SPY MODE #########
 			elif(enc.get("cmd") == "register"):
@@ -530,7 +519,7 @@ def parse_incoming_msg(con):
 				
 				if(config.with_pir != old_with_pir):
 					p.rint("=== (re)start trigger, as configuration has changed","l")
-					trigger.restart(config)
+					trigger.restart(config,gpio)
 
 
 			# get the git version
@@ -585,7 +574,7 @@ def parse_incoming_msg(con):
 				if(str(enc.get("state",0))=="1"):
 					state = 1
 				p.rint("<-- switching external pin to "+str(state),"l")
-				GPIO.output(PIN_USER,state)
+				gpio.output(gpio.PIN_USER,state)
 
 				msg = {}
 				msg["mid"] = mid
@@ -647,18 +636,15 @@ SEC_VERSION="20151229"
 
 
 config = config()
-
+gpio = u_gpio()
 
 p.rint("STARTUP, settings pins","l")
 # init objects and vars
 STEP_DEBUG = 0
 TIMING_DEBUG = 1
-PIN_MOVEMENT = 11
-PIN_DETECTION = 13
-PIN_USER = 15
-PIN_CAM = 16
+
 #start pin config
-pin_config()
+gpio.setup()
 
 mid = str(uuid.getnode())
 
@@ -757,10 +743,33 @@ while 1:
 
 				send_msg = json.dumps(msg)
 				send_msg_enc = send_msg.encode("UTF-8")
+
+
+				if(msg.get("cmd", " ") == "wf"):
+					if(msg.get("eof", 0) == 1):
+						if(TIMING_DEBUG):
+							if(time.time()-d.last_pic_taken_ts > 15):
+								d.active_since_ts = 0
+								d.estimated_fps = 0
+								p.rint("reset fps","d")
+
+							d.last_pic_taken_ts = time.time()
+							d.frames_uploaded_since_active = d.frames_uploaded_since_active+1
+
+							if(d.active_since_ts == 0):
+								d.active_since_ts = time.time()
+								d.frames_uploaded_since_active = 0
+							else:
+								p.rint("uploading frame at "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+" fps estimating "+str(d.estimated_fps),"d")
+
+#								rint("Uploaded "+str(d.frames_uploaded_since_active)+" Frames in "+str((time.time()-d.active_since_ts))+" this is "+str(d.frames_uploaded_since_active*25/(time.time()-d.active_since_ts))+"kBps or "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+"fps")
+#							rint("\r\n\r\n")
+
+
 				try:
 					#rint("Wait to send at ",end="")
 					#rint(time.time(),end="")
-					con.sock.sendall(send_msg)
+					con.sock.sendall(send_msg_enc)
 					#rint(" sent " at ",end="")
 					#rint(time.time())
 				except:
@@ -777,23 +786,6 @@ while 1:
 					#rint("increased con.unacknowledged_msg to "+str(len(con.unacknowledged_msg))+" entries for cmd "+msg["cmd"])
 
 				#rint("message send")
-				if(msg.get("cmd", " ") == "wf"):
-					if(msg.get("eof", 0) == 1):
-						if(TIMING_DEBUG):
-							if(time.time()-d.last_pic_taken_ts > 15):
-								d.active_since_ts = 0
-								p.rint("reset fps","d")
-
-							d.last_pic_taken_ts = time.time()
-							d.frames_uploaded_since_active = d.frames_uploaded_since_active+1
-
-							if(d.active_since_ts == 0):
-								d.active_since_ts = time.time()
-								d.frames_uploaded_since_active = 0
-							else:
-								p.rint("uploading frame at "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+" fps","d")
-#								rint("Uploaded "+str(d.frames_uploaded_since_active)+" Frames in "+str((time.time()-d.active_since_ts))+" this is "+str(d.frames_uploaded_since_active*25/(time.time()-d.active_since_ts))+"kBps or "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+"fps")
-#							rint("\r\n\r\n")
 
 
 		############## at this point we consider to upload a picture #####################
@@ -809,7 +801,6 @@ while 1:
 
 		############## free us if there is a lost packet #####################
 		if(len(con.unacknowledged_msg) > 0 and con.logged_in == 1):
-			b.set() # busy, avoid cpu sleep
 			if(len(con.msg_q) > 0 and con.ack_request_ts != 0 and con.ack_request_ts+con.server_timeout < time.time()):
 				p.rint("ERROR server did not send ack","l")
 				con.unacknowledged_msg = []
