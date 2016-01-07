@@ -1,4 +1,3 @@
-import RPi.GPIO as GPIO
 import time
 import threading
 import p
@@ -33,7 +32,7 @@ class runner(threading.Thread):
 		self.s = Sensor()	# initialize one object of the class LED to have all vars set.
 
 
-	def run(self,config):
+	def run(self,config,gpio):
 		self.alive = True
 		try:
 			# sensor offline
@@ -43,19 +42,17 @@ class runner(threading.Thread):
 
 			# basic config 
 			busy=1
-			GPIO.setmode(GPIO.BOARD)
-			GPIO.setup(7, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 			p.rint("TRIGGER: thread started","l")
 			while self.alive:
 		
 				# cpu spacing
 				if(busy==0):
-					time.sleep(0.01)
+					time.sleep(0.1)
 				busy=0
 
 				# try to get the pin state
 				try:
-					gpio_state=GPIO.input(7)
+					gpio_state=gpio.get(gpio.PIN_PIR)
 				except:
 					p.rint("TRIGGER: Trouble reading GPIO, trying to reconfigure","d")
 					break
@@ -97,17 +94,17 @@ class runner(threading.Thread):
 #******************************************************#
 r = runner()
 
-def start(config):
-	threading.Thread(target = r.run, args = ([config]) ).start()
+def start(config,gpio):
+	threading.Thread(target = r.run, args = ([config,gpio]) ).start()
 
 def stop():
 	r.stop()
 	while(not(r.is_stop)):
 		time.sleep(0.1)
 
-def restart(config):
+def restart(config,gpio):
 	stop()
-	start(config)
+	start(config,gpio)
 
 def set_detection(_detection):
 	r.s.set_detection(_detection)
