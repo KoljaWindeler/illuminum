@@ -8,6 +8,11 @@ import hashlib, select, trigger, uuid, os, sys, subprocess, pwd
 import light, p
 ###################### import libs #######################
 
+###################### koljas cams are running on ro-filesystems #######################
+def rw(): #remounts the filesystem read-write
+	subprocess.Popen(["mount","-o","remount,rw", "/"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+###################### koljas cams are running on ro-filesystems #######################
+
 # generate a random password
 #******************************************************#
 def get_pw(size=8, chars=string.ascii_uppercase + string.digits):
@@ -23,7 +28,8 @@ def create_login(m2m_mid, m2m_pw):
 		m2m_mid = str(uuid.getnode())
 
 	f_content='class login:\r\n	def __init__(self):\r\n		self.pw="'+m2m_pw+'"\n		self.mid="'+m2m_mid+'"\n'
-
+	
+	rw()
 	file=open(os.path.join(os.path.dirname(os.path.realpath(__file__)),"login.py"),"w")
 	file.write(f_content)
 	file.close()
@@ -129,11 +135,6 @@ class Debugging:
 		self.last_pic_taken_ts = 0
 		self.estimated_fps = 0
 ###################### debugging #######################
-
-###################### koljas cams are running on ro-filesystems #######################
-def rw(): #remounts the filesystem read-write
-	subprocess.Popen(["mount","-o","remount,rw", "/"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
-###################### koljas cams are running on ro-filesystems #######################
 
 #******************************************************#
 def trigger_handle(event, data):
