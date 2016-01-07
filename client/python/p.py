@@ -153,6 +153,7 @@ print_out.append(poe("l","Logging","Regular logging",1))
 print_out.append(poe("d","Debug","Debug information",1))
 print_out.append(poe("r","RGB","led dimming information",0))
 print_out.append(poe("t","Trigger","printing changes from the trigger",0))
+print_out.append(poe("g","GPIO","printing IO info",1))
 
 con=[]
 con.append(0)
