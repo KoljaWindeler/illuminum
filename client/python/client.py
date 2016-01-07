@@ -618,7 +618,7 @@ def parse_incoming_msg(con):
 				if(str(enc.get("state",0))=="1"):
 					state = 1
 				p.rint("<-- switching external pin to "+str(state),"l")
-				gpio.output(gpio.PIN_USER,state)
+				gpio.set(gpio.PIN_USER,state)
 
 				msg = {}
 				msg["mid"] = m2m_mid
