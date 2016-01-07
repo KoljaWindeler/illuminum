@@ -4,7 +4,7 @@ from u_gpio import u_gpio
 import socket
 import time
 import json, base64, datetime, string, random
-import hashlib, select, trigger, uuid, os, sys, subprocess
+import hashlib, select, trigger, uuid, os, sys, subprocess, pwd
 import light, p
 ###################### import libs #######################
 
@@ -363,7 +363,13 @@ def parse_incoming_msg(con):
 				#rint("result="+pw_c)
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				v_sec=SEC_VERSION
-				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				#check if there is a user pi
+				try: 
+					pwd.getpwnam('pi')
+					v_hash=str(subprocess.Popen(["sudo","-u","pi", "git", "--git-dir", path, "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				except:
+					v_hash=str(subprocess.Popen(["sudo", "git", "--git-dir", path, "log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				p.rint("<-> hash "+str(v_hash),"l")
 
 				msg = {}
 				msg["mid"] = mid
@@ -525,9 +531,14 @@ def parse_incoming_msg(con):
 			# get the git version
 			elif(enc.get("cmd") == "get_version"):
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
-				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-
+				try: 
+					pwd.getpwnam('pi')
+					v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+					v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				except:
+					v_short=str(subprocess.Popen(["sudo", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+					v_hash=str(subprocess.Popen(["sudo", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+	
 				p.rint("<-> version request received from server, returning "+str(v_hash),"l")
 
 				msg = {}
@@ -544,11 +555,21 @@ def parse_incoming_msg(con):
 				rw() 
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				# run the update
-				result=subprocess.Popen(["sudo","-u","pi", "git", "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+				try: 
+					pwd.getpwnam('pi')
+					result=subprocess.Popen(["sudo","-u","pi", "git", "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
+				except:
+					result=subprocess.Popen(["sudo", "git", "pull"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()
 				ret_res=result[0].decode().replace("\n","")
 				# get new version
-				v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
-				v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				try: 
+					pwd.getpwnam('pi')
+					v_short=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+					v_hash=str(subprocess.Popen(["sudo","-u","pi", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+				except:
+					v_short=str(subprocess.Popen(["sudo" "git","--git-dir", path, "rev-list", "HEAD", "--count"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
+					v_hash=str(subprocess.Popen(["sudo", "git","--git-dir", path,"log", "--pretty=format:%h", "-n", "1"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+
 
 				msg = {}
 				msg["mid"] = mid
