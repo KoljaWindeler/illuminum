@@ -16,6 +16,10 @@ uint16_t width=1280;
 uint16_t height=720;
 uint8_t quality=80;
 uint8_t fps=5;
+//uint16_t width=640;
+//uint16_t height=480;
+//uint8_t quality=80;
+//uint8_t fps = 15;
 #define CAPTURE_PROTO "illuminum %02d:%02d:%02d:%03d"	// max 54 chars
 
 
@@ -113,6 +117,7 @@ int setup_cam(int fd){
 				break;
 			}
 		} else {
+			printf("oho non discrete fps mode");
 			if(1.0*frmival.stepwise.max.denominator/frmival.stepwise.max.numerator+0.1*frmival.stepwise.min.denominator/frmival.stepwise.min.numerator==fps){
 				// frame rate found
 				found=true;
@@ -160,10 +165,13 @@ int setup_cam(int fd){
 		"  Width: %d\n"
 		"  Height: %d\n"
 		"  PixFmt: %s\n"
+		"  FPS: %i/%i\n"
 		"  Field: %d\n",
 		fmt.fmt.pix.width,
 		fmt.fmt.pix.height,
 		fourcc,
+		frmival.discrete.denominator,
+		frmival.discrete.numerator,
 		fmt.fmt.pix.field
 	);
 	printf( "== Configure cam done ==\n");
@@ -203,43 +211,38 @@ int init_mmap(int fd){
 }
 
 // called by the loop to actually grab the frames
-int capture_image(int fd,CvFont *font, int *set_quality, IplImage* frame,CvMat *cvmat,char *capture_title){
-	struct v4l2_buffer buf = {0};
-	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	buf.memory = V4L2_MEMORY_MMAP;
-	buf.index = 0;
-	if(-1 == xioctl(fd, VIDIOC_QBUF, &buf)){
+int capture_image(int fd,CvFont *font, int *set_quality, IplImage* frame,CvMat *cvmat,char *capture_title,v4l2_buffer *buf){
+
+	// request a new frame
+	if(-1 == xioctl(fd, VIDIOC_QBUF, buf)){
 		perror("Query Buffer");
 		return 1;
 	}
 
-	if(-1 == xioctl(fd, VIDIOC_STREAMON, &buf.type)){
-		perror("Start Capture");
-		return 1;
-	}
-
+	// wait up to 2 sec for a new frame to arive
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(fd, &fds);
 	struct timeval tv = {0};
 	tv.tv_sec = 2;
-
 	int r = select(fd+1, &fds, NULL, NULL, &tv);
 	if(-1 == r){
 		perror("Waiting for Frame");
 		return 1;
 	}
-	if(-1 == xioctl(fd, VIDIOC_DQBUF, &buf)){
+
+	// read it
+	if(-1 == xioctl(fd, VIDIOC_DQBUF, buf)){
 		perror("Retrieving Frame");
 		return 1;
 	}
-	
+
 	// convert v4l2 buffer to opencv image
 	*cvmat = cvMat(height, width, CV_8UC3, (void*)buffer);
 	frame = cvDecodeImage(cvmat, 1);
-	
-	// add title
-	gettimeofday(&tv, NULL);	
+
+	// add title, reused tv from select-wait
+	gettimeofday(&tv, NULL);
 	time_t secs = time(0);
 	struct tm *local = localtime(&secs);
 	sprintf(capture_title, CAPTURE_PROTO, local->tm_hour, local->tm_min, local->tm_sec, (int)((unsigned long long)(tv.tv_usec) / 1000)%1000);
@@ -247,22 +250,22 @@ int capture_image(int fd,CvFont *font, int *set_quality, IplImage* frame,CvMat *
 	cvPutText(frame, capture_title, cvPoint(22, 22), font, cvScalar(0,0,0,0));
 	cvPutText(frame, capture_title, cvPoint(24, 24), font, cvScalar(200,200,200,0));
 
-	// save to disk
+	// save to disk ... well RAM
 	cvSaveImage("/dev/shm/mjpeg/cam_full.part.jpg", frame, set_quality);
 	rename("/dev/shm/mjpeg/cam_full.part.jpg","/dev/shm/mjpeg/cam_full.jpg");
-	
+
 	// important to avoid mem leakage
-	cvReleaseImage(&frame); 
+	cvReleaseImage(&frame);
 
 	return 0;
 }
- 
+
 int main(){
 	// prepare some info outside the loop
 	int fd;
 	CvFont font;
 	cvInitFont(&font, CV_FONT_HERSHEY_SIMPLEX, 0.7, 0.7, 0, 2); // 0 shear, 3 px wide
-	
+
 	int set_quality[3] = {CV_IMWRITE_JPEG_QUALITY, quality,  0};
 	char capture_title[55];
 	IplImage* frame;
@@ -280,11 +283,21 @@ int main(){
 	if(init_mmap(fd)){
 		return 1;
 	}
-	
+
+	// define buffer and activate streaming on the cam
+	struct v4l2_buffer buf = {0};
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+	buf.index = 0;
+	if(-1 == xioctl(fd, VIDIOC_STREAMON, &buf.type)){
+		perror("Start Capture");
+		return 1;
+	}
+
   	//for(int i=0; i<100; i++){
 	/// run forever
 	while(1){
-		if(capture_image(fd,&font,set_quality,frame,&cvmat,capture_title)){
+		if(capture_image(fd,&font,set_quality,frame,&cvmat,capture_title,&buf)){
 			return 1;
 		}
 	}
