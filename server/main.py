@@ -359,6 +359,7 @@ def recv_m2m_msg_handle(data,m2m):
 						msg["webcam_countdown"]=v.ws.webcam_countdown
 						msg_q_ws.append((msg,v.ws))
 					elif(v.ws.webcam_countdown<1):
+						p.rint("countdows 1","u")
 						set_webcam_con(m2m.mid,0,v.ws) # disconnect the webcam from us						
 					else:
 						p.rint("skipping "+str(v.ws.login)+": "+str(t_passed)+" / "+str(v.ws.snd_q_len),"u")

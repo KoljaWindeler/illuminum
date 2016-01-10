@@ -218,7 +218,9 @@ def ws_login(ws):
 def change_state(m2m,viewer):
 	p_alias=(m2m.alias+"          ")[0:12]
 	p_account=(m2m.account+"          ")[0:10]
-	p_state=(str(m2m_state[m2m.state])+"                  ")[0:5]
+	p_state=("-1                           ")[0:5]
+	if(m2m.state<len(m2m_state)):
+		p_state=(str(m2m_state[m2m.state])+"                  ")[0:5]
 	rint(bcolors.OKGREEN+"[A_m2m "+time.strftime("%H:%M:%S")+"] '"+m2m.mid+"' / '"+p_alias+"' @ '"+p_account+"' changed state to: '"+p_state+"', detection: '"+str(det_state[m2m.detection])+"' (->"+str(viewer)+" ws_clients)"+bcolors.ENDC,"s")
 
 def connect_ws_m2m(m2m,ws):
@@ -269,7 +271,9 @@ def show_m2m(id,l,m2m):
 			p_detection=(det_state[m2m.detection]+"           ")[0:9]
 		else:
 			p_detection=(str(m2m.detection)+"                  ")[0:9]
-		p_state=(m2m_state[int(m2m.state)]+"                   ")[0:13]
+		p_state=("-1                           ")[0:13]
+		if(m2m.state<len(m2m_state)):
+			p_state=(m2m_state[int(m2m.state)]+"                   ")[0:13]
 		output=p_mid+"/"+p_alias+" | "+p_account+" | "+str(p_detection)+" | "+(p_state)+" | "+str(p_ip)+" | "+str(m2m.logged_in)+"    | "
 		output+=p_last_seen+" | "+p_area+" | "+str(m2m.v_short)+"/"+str(m2m.v_hash)+"/"+str(m2m.v_sec)
 		print(bcolors.WARNING+output+bcolors.ENDC)
