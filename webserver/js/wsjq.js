@@ -368,9 +368,9 @@ function show_liveview_img(msg_dec){
 	};
 
 	// handle countdown
-	if(msg_dec["webcam_countdown"]<10){
+	if(msg_dec["webcam_countdown"]<90){
 		var cmd_data = { "cmd":"reset_webcam_countdown"};
-		//console.log(JSON.stringify(cmd_data));
+		console.log(JSON.stringify(cmd_data));
 		con.send(JSON.stringify(cmd_data)); 		
 	}
 };
