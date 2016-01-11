@@ -313,7 +313,7 @@ int init_mmap(int fd){
 }
 
 // called by the loop to actually grab the frames
-int capture_image(int fd,CvFont *font, int *set_quality, IplImage* frame,CvMat *cvmat,char *capture_title,v4l2_buffer *buf){
+int capture_image(int fd,CvFont *font, int *set_quality, IplImage* frame,CvMat *cvmat,char *capture_title,v4l2_buffer *buf, uint32_t *start_time, uint32_t *image_count){
 
 	// request a new frame
 	if(-1 == xioctl(fd, VIDIOC_QBUF, buf)){
@@ -348,7 +348,9 @@ int capture_image(int fd,CvFont *font, int *set_quality, IplImage* frame,CvMat *
 	time_t secs = time(0);
 	struct tm *local = localtime(&secs);
 	sprintf(capture_title, CAPTURE_PROTO, local->tm_hour, local->tm_min, local->tm_sec, (int)((unsigned long long)(tv.tv_usec) / 1000)%1000);
-	printf("%s\r\n",capture_title);
+
+	(*image_count)++;
+	printf("%s @ %2.2f fps\n",capture_title, round((float)(*image_count)*100/(time(0)-(*start_time)))/100 );
 	cvPutText(frame, capture_title, cvPoint(22, 22), font, cvScalar(0,0,0,0));
 	cvPutText(frame, capture_title, cvPoint(24, 24), font, cvScalar(200,200,200,0));
 
@@ -451,10 +453,14 @@ int main(int argc, char* argv[]){
 		return 1;
 	}
 
+	// loop fps measurement
+	uint32_t start_time = time(0);
+	uint32_t image_count = 0;
+
   	//for(int i=0; i<100; i++){
 	/// run forever
 	while(1){
-		if(capture_image(fd,&font,set_quality,frame,&cvmat,capture_title,&buf)){
+		if(capture_image(fd,&font,set_quality,frame,&cvmat,capture_title,&buf,&start_time,&image_count)){
 			return 1;
 		}
 	}
