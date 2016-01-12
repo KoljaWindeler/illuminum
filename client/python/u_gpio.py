@@ -1,26 +1,27 @@
 import time
 import p
+import subprocess
 
-rpi_support  = 1
-fsys_support = 1
+rpi_support  = 0
+fsys_support = 0
 
-# import rpi gpio if posible
-try:
-	import RPi.GPIO as GPIO
-except:
-	rpi_support = 0
+cpu = str(subprocess.Popen(["cat", "/proc/cpuinfo"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+cpu = "".join(cpu)
 
-# import fsys for CHIP if posible
-# XIO-P0   408    13
-# XIO-P1   409    14
-# XIO-P2   410    15
-# XIO-P3   411    16
-# XIO-P4   412    17
-# XIO-P5   413    18
-# XIO-P6   414    19
-# XIO-P7   415    20
-if(rpi_support):
-	fsys_support = 0
+# check platform to see what we can expect
+if(cpu.find("Allwinner")>-1):
+	# import fsys for CHIP if posible
+	p.rint("Allwinner CPU found, running fsys mode","g")
+	fsys_support = 1
+elif(cpu.find("BCM27")>-1):
+	# import rpi gpio if posible
+	p.rint("Raspberry CPU found, try to import GPIO lib","g")
+	try:
+		import RPi.GPIO as GPIO
+		rpi_support = 1
+	except:
+		rpi_support = 0
+
 
 
 class u_gpio:
@@ -52,6 +53,15 @@ class u_gpio:
 
 		elif(fsys_support):
 			p.rint("configuring fsys pins","g")
+
+			# XIO-P0   408    13
+			# XIO-P1   409    14
+			# XIO-P2   410    15
+			# XIO-P3   411    16
+			# XIO-P4   412    17
+			# XIO-P5   413    18
+			# XIO-P6   414    19
+			# XIO-P7   415    20
 
 			self.PIN_PIR 		= 408
 			self.PIN_MOVEMENT 	= 409	
