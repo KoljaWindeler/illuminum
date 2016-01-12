@@ -372,7 +372,7 @@ def parse_incoming_msg(con):
 								if(d.estimated_fps==0):
 									d.estimated_fps = 1/(time.time()-d.last_pic_taken_ts)
 								else:
-									d.estimated_fps = 0.75 * d.estimated_fps + 0.25 / (time.time()-d.last_pic_taken_ts)
+									d.estimated_fps = 0.90 * d.estimated_fps + 0.10 / (time.time()-d.last_pic_taken_ts)
 							break
 					#rint("comm wait dec at "+str(time.time())+" --> "+str(len(con.unacknowledged_msg)))
 				# recalc timestamp
@@ -802,7 +802,7 @@ while 1:
 								d.active_since_ts = time.time()
 								d.frames_uploaded_since_active = 0
 							else:
-								p.rint("uploading frame at "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+" fps estimating "+str(d.estimated_fps),"d")
+								p.rint("uploading at "+str(int(100*d.frames_uploaded_since_active/(time.time()-d.active_since_ts))/100)+" fps estimating "+str(int(100*d.estimated_fps)/100),"d")
 
 #								rint("Uploaded "+str(d.frames_uploaded_since_active)+" Frames in "+str((time.time()-d.active_since_ts))+" this is "+str(d.frames_uploaded_since_active*25/(time.time()-d.active_since_ts))+"kBps or "+str(d.frames_uploaded_since_active/(time.time()-d.active_since_ts))+"fps")
 #							rint("\r\n\r\n")
