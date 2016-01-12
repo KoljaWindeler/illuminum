@@ -10,7 +10,27 @@ def subscribe_callback(fun):
 	else:
 		callback.append(fun)
 #******************************************************#
+#******************************************************#
+class bcolors:
+	HEADER = '\033[95m'
+	OKBLUE = '\033[94m'
+	OKGREEN = '\033[92m'
+	WARNING = '\033[93m'
+	FAIL = '\033[91m'
 
+	RED = '\033[91m'
+	CYAN = '\033[96m'
+	WHITE = '\033[97m'
+	YELLOW = '\033[93m'
+	MAGENTA = '\033[95m'
+	GREY = '\033[90m'
+	BLACK = '\033[90m'
+	DEFAULT = '\033[99m'
+
+	ENDC = '\033[0m'
+	BOLD = '\033[1m'
+	UNDERLINE = '\033[4m'
+#******************************************************#
 class poe:
 	def __init__(self,s,n,d,state):
 		self.shortcut =s  	# e.g. U
@@ -116,7 +136,60 @@ def rint(input,sc):
 	except:
 		ignore=1
 
+def rint2(input, sc, snd="", color=0):
+	try:
+		found=0
+		for a in print_out:
+			if(a.shortcut==sc):
+				found=1
+				##### prepare print and log #####
+				# color
+				c_in=""
+				c_out=""
+				if(color!=0):
+					c_in=color
+					c_out=bcolors.ENDC
+				# shortcut
+				shortcut="("+str(sc)+")"
+				# timestamp
+				timestamp_s = time.strftime("%H:%M:%S")
+				timestamp_l = time.strftime("%H:%M:%S")
+				# sender
+				sender="" 
+				if(snd!=""):
+					sender=(str(snd)+"     ")[0:5]+" "
 
+				# print it if active
+				if(a.state==1): 
+					# assemble
+					text = c_in+shortcut+"["+sender+timestamp_s+"] "+input+c_out
+					print(text)
+
+				# log it in each case		
+				# assemble
+				text = shortcut+"["+sender+timestamp_l+"] "+input+"\r\n"
+				with open("log.txt", "a") as log_file:
+					log_file.write(text)
+					log_file.close()
+    				
+					
+		if(not(found)):
+			print("didn't recogice shortcut '"+sc+"'")
+	except:
+		ignore=1
+
+def warn(input):
+	try:
+		rint2("==============================================","e","WARN",bcolors.WARNING)
+		rint2(input,"e","WARN",bcolors.WARNING)
+		input_log="["+time.strftime("%Y_%m_%d")+"] "+input+"\r\n"
+		with open("err.txt", "a") as log_file:
+			log_file.write(input_log)
+			log_file.close()
+		rint2("==============================================","e","WARN",bcolors.WARNING)
+    									
+	except:
+		ignore=1
 
 
 def show_status():
@@ -154,6 +227,7 @@ print_out.append(poe("d","Debug","Debug information",1))
 print_out.append(poe("r","RGB","led dimming information",0))
 print_out.append(poe("t","Trigger","printing changes from the trigger",0))
 print_out.append(poe("g","GPIO","printing IO info",0))
+print_out.append(poe("e","ERROR","Errors and warnings",1))
 
 con=[]
 con.append(0)
