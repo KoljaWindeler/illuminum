@@ -12,7 +12,7 @@ aptitude update
 echo "====================================================="
 echo "========= 2. Installing required packages ==========="
 echo "====================================================="
-aptitude install screen build-essential python3-dev git scons swig python3-openssl python-setuptools
+aptitude install screen build-essential python3-dev git scons swig python3-openssl python3-setuptools
 
 
 echo "====================================================="
