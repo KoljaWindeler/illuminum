@@ -18,6 +18,7 @@ elif(cpu.find("BCM27")>-1):
 	p.rint("Raspberry CPU found, try to import GPIO lib","g")
 	try:
 		import RPi.GPIO as GPIO
+		p.rint("GPIO lib found and loaded","g")
 		rpi_support = 1
 	except:
 		rpi_support = 0
