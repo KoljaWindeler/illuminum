@@ -425,10 +425,19 @@ def recv_m2m_msg_handle(data,m2m):
 			else:
 				p.rint2("M2M "+m2m.alias+" update alias failed!","d","A_ws")
 
-		############## M2M CMD ############# response from the m2m that the external pin was toggled, ignore it for now ##
+		############## M2M CMD ############# response from the m2m that the external pin was toggled,forward it ##
 		elif(enc.get("cmd")=="toggle_external_pin"):
-			ignore = 1
+			msg={}
+			msg["cmd"]=enc.get("cmd")
+			msg["mid"]=m2m.mid
+			msg["ok"]=0
+			msg["state"]=m2m.external_state
 
+			p.rint2("M2M "+m2m.alias+" responds to pin update.","d","A")
+
+			# send a message to al listeners
+			for l in m2m.m2v:
+				msg_q_ws.append((msg,l))
 		############## M2M CMD ############# unsupported command, for M2M
 		else:
 			p.rint("unsupported m2m command: "+str(enc.get("cmd")),"d")
@@ -448,7 +457,7 @@ def recv_m2m_msg_handle(data,m2m):
 	else:
 		p.err("JSON decode on m2m message error!")
 		msg={}
-		msg["cmd"]=enc.get("cmd")
+		#msg["cmd"]=enc.get("cmd")
 		msg["ok"]=-1 #comm error
 		msg_q_m2m.append((msg,m2m))
 #******************************************************#
@@ -1075,37 +1084,19 @@ def handle_ws_git_update(enc,ws):
 
 ########### HANDLE ws toggle pin ################
 def handle_ws_toggle_external_pin(enc,ws):
-	mid=enc.get("mid","0")
-
-	msg={}
-	msg["cmd"]=enc.get("cmd")
-	msg["mid"]=mid
-	msg["ok"]=-1
-	state=0
-
 	# search the right cam, based on the MID and account
 	for cam in server_m2m.clients:
 		if(enc.get("mid")==cam.mid and cam.account==ws.account):
 			cam.external_state=int(not(cam.external_state))
-			state=cam.external_state
-			msg["ok"]=0
-			msg["state"]=state
 
 			# send msg to m2m
 			msg2={}
 			msg2["cmd"]=enc.get("cmd")
-			msg2["state"]=state
+			msg2["state"]=cam.external_state
 			msg_q_m2m.append((msg2,cam))
 
-			# send a message to al listeners
-			for l in cam.m2v:
-				msg_q_ws.append((msg,l))
-			break
-
-	# send the message once more, in case we couldn't find the m2m
-	msg_q_ws.append((msg,ws))			
-	db.update_external_state(mid,state)
-	p.rint2("User '"+str(ws.login)+"' asked to toggle the pin '"+str(mid)+"'","d","A ws")
+			db.update_external_state(enc.get("mid"),cam.external_state)
+	p.rint2("User '"+str(ws.login)+"' asked to toggle the pin '"+str(enc.get("mid"))+"'","d","A ws")
 ########### HANDLE ws toggle pin ################
 
 ########### HANDLE ws set override ws ################
