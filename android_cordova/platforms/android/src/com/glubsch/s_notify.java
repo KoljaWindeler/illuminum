@@ -101,6 +101,7 @@ public class s_notify {
                 .setAutoCancel(true)
                 //.setVibrate(new long[]{1000, 1000, 1000, 1000, 1000, 1000})
                 //.setPriority(Notification.PRIORITY_HIGH)
+                .setDefaults(Notification.DEFAULT_ALL)
                 .setContentTitle(title)
                 .setContentText(short_text)
                 .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(picture).setSummaryText(short_text));
