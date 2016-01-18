@@ -1280,14 +1280,12 @@ def handle_ws_login(enc,ws):
 	global db
 	msg_ws={}
 	msg_ws["cmd"]=enc.get("cmd")
-	# data base has to give us this values
-	ws.login=enc.get("login")
 			
 	# data base has to give us this values based on login
-	db_r=db.get_ws_data(ws.login)
+	db_r=db.get_ws_data(enc.get("login"))
 	if(type(db_r) is int): #user not found results in return -1 or so
 		#rint("db error")
-		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(ws.login)+"' not found in DB, log-in: failed","l")
+		p.rint("[A_ws  "+time.strftime("%H:%M:%S")+"] '"+str(enc.get("login"))+"' not found in DB, log-in: failed","l")
 		msg_ws["ok"]=-3 # not logged in
 		msg_q_ws.append((msg_ws,ws))
 	else:
@@ -1305,6 +1303,7 @@ def handle_ws_login(enc,ws):
 			msg_q_ws.append((msg_ws,ws))
 		
 			# add socket infos
+			ws.login=db_r["login"]
 			ws.logged_in=1
 			ws.account=db_r["account"]
 			ws.email=db_r["email"]
@@ -1386,7 +1385,7 @@ def handle_ws_login(enc,ws):
 				ip=ws.ip
 			except:
 				ip="???"
-			p.rint2("log-in from "+str(ip)+" failed for login '"+str(ws.login)+"', password not correct","l","A_ws", p.bcolors.WARNING)
+			p.rint2("log-in from "+str(ip)+" failed for login '"+str(enc.get("login"))+"', password not correct","l","A_ws", p.bcolors.WARNING)
 			msg_ws["ok"]=-2 # not logged in
 			msg_q_ws.append((msg_ws,ws))
 ########### HANDLE ws login ################

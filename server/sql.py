@@ -96,20 +96,20 @@ class sql:
 			with self.connection.cursor() as cursor:
 				# Read a single record
 				#rint("get_data gen req:")
-				req = "SELECT COUNT(*) FROM ws WHERE login=%s"
-				cursor.execute(req, str(login))
+				req = "SELECT COUNT(*) FROM ws WHERE login=%s or email=%s"
+				cursor.execute(req, (str(login), str(login)))
 				result_c = cursor.fetchone()
 				#rint(result)
 				#rint(result)
 				if(result_c["COUNT(*)"] == 1):
-					req = "SELECT  pw, account, email FROM ws WHERE login=%s"
+					req = "SELECT  pw, account, email, login FROM ws WHERE login=%s or email=%s"
 					#rint(req)
-					cursor.execute(req, str(login))
+					cursor.execute(req, (str(login), str(login)))
 					#rint("setting result to ")
 					result = cursor.fetchone()
 				else:
 					result = -1
-					p.rint("count not 1, it is "+result_c["COUNT(*)"], "d")
+					p.rint("count not 1, it is "+str(result_c["COUNT(*)"]), "d")
 					p.rint(req, "d")
 				#rint(result)
 		except:
