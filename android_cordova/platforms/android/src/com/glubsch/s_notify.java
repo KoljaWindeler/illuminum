@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
@@ -28,7 +29,7 @@ public class s_notify {
     private SharedPreferences mSettings;
     private String area_of_last_alert = "";
     private String time_of_last_alert = "";
-    private String mVersion = "1.44";
+    private String mVersion = "1.48";
     private String lastTitle="";
     private String lastAreaText="";
 
@@ -69,7 +70,7 @@ public class s_notify {
     }
 
 
-    public void showNotification(String title, String short_text, String long_text) {
+    public void showNotification(String title, String short_text, String long_text, boolean vibration) {
         //Log.e("Not","running showNotifcation");
         if (last_picture == null) {
             String login = mSettings.getString("LOGIN", MainActivity.nongoodlogin);
@@ -88,23 +89,44 @@ public class s_notify {
                             //.setContentInfo("shor first line, right")
                     .setContentText(short_text)
                     .setStyle(new NotificationCompat.BigTextStyle().bigText(long_text)); //.setSummaryText(short_text+"3"));this will be shown if you pull down the menu
+            if(vibration){
+                mNotificationBuilder.setLights(Color.BLUE, 500, 500);
+                long[] pattern = {500,500,500,500,500,500,500,500,500};
+                mNotificationBuilder.setVibrate(pattern);
+                mNotificationBuilder.setDefaults(Notification.DEFAULT_SOUND);
+            } else {
+                mNotificationBuilder.setDefaults(0);
+                mNotificationBuilder.setSound(null);
+                mNotificationBuilder.setVibrate(null);
+                mNotificationBuilder.setLights(Color.BLUE, 0, 0);
+            }
             displayNotification();
         } else {
             String Message = "Alert at " + area_of_last_alert + " " + time_of_last_alert + "! " + short_text + ".";
-            showNotification(title, Message, last_picture);
+            showNotification(title, Message, last_picture, vibration);
         }
     }
 
-    public void showNotification(String title, String short_text, Bitmap picture) {
+    public void showNotification(String title, String short_text, Bitmap picture, boolean vibration) {
         lastTitle=title;
         mNotificationBuilder
-                .setAutoCancel(true)
+                .setAutoCancel(false) // will avoid dismiss the notification once the touched it
                 //.setVibrate(new long[]{1000, 1000, 1000, 1000, 1000, 1000})
                 //.setPriority(Notification.PRIORITY_HIGH)
-                .setDefaults(Notification.DEFAULT_ALL)
                 .setContentTitle(title)
                 .setContentText(short_text)
                 .setStyle(new NotificationCompat.BigPictureStyle().bigPicture(picture).setSummaryText(short_text));
+        if(vibration){
+            mNotificationBuilder.setLights(Color.BLUE, 500, 500);
+            long[] pattern = {500,500,500,500,500,500,500,500,500};
+            mNotificationBuilder.setVibrate(pattern);
+            mNotificationBuilder.setDefaults(Notification.DEFAULT_SOUND);
+        } else {
+            mNotificationBuilder.setDefaults(0);
+            mNotificationBuilder.setSound(null);
+            mNotificationBuilder.setVibrate(null);
+            mNotificationBuilder.setLights(Color.BLUE,0,0);
+        }
         displayNotification();
     }
 

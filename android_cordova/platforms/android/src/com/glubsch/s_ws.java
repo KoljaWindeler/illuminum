@@ -128,7 +128,7 @@ public class s_ws implements WebSocketConnectionObserver {
         mConnected = false;
         mLoggedIn = false;
         ((bg_service)mContext).resetLocation();
-        mNofity.showNotification(mContext.getString(R.string.app_name), "disconnected", "");
+        mNofity.showNotification(mContext.getString(R.string.app_name), "disconnected", "", false);
 
         mWakeup.stop_pinging(mContext);
 
@@ -284,7 +284,7 @@ public class s_ws implements WebSocketConnectionObserver {
                 }
 
                 // show notification
-                mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
+                mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas),false);
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
@@ -311,7 +311,7 @@ public class s_ws implements WebSocketConnectionObserver {
                         break;
                     }
                 }
-                mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas));
+                mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas),false);
             }
 
             //////////////////////////////////////////////////////////////////////////////////////
@@ -329,7 +329,7 @@ public class s_ws implements WebSocketConnectionObserver {
                     mNofity.set_image(BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length)); // todo: we need a kind of, if app has started reset picture to null
                     mNofity.set_time();
                     // show notification
-                    //mNofity.showNotification(mContext.getString(R.string.app_name)+" read file", mNofity.Notification_text_builder(false, areas), "");
+                    mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,areas), mNofity.Notification_text_builder(true, areas),true);
                 }
             }
 

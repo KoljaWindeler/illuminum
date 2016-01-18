@@ -305,7 +305,7 @@ public class bg_service extends Service {
         // execute the reconnect NOW
         if (recreate) {
             try {
-                mNofity.showNotification(getString(R.string.app_name), "connecting..", "");
+                mNofity.showNotification(getString(R.string.app_name), "connecting..", "",false);
                 mDebug.write_to_file("bg_service, onstart: state is 'not connected', try to reconnect");
                 mWs.createWebSocket(); // create and connected to a new websockets, reuse is forbidden
             } catch (Exception ex) {
@@ -398,7 +398,7 @@ public class bg_service extends Service {
             try{
                 if(intent!=null && intent.getExtras() != null){
                     mNofity.last_picture=null;
-                    mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,mWs.areas), mNofity.Notification_text_builder(true, mWs.areas));
+                    mNofity.showNotification(mContext.getString(R.string.app_name), mNofity.Notification_text_builder(false,mWs.areas), mNofity.Notification_text_builder(true, mWs.areas),false);
                 }
             } catch (Exception ex){
 
