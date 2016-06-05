@@ -77,17 +77,10 @@ class CPUsaver:
 class config:
 	def __init__(self):
 		self.with_cam=0
-		self.with_neo=0
-		self.with_i2c=0
-		self.with_pwm=0
+		self.with_lights=0
 		self.with_pir=0
 		self.with_ext=0
 
-	def check(self):
-		if(self.with_neo and self.with_pwm):
-			p.rint("STARTUP, pwm AND neo activated but only one possible","l")
-			p.rint("STARTUP, falling back to neo support","l")
-			self.with_pwm=0
 
 ###################### config properties #######################
 
@@ -528,22 +521,18 @@ def parse_incoming_msg(con):
 
 				# save old parameter
 				old_with_cam = config.with_cam
-				old_with_neo = config.with_neo
-				old_with_pwm = config.with_pwm
-				old_with_i2c = config.with_i2c
+				old_with_lights = config.with_lights
 				old_with_ext = config.with_ext
 				old_with_pir = config.with_pir
 
 				# save new parameter
 				config.with_pir = int(enc.get("with_pir", "0"))
-				config.with_neo = int(enc.get("with_neo", "0"))
-				config.with_pwm = int(enc.get("with_pwm", "0"))
-				config.with_i2c = int(enc.get("with_i2c", "0"))
+				config.with_lights = int(enc.get("with_lights", "0"))
 				config.with_ext = int(enc.get("with_ext", "0"))
 				config.with_cam = int(enc.get("with_cam", "0"))
 
 				# re-starting the light and trigger with new parameter, if different
-				if(config.with_neo != old_with_neo or config.with_pwm != old_with_pwm or config.with_i2c != old_with_i2c):
+				if(config.with_lights != old_with_lights):
 					p.rint("=== (re)start light, as configuration has changed","l")
 					light.restart(config)
 					time.sleep(1)
