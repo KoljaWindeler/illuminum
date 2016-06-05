@@ -109,14 +109,14 @@ class illumination(threading.Thread):
 					wiringpi.pinMode(12,2)
 				else:
 					p.rint("LIGHT, ERROR PWM not supported","l")
-			elif(str(self.config.with_lights) == "3"  and self.i2c_loaded!=1):
+			elif(str(self.config.with_lights) == "3"):
 				p.rint("LIGHT, configured with i2c usage","l")
-				if(self.i2c_support):
+				if(self.i2c_support and self.i2c_loaded!=1):
 					p.rint("LIGHT, i2c supported, starting","l")
 					bus = i2c.I2CMaster(1)
 					self.i2c_loaded = 1
 				else:
-					p.rint("LIGHT, ERROR PWM not supported","l")
+					p.rint("LIGHT, ERROR i2c not supported","l")
 			else:
 				p.rint("LIGHT, started without pwm and neo and i2c","l")
 				p.rint("LIGHT, selection was "+str(self.config.with_lights),"l")
