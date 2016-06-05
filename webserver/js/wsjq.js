@@ -147,8 +147,7 @@ function parse_msg(msg_dec){
 			msg_dec["rm"],
 			msg_dec["alarm_ws"],
 			msg_dec["with_cam"],
-			msg_dec["with_pwm"],
-			msg_dec["with_neo"],
+			msg_dec["with_lights"],
 			msg_dec["with_pir"],
 			msg_dec["with_ext"]
 		);
@@ -1259,7 +1258,7 @@ function check_append_m2m(msg_dec){
 	wb.append(wl);
 	m2m_header_button.append(wb);
 	// m2m has no color control
-	if(parseInt(msg_dec["with_pwm"])!=1 && parseInt(msg_dec["with_neo"])!=1){
+	if(parseInt(msg_dec["with_lights"])==0){
 		wb.hide();
 	}
 	// m2m has color control
@@ -1457,7 +1456,7 @@ function check_append_m2m(msg_dec){
 	scroller.append(createRainbowDiv(0));
 	scroller.addClass("setup_controll_color");
 	// hide the scroller if no neo pixel and no pwm support
-	if(parseInt(msg_dec["with_neo"])!=1 && parseInt(msg_dec["with_pwm"])!=1){
+	if(parseInt(msg_dec["with_lights"])==0){
 		scroller.hide();
 	}
 	setupcontrol.append(scroller);
@@ -1482,7 +1481,7 @@ function check_append_m2m(msg_dec){
 			};
 		}()});
 	// hide the scroller if no neo pixel and no pwm support
-	if(parseInt(msg_dec["with_neo"])!=1 && parseInt(msg_dec["with_pwm"])!=1){
+	if(parseInt(msg_dec["with_lights"])==0){
 		scroller.hide();
 	}
 	setupcontrol.append(scroller);
@@ -2117,12 +2116,11 @@ function update_hb(mid,ts){
 // why: 	 update GUI
 /////////////////////////////////////////// UNSET //////////////////////////////////////////
 
-function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with_pwm,with_neo,with_pir,with_ext){
-	 if(typeof with_neo !== "undefined") {	with_neo=parseInt(with_neo);	};
-	 if(typeof with_pwm !== "undefined") {	with_pwm=parseInt(with_neo);	};
-	 if(typeof with_cam !== "undefined") {	with_cam=parseInt(with_neo);	};
-	 if(typeof with_pir !== "undefined") {	with_pir=parseInt(with_pir);	};
-	 if(typeof with_ext !== "undefined") {	with_ext=parseInt(with_ext);	};
+function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with_lights,with_pir,with_ext){
+	 if(typeof with_lights !== "undefined") {	with_lights=parseInt(with_lights);	};
+	 if(typeof with_cam !== "undefined") 	{	with_cam=parseInt(with_neo);	};
+	 if(typeof with_pir !== "undefined") 	{	with_pir=parseInt(with_pir);	};
+	 if(typeof with_ext !== "undefined") 	{	with_ext=parseInt(with_ext);	};
 	//console.log("running update state on "+mid+"/"+state+"/"+rm);
 
 	// set the rulemanager text explainaition for the complete area
@@ -2530,21 +2528,22 @@ function add_camera_entry(m_m2m,field){
 		"id": "c_"+m_m2m["mid"]+"_with_neopwm",
 		"class":"sidebar_select"
 	});
-	var with_neo_sel=true;
+	var with_neo_sel=false;
 	var with_pwm_sel=false;
 	var without_sel=false;
-	if(m_m2m["with_neo"]!="1"){
-		with_neo_sel=false;
-		if(m_m2m["with_pwm"]!="1"){
-			with_pwm_sel=false;
-			without_sel=true;
-		} else {
-			with_pwm_sel=true;
-		}
+	var with_i2c_sel=false;
+	if(m_m2m["with_lights"]=="0"){
+		without_sel=true;
+	else if(m_m2m["with_lights"]=="1"){
+		with_neo_sel=true;
+	else if(m_m2m["with_lights"]=="2"){
+		with_pwm_sel=true;
+	else if(m_m2m["with_lights"]=="3"){
+		with_i2c_sel=true;
 	}
 	with_neopwm.append($('<option></option>').val("1").html("Neopixel conneced").prop('selected', with_neo_sel));
 	with_neopwm.append($('<option></option>').val("2").html("PWM connected").prop('selected', with_pwm_sel));
-	with_neopwm.append($('<option></option>').val("3").html("I2C connected").prop('selected', with_pwm_sel));
+	with_neopwm.append($('<option></option>').val("3").html("I2C connected").prop('selected', with_i2c_sel));
 	with_neopwm.append($('<option></option>').val("0").html("no lights connected").prop('selected', without_sel));
 	cam_field_wrapper.append(with_neopwm);
 
@@ -3750,9 +3749,6 @@ function update_cam_parameter(mid){
 	var with_ext=$("#c_"+mid+"_with_ext");
 	var with_neopwm=$("#c_"+mid+"_with_neopwm");
 	var with_pir=$("#c_"+mid+"_with_pir");
-
-	var with_neo="1";
-	var with_pwm="0";
 
 	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length && with_neopwm.length){
 		var cmd_data = { 
