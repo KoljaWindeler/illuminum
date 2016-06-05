@@ -53,7 +53,7 @@ except:
 	pwm_support=0
 # import i2c if posible
 try:
-	import quick2wire.i2c as i2c
+	import arduino_bridge
 except:
 	i2c_support=0
 
@@ -113,7 +113,11 @@ class illumination(threading.Thread):
 				p.rint("LIGHT, configured with i2c usage","l")
 				if(self.i2c_support and self.i2c_loaded!=1):
 					p.rint("LIGHT, i2c supported, starting","l")
-					bus = i2c.I2CMaster(1)
+					salsa = arduino_bridge.connection()
+					salsa.setup_pwm_output(0)
+					salsa.setup_pwm_output(1)
+					salsa.setup_pwm_output(2)
+					salsa.setup_pwm_output(3)
 					self.i2c_loaded = 1
 				elif(self.i2c_loaded == 1):
 					p.rint("LIGHT, i2c already loaded","l")
@@ -182,6 +186,7 @@ class illumination(threading.Thread):
 						# i2c controll
 						elif(str(self.config.with_lights) == "3" and self.i2c_support):
 							try:
+								print(str(self.l.c_b))
 								address = 0x04
 								pin_r = 0x03
 								pin_g = 0x04
@@ -189,6 +194,11 @@ class illumination(threading.Thread):
 								bus.transaction(i2c.writing_bytes(address, 0x09, pin_r, 0x09, 0x01, 0x09, self.l.c_r))
 								bus.transaction(i2c.writing_bytes(address, 0x09, pin_g, 0x09, 0x01, 0x09, self.l.c_g))
 								bus.transaction(i2c.writing_bytes(address, 0x09, pin_b, 0x09, 0x01, 0x09, self.l.c_b))
+salsa.dimmTo(0,int(self.l.c_r/2.55),10) #  dimming is in %
+salsa.dimmTo(1,int(self.l.c_g/2.55),10) #  dimming is in %
+salsa.dimmTo(2,int(self.l.c_b/2.55),10) #  dimming is in %
+salsa.dimmTo(3,int(self.l.c_b/2.55),10) #  dimming is in %
+
 							except:
 								print("LIGHT i2c bus transaction crashed")
 						# i2c controll
