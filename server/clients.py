@@ -43,8 +43,7 @@ class m2m_clients:
 		self.v_hash = "-"					# hash of git state
 		self.v_sec = "-"					# manual sec key
 		self.external_state = 0					# state of the external pin
-		self.with_neo = "0"					# neo pixel support existing
-		self.with_pwm = "0"					# pwm suuport (monochrome)
+		self.with_lights = "0"					# neo pixel = 1, pwm = 2 , i2c = 3, nothing = 0
 		self.with_pir = "0"					# is motione detection supported
 		self.with_cam = "0"					# is a camera attached
 		self.with_ext = "0"					# is a relay attached
