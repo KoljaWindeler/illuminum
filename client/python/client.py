@@ -530,6 +530,7 @@ def parse_incoming_msg(con):
 				old_with_cam = config.with_cam
 				old_with_neo = config.with_neo
 				old_with_pwm = config.with_pwm
+				old_with_i2c = config.with_i2c
 				old_with_ext = config.with_ext
 				old_with_pir = config.with_pir
 
@@ -537,11 +538,12 @@ def parse_incoming_msg(con):
 				config.with_pir = int(enc.get("with_pir", "0"))
 				config.with_neo = int(enc.get("with_neo", "0"))
 				config.with_pwm = int(enc.get("with_pwm", "0"))
+				config.with_i2c = int(enc.get("with_i2c", "0"))
 				config.with_ext = int(enc.get("with_ext", "0"))
 				config.with_cam = int(enc.get("with_cam", "0"))
 
 				# re-starting the light and trigger with new parameter, if different
-				if(config.with_neo != old_with_neo or config.with_pwm != old_with_pwm):
+				if(config.with_neo != old_with_neo or config.with_pwm != old_with_pwm or config.with_i2c != old_with_i2c):
 					p.rint("=== (re)start light, as configuration has changed","l")
 					light.restart(config)
 					time.sleep(1)

@@ -2544,6 +2544,7 @@ function add_camera_entry(m_m2m,field){
 	}
 	with_neopwm.append($('<option></option>').val("1").html("Neopixel conneced").prop('selected', with_neo_sel));
 	with_neopwm.append($('<option></option>').val("2").html("PWM connected").prop('selected', with_pwm_sel));
+	with_neopwm.append($('<option></option>').val("3").html("I2C connected").prop('selected', with_pwm_sel));
 	with_neopwm.append($('<option></option>').val("0").html("no lights connected").prop('selected', without_sel));
 	cam_field_wrapper.append(with_neopwm);
 
@@ -3754,12 +3755,18 @@ function update_cam_parameter(mid){
 	var with_pwm="0";
 
 	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length && with_neopwm.length){
-		if(with_neopwm.val()=="2"){
+		if(with_neopwm.val()=="3"){
+			with_neo="0";
+			with_pwm="0";
+			with_i2c="1";
+		} else if(with_neopwm.val()=="2"){
 			with_neo="0";
 			with_pwm="1";
+			with_i2c="0";
 		} else if(with_neopwm.val()=="0"){
 			with_neo="0";
 			with_pwm="0";
+			with_i2c="0";
 		}
 		var cmd_data = { 
 			"cmd":"update_cam_parameter", 
@@ -3772,6 +3779,7 @@ function update_cam_parameter(mid){
 			"with_cam":with_cam.val(),
 			"with_neo":with_neo,
 			"with_pwm":with_pwm,
+			"with_i2c":with_i2c,
 			"with_ext":with_ext.val(),
 			"with_pir":with_pir.val()
 		};
