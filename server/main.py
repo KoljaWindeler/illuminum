@@ -1191,13 +1191,12 @@ def handle_update_cam_parameter(enc,ws):
 	in_alarm_ws="1"
 	in_name=enc.get("name")
 	in_cam=enc.get("with_cam","0")
-	in_neo=enc.get("with_neo","0")
-	in_pwm=enc.get("with_pwm","0")
+	in_lights=enc.get("with_lights","0")
 	in_pir=enc.get("with_pir","0")
 	in_ext=enc.get("with_ext","0")
 
 	# outside of loop to update cams that are offline
-	db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name, in_cam, in_neo, in_pwm, in_pir, in_ext)
+	db.update_cam_parameter(in_mid, in_frame_dist, in_resolution, in_alarm_while_stream, in_area, in_alarm_ws, in_name, in_cam, in_lights, in_pir, in_ext)
 
 	# save new parameter
 	found=0
@@ -1209,8 +1208,7 @@ def handle_update_cam_parameter(enc,ws):
 			m2m.frame_dist=in_frame_dist
 			m2m.alarm_ws=in_alarm_ws
 			m2m.with_cam=in_cam
-			m2m.with_neo=in_neo
-			m2m.with_pwm=in_pwm
+			m2m.with_lights=in_lights
 			m2m.with_pir=in_pir
 			m2m.with_ext=in_ext
 
@@ -1235,8 +1233,7 @@ def handle_update_cam_parameter(enc,ws):
 				msg["interval"]=m2m.frame_dist
 				msg["with_cam"]=m2m.with_cam
 				msg["with_pir"]=m2m.with_pir
-				msg["with_pwm"]=m2m.with_pwm
-				msg["with_neo"]=m2m.with_neo
+				msg["with_lights"]=m2m.with_lights
 				msg["with_ext"]=m2m.with_ext
 				msg_q_m2m.append((msg,m2m))
 			break;
@@ -1456,8 +1453,7 @@ def populate_m2m(m2m):
 	m2m.v_short = db_r["v_short"]
 	m2m.external_state = db_r["external_state"]
 	m2m.with_cam = db_r["with_cam"]
-	m2m.with_neo = db_r["with_neo"]
-	m2m.with_pwm = db_r["with_pwm"]
+	m2m.with_lights = db_r["with_lights"]
 	m2m.with_pir = db_r["with_pir"]
 	m2m.with_ext = db_r["with_ext"]
 
@@ -1495,8 +1491,7 @@ def set_m2m_parameter(m2m,enc,db_r,msg):
 	msg2["interval"]=m2m.frame_dist
 	msg2["with_cam"]=m2m.with_cam
 	msg2["with_pir"]=m2m.with_pir
-	msg2["with_pwm"]=m2m.with_pwm
-	msg2["with_neo"]=m2m.with_neo
+	msg2["with_lights"]=m2m.with_lights
 	msg2["with_ext"]=m2m.with_ext
 	msg_q_m2m.append((msg2,m2m))
 
@@ -1588,8 +1583,7 @@ def connect_ws_m2m(m2m,ws,update_m2m=1):
 	msg_ws2["alias"]=m2m.alias
 	msg_ws2["last_seen"]=m2m.last_comm
 	msg_ws2["color_pos"]=m2m.color_pos
-	msg_ws2["with_neo"]=m2m.with_neo
-	msg_ws2["with_pwm"]=m2m.with_pwm
+	msg_ws2["with_lights"]=m2m.with_lights
 	msg_ws2["with_pir"]=m2m.with_pir
 	msg_ws2["with_cam"]=m2m.with_cam
 	msg_ws2["with_ext"]=m2m.with_ext
