@@ -115,6 +115,8 @@ class illumination(threading.Thread):
 					p.rint("LIGHT, i2c supported, starting","l")
 					bus = i2c.I2CMaster(1)
 					self.i2c_loaded = 1
+				elif(self.i2c_loaded == 1):
+					p.rint("LIGHT, i2c already loaded","l")
 				else:
 					p.rint("LIGHT, ERROR i2c not supported","l")
 			else:
