@@ -118,7 +118,8 @@ class illumination(threading.Thread):
 				else:
 					p.rint("LIGHT, ERROR PWM not supported","l")
 			else:
-				p.rint("LIGHT, started without pwm and neo","l")
+				p.rint("LIGHT, started without pwm and neo and i2c","l")
+				p.rint("LIGHT, selection was "+str(self.config.with_lights),"l")
 
 			while self.alive:
 				### ------------ check if we have something to do ------------ ###
