@@ -50,7 +50,7 @@ except:
 try:
 	import wiringpi2 as wiringpi 
 except:
-	pwm_supoort=0
+	pwm_support=0
 # import i2c if posible
 try:
 	import quick2wire.i2c as i2c
