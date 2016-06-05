@@ -3755,19 +3755,6 @@ function update_cam_parameter(mid){
 	var with_pwm="0";
 
 	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length && with_neopwm.length){
-		if(with_neopwm.val()=="3"){
-			with_neo="0";
-			with_pwm="0";
-			with_i2c="1";
-		} else if(with_neopwm.val()=="2"){
-			with_neo="0";
-			with_pwm="1";
-			with_i2c="0";
-		} else if(with_neopwm.val()=="0"){
-			with_neo="0";
-			with_pwm="0";
-			with_i2c="0";
-		}
 		var cmd_data = { 
 			"cmd":"update_cam_parameter", 
 			"mid":mid, 
@@ -3777,9 +3764,7 @@ function update_cam_parameter(mid){
 			"fps":fps.val(), 
 			"name":name_edit.val(),
 			"with_cam":with_cam.val(),
-			"with_neo":with_neo,
-			"with_pwm":with_pwm,
-			"with_i2c":with_i2c,
+			"with_lights":with_neopwm.val(),
 			"with_ext":with_ext.val(),
 			"with_pir":with_pir.val()
 		};
