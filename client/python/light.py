@@ -88,7 +88,7 @@ class illumination(threading.Thread):
 
 
 			# Create NeoPixel object with appropriate configuration.
-			if(self.config.with_neo):
+			if(str(self.config.with_lights) == "1"):
 				p.rint("LIGHT, configured with NEO usage","l")
 				if(self.neo_support and self.neo_loaded!=1):
 					p.rint("LIGHT, neopixel supported, starting","l")
@@ -101,7 +101,7 @@ class illumination(threading.Thread):
 					p.rint("LIGHT, neopixel already loaded","l")
 				else:
 					p.rint("LIGHT, ERROR neopixel not supported","l")
-			elif(self.config.with_pwm):
+			elif(str(self.config.with_lights) == "2"):
 				p.rint("LIGHT, configured with PWM usage","l")
 				if(self.pwm_support):
 					p.rint("LIGHT, PWM supported, starting","l")
@@ -109,7 +109,7 @@ class illumination(threading.Thread):
 					wiringpi.pinMode(12,2)
 				else:
 					p.rint("LIGHT, ERROR PWM not supported","l")
-			elif(self.config.with_i2c and self.i2c_loaded!=1):
+			elif(str(self.config.with_lights) == "3"  and self.i2c_loaded!=1):
 				p.rint("LIGHT, configured with i2c usage","l")
 				if(self.i2c_support):
 					p.rint("LIGHT, i2c supported, starting","l")
@@ -167,17 +167,17 @@ class illumination(threading.Thread):
 						self.l.c_b=max(min(255,self.l.c_b),0)
 
 						# neo pixel
-						if(self.config.with_neo and self.neo_support):
+						if(str(self.config.with_lights) == "1" and self.neo_support):
 							for i in range(0,self.neo_LED_COUNT):
 								strip.setPixelColor(i,Color(self.l.c_r,self.l.c_g,self.l.c_b))		# set value
 							strip.show()
 						# neo pixel
 						# pwm controll on pin 12
-						elif(self.config.with_pwm and self.pwm_support):
+						elif(str(self.config.with_lights) == "2" and self.pwm_support):
 							wiringpi.pwmWrite(12, self.l.c_r*4)
 						# pwm controll on pin 12
 						# i2c controll
-						elif(self.config.with_i2c and self.i2c_support):
+						elif(str(self.config.with_lights) == "3" and self.i2c_support):
 							try:
 								address = 0x04
 								pin_r = 0x03
