@@ -187,17 +187,10 @@ class illumination(threading.Thread):
 						elif(str(self.config.with_lights) == "3" and self.i2c_support):
 							try:
 								print(str(self.l.c_b))
-								address = 0x04
-								pin_r = 0x03
-								pin_g = 0x04
-								pin_b = 0x05
-								bus.transaction(i2c.writing_bytes(address, 0x09, pin_r, 0x09, 0x01, 0x09, self.l.c_r))
-								bus.transaction(i2c.writing_bytes(address, 0x09, pin_g, 0x09, 0x01, 0x09, self.l.c_g))
-								bus.transaction(i2c.writing_bytes(address, 0x09, pin_b, 0x09, 0x01, 0x09, self.l.c_b))
-salsa.dimmTo(0,int(self.l.c_r/2.55),10) #  dimming is in %
-salsa.dimmTo(1,int(self.l.c_g/2.55),10) #  dimming is in %
-salsa.dimmTo(2,int(self.l.c_b/2.55),10) #  dimming is in %
-salsa.dimmTo(3,int(self.l.c_b/2.55),10) #  dimming is in %
+								salsa.dimmTo(0,int(self.l.c_r/2.55),10) #  dimming is in % #R
+								salsa.dimmTo(1,int(self.l.c_g/2.55),10) #  dimming is in % #G
+								salsa.dimmTo(2,int(self.l.c_b/2.55),10) #  dimming is in % #B
+								salsa.dimmTo(3,int(self.l.c_b/2.55),10) #  dimming is in % #B
 
 							except:
 								print("LIGHT i2c bus transaction crashed")
