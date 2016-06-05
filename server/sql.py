@@ -645,6 +645,7 @@ class sql:
 				req = "INSERT INTO `alert`.`m2m` (`mid`, `pw`, `area`, `account`, `alias`) VALUES (%s, %s, %s, %s, %s)"
 				cursor.execute(req, (str(mid), str(m2m_pw), str(area), str(account), str(alias)) )
 			self.connection.commit()
+			self.close()
 			ret = 0
 		except:
 			self.he()
@@ -683,13 +684,14 @@ class sql:
 					
 					self.connection.commit()
 					ret = 0
+			self.close()
 		except:
 			self.he()
 			ret = -1
 
 		return ret
 	#############################################################
-	def update_cam_parameter(self, mid, frame_space, resolution, alarm_while_stream, area, alarm_ws, name, with_cam, with_neo, with_pwm, with_pir, with_ext):
+	def update_cam_parameter(self, mid, frame_space, resolution, alarm_while_stream, area, alarm_ws, name, with_cam, with_lights, with_pir, with_ext):
 		ret = -1
 		try:
 			if(float(frame_space)>0):
@@ -701,10 +703,11 @@ class sql:
 
 				self.connect()
 				with self.connection.cursor() as cursor:
-					req = "UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s, `area` = %s, `alias` = %s, `with_cam` = %s, `with_neo` = %s, `with_pwm` = %s, `with_pir` = %s, `with_ext` = %s  WHERE  `m2m`.`mid` = %s"
+					req = "UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s, `area` = %s, `alias` = %s, `with_cam` = %s, `with_lights` = %s, `with_pir` = %s, `with_ext` = %s  WHERE  `m2m`.`mid` = %s"
 					#rint("UPDATE  `alert`.`m2m` SET  `frame_dist` =  %s, `alarm_ws` =  %s, `alarm_while_streaming` =  %s, `resolution` = %s  WHERE  `m2m`.`mid` = %s" % (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(mid)))
-					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(area), str(name), str(with_cam), str(with_neo), str(with_pwm), str(with_pir), str(with_ext), str(mid)) )
+					cursor.execute(req, (str(frame_space), str(alarm_ws), str(alarm_while_stream), str(resolution), str(area), str(name), str(with_cam), str(with_lights), str(with_pir), str(with_ext), str(mid)) )
 					self.connection.commit()
+				self.close()
 			ret = 0
 		except:
 			self.he()
@@ -730,6 +733,7 @@ class sql:
 					cursor.execute(req, (str(name), str(account), str(latitude), str(longitude)) )
 				self.connection.commit()
 			ret = 0
+			self.close()
 		except:
 			self.he()
 			ret = -1
@@ -764,6 +768,7 @@ class sql:
 					else:
 						ret = -2
 				self.connection.commit()
+			self.close()
 		except:
 			self.he()
 			ret = -1
@@ -779,6 +784,7 @@ class sql:
 				cursor.execute(req, (str(id),) )
 				self.connection.commit()
 			ret = 0
+			self.close()
 		except:
 			self.he()
 			ret = -1
@@ -794,6 +800,7 @@ class sql:
 				cursor.execute(req, (str(id),) )
 				self.connection.commit()
 			ret = 0
+			self.close()
 		except:
 			self.he()
 			ret = -1
@@ -809,6 +816,7 @@ class sql:
 				cursor.execute(req, (str(mid),str(account)) )
 				self.connection.commit()
 			ret = 0
+			self.close()
 		except:
 			self.he()
 			ret = -1
@@ -823,6 +831,7 @@ class sql:
 				cursor.execute(req, (str(v_short), str(v_hash), str(mid)) )
 				self.connection.commit()
 			ret = 0
+			self.close()
 		except:
 			self.he()
 			ret = -1
@@ -844,6 +853,7 @@ class sql:
 					self.connection.commit()
 				else:
 					ret = 0
+			self.close()
 		except:
 			self.he()
 			ret = -1
@@ -856,14 +866,14 @@ class sql:
 				req = "SELECT `path` FROM `alert_pics` WHERE alert_id in (SELECT id FROM `alerts` where `del_by` is not NULL and `del_by`!='')"
 				cursor.execute(req)
 				result = cursor.fetchall()
-				self.close()
+			self.close()
 		except:
 			self.he()
 			return -1
 		return result
 	#############################################################	
 	def rem_delete_pics(self):
-		if(1):#try:
+		try:
 			self.connect()
 			with self.connection.cursor() as cursor:
 				req = "DELETE FROM `alert_pics` WHERE alert_id in (SELECT id FROM `alerts` where `del_by` is not NULL and `del_by`!='')"
@@ -871,8 +881,8 @@ class sql:
 				req = "DELETE FROM `alerts` WHERE `del_by` is not NULL and `del_by`!=''"
 				cursor.execute(req)
 				self.connection.commit()
-				self.close()
-		else:#except:
+			self.close()
+		except:
 			self.he()
 			return -1
 
