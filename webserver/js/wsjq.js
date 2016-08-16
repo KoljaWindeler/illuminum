@@ -1418,8 +1418,8 @@ function check_append_m2m(msg_dec){
 	var scroller=$("<div></div>");
 	scroller.append(createRainbowDiv(100));
 	scroller.addClass("setup_controll_color");
-	// hide the scroller if no neo pixel and no pwm support
-	if(parseInt(msg_dec["with_neo"])!=1){
+	// hide the scroller if no neo pixel  support
+	if(parseInt(msg_dec["with_lights"])!=1){
 		scroller.hide();
 	}
 	setupcontrol.append(scroller);
@@ -1443,7 +1443,7 @@ function check_append_m2m(msg_dec){
 			};
 		}()});
 	// hide the scroller if no neo pixel and no pwm support
-	if(parseInt(msg_dec["with_neo"])!=1){
+	if(parseInt(msg_dec["with_lights"])!=1){
 		scroller.hide();
 		scroller.val(0);
 	}
@@ -2118,7 +2118,7 @@ function update_hb(mid,ts){
 
 function update_state(account,area,mid,state,detection,rm,alarm_ws,with_cam,with_lights,with_pir,with_ext){
 	 if(typeof with_lights !== "undefined") {	with_lights=parseInt(with_lights);	};
-	 if(typeof with_cam !== "undefined") 	{	with_cam=parseInt(with_neo);	};
+	 if(typeof with_cam !== "undefined") 	{	with_cam=parseInt(with_cam);	};
 	 if(typeof with_pir !== "undefined") 	{	with_pir=parseInt(with_pir);	};
 	 if(typeof with_ext !== "undefined") 	{	with_ext=parseInt(with_ext);	};
 	//console.log("running update state on "+mid+"/"+state+"/"+rm);
@@ -2521,11 +2521,11 @@ function add_camera_entry(m_m2m,field){
 	cam_field_wrapper.append(with_ext);
 
 	//////////////// has pwm/neo ///////////////
-	var with_neopwm=$("<select></select>");
-	with_neopwm.css("width", "100%");
-	with_neopwm.css("margin-left", "5px");
-	with_neopwm.attr({
-		"id": "c_"+m_m2m["mid"]+"_with_neopwm",
+	var with_lights=$("<select></select>");
+	with_lights.css("width", "100%");
+	with_lights.css("margin-left", "5px");
+	with_lights.attr({
+		"id": "c_"+m_m2m["mid"]+"_with_lights",
 		"class":"sidebar_select"
 	});
 	var with_neo_sel=false;
@@ -2534,18 +2534,18 @@ function add_camera_entry(m_m2m,field){
 	var with_i2c_sel=false;
 	if(m_m2m["with_lights"]=="0"){
 		without_sel=true;
-	else if(m_m2m["with_lights"]=="1"){
+	} else if(m_m2m["with_lights"]=="1"){
 		with_neo_sel=true;
-	else if(m_m2m["with_lights"]=="2"){
+	} else if(m_m2m["with_lights"]=="2"){
 		with_pwm_sel=true;
-	else if(m_m2m["with_lights"]=="3"){
+	} else if(m_m2m["with_lights"]=="3"){
 		with_i2c_sel=true;
 	}
-	with_neopwm.append($('<option></option>').val("1").html("Neopixel conneced").prop('selected', with_neo_sel));
-	with_neopwm.append($('<option></option>').val("2").html("PWM connected").prop('selected', with_pwm_sel));
-	with_neopwm.append($('<option></option>').val("3").html("I2C connected").prop('selected', with_i2c_sel));
-	with_neopwm.append($('<option></option>').val("0").html("no lights connected").prop('selected', without_sel));
-	cam_field_wrapper.append(with_neopwm);
+	with_lights.append($('<option></option>').val("1").html("Neopixel conneced").prop('selected', with_neo_sel));
+	with_lights.append($('<option></option>').val("2").html("PWM connected").prop('selected', with_pwm_sel));
+	with_lights.append($('<option></option>').val("3").html("I2C connected").prop('selected', with_i2c_sel));
+	with_lights.append($('<option></option>').val("0").html("no lights connected").prop('selected', without_sel));
+	cam_field_wrapper.append(with_lights);
 
 	//////////////// add fps dropdown ////////////////////
 	var fps_select=$("<select></select>");
@@ -3397,13 +3397,13 @@ function cam_entry_button_state(mid,state){
 	var update = $("#c_"+mid+"_update");
 	var with_cam = $("#c_"+mid+"_with_cam");
 	var with_pir = $("#c_"+mid+"_with_pir");
-	var with_neopwm = $("#c_"+mid+"_with_neopwm");
+	var with_lights = $("#c_"+mid+"_with_lights");
 	var with_ext = $("#c_"+mid+"_with_ext");
 
 	with_ext.hide();
 	with_cam.hide();
 	with_pir.hide();
-	with_neopwm.hide();
+	with_lights.hide();
 	update.hide();
 	save.hide();
 	discard.hide();
@@ -3423,7 +3423,7 @@ function cam_entry_button_state(mid,state){
 		with_cam.show();
 		with_ext.show();
 		with_pir.show();
-		with_neopwm.show();
+		with_lights.show();
 		save.show();
 		discard.show();
 		name_edit.show();
@@ -3747,10 +3747,10 @@ function update_cam_parameter(mid){
 	var name_edit=$("#c_"+mid+"_name_edit");
 	var with_cam=$("#c_"+mid+"_with_cam");
 	var with_ext=$("#c_"+mid+"_with_ext");
-	var with_neopwm=$("#c_"+mid+"_with_neopwm");
+	var with_lights=$("#c_"+mid+"_with_lights");
 	var with_pir=$("#c_"+mid+"_with_pir");
 
-	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length && with_neopwm.length){
+	if(area.length && qual.length && alarm_while_stream.length && fps.length && name_edit.length && with_lights.length){
 		var cmd_data = { 
 			"cmd":"update_cam_parameter", 
 			"mid":mid, 
@@ -3760,7 +3760,7 @@ function update_cam_parameter(mid){
 			"fps":fps.val(), 
 			"name":name_edit.val(),
 			"with_cam":with_cam.val(),
-			"with_lights":with_neopwm.val(),
+			"with_lights":with_lights.val(),
 			"with_ext":with_ext.val(),
 			"with_pir":with_pir.val()
 		};
