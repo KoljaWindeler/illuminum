@@ -2066,11 +2066,10 @@ function send_color(mid) {
 		var color=$("#colorslider_"+mid).slider( "value" );
 		var brightness=$("#brightnessslider_"+mid).slider( "value" );
 		var mul=brightness/255;
-		if(!$("#colorslider_"+mid).is(":visible")){
+		if(color==255){
 			rgb[0]=255;
 			rgb[1]=255;
 			rgb[2]=255;
-			console.log("color slider nicht da, setze werte auf 255");
 		};
 
 		var cmd_data = { 
