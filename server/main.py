@@ -1752,10 +1752,14 @@ def rm_check_rules(account,login,use_db):
 			#rint("updateing to db that detection of area "+str(b.area)+" should be")
 			#rint(detection_state)
 
+		# get all areas in this account, we have to check if we have at least on box in each area online, those ares with all boxes offline need to send a fake message to the ws to show the status change
+		dead_areas_on_account=db.get_areas_for_account(account)
+			
 		# send an update to every box in this account which has to change the status?
 		#rint("now we have to check for every box what there detection status shall be and send it to them")
 		for m2m in server_m2m.clients:
 			if(m2m.account==account):
+				dead_areas_on_account.pop(m2m.area,None) # remove this area from the dead_areas_on_account list as there is an active box
 				#rint("checkin for box "+m2m.alias+" in area "+m2m.area)
 				db_r2=db.get_state(m2m.area,account)
 				if(type(db_r2)!=int):
@@ -1789,6 +1793,21 @@ def rm_check_rules(account,login,use_db):
 				for ws in m2m.m2v:
 					msg_q_ws.append((msg2,ws))
 
+		# generate fake update messages for areas without clients to toggle status for this area
+		if(dead_areas_on_account.length):
+			all_m2m_on_account=db.get_m2m4account(account) # get all  m2m boxes for this account
+			for dead_area in dead_areas_on_account: # all remaining dead_area, which haven't been update in the last step
+				for m2m in all_m2m_on_account: # find a box that is in the non-updated-area
+					if(m2m.area==dead_area):
+						dead_areas_on_account.pop(dead_area,None) # remove this area from the dead_areas_on_account
+						# generate fake message
+						populate_m2m(m2m)
+						# now go through all ws clients to check which one is on the same account, and connect them
+						for ws in server_ws.clients:
+							if(ws.account == account):
+								connect_ws_m2m(m2m,ws,update_m2m=0) # send connect message (m2v) to update
+						break #for m2m in all_m2m_on_account
+			
 #******************************************************#
 
 #******************************************************#
