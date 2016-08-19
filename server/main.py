@@ -1759,7 +1759,9 @@ def rm_check_rules(account,login,use_db):
 		#rint("now we have to check for every box what there detection status shall be and send it to them")
 		for m2m in server_m2m.clients:
 			if(m2m.account==account):
-				dead_areas_on_account.pop(m2m.area,None) # remove this area from the dead_areas_on_account list as there is an active box
+				for dead_area in dead_areas_on_account: 
+					if(dead_area["area"]==m2m.area):
+						dead_areas_on_account.remove(dead_area)
 				#rint("checkin for box "+m2m.alias+" in area "+m2m.area)
 				db_r2=db.get_state(m2m.area,account)
 				if(type(db_r2)!=int):
@@ -1794,18 +1796,35 @@ def rm_check_rules(account,login,use_db):
 					msg_q_ws.append((msg2,ws))
 
 		# generate fake update messages for areas without clients to toggle status for this area
-		if(dead_areas_on_account.length):
+		if(len(dead_areas_on_account)):
 			all_m2m_on_account=db.get_m2m4account(account) # get all  m2m boxes for this account
 			for dead_area in dead_areas_on_account: # all remaining dead_area, which haven't been update in the last step
-				for m2m in all_m2m_on_account: # find a box that is in the non-updated-area
-					if(m2m.area==dead_area):
-						dead_areas_on_account.pop(dead_area,None) # remove this area from the dead_areas_on_account
-						# generate fake message
-						populate_m2m(m2m)
+				for db_m2m in all_m2m_on_account: # find a box that is in the non-updated-area
+					if(db_m2m["area"]==dead_area["area"]):
+						# remove this area from the dead_areas_on_account
+						dead_areas_on_account.remove(dead_area)
+
+						# generate object
+						m2m_temp = m2m_clients("")
+						m2m_temp.mid=db_m2m["mid"]
+						# fill it with values from db, which updates the state
+						populate_m2m(m2m_temp)
+
+						# generate status change message
+						msg={
+							"mid":		m2m_temp.mid,
+							"cmd":		"state_change",
+							"alarm_ws":	m2m_temp.alarm_ws,
+							"state":	m2m_temp.state,
+							"area":		m2m_temp.area,
+							"account":	m2m_temp.account,
+							"detection":	m2m_temp.detection,
+							"rm":		rm.get_account(m2m_temp.account).get_area(m2m_temp.area).print_rules(bars=0,account_info=0,print_out=0)
+						}
 						# now go through all ws clients to check which one is on the same account, and connect them
 						for ws in server_ws.clients:
 							if(ws.account == account):
-								connect_ws_m2m(m2m,ws,update_m2m=0) # send connect message (m2v) to update
+								msg_q_ws.append((msg,ws))
 						break #for m2m in all_m2m_on_account
 			
 #******************************************************#
