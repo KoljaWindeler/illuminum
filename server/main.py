@@ -1447,7 +1447,7 @@ def populate_m2m(m2m):
 	m2m.alarm_while_streaming=db_r["alarm_while_streaming"]
 	m2m.resolution=db_r["resolution"]
 	m2m.state=-1 # assume offline
-	m2m.detection=-1 # off?
+	m2m.detection=db.get_areas_state(db_r["account"],db_r["area"])["state"]
 	m2m.last_comm =	db_r["last_seen"]
 	m2m.v_hash = db_r["v_hash"]
 	m2m.v_short = db_r["v_short"]
