@@ -209,11 +209,13 @@ def recv_m2m_msg_handle(data,m2m):
 				# special handling for monitor devices, we need to get on the m2m list of all our cameras
 					if(m2m.m2m_monitor==1):
 						for a_m2m in server_m2m.clients:
-							if(a_m2m.account == m2m.account):
+							if(a_m2m.account == m2m.account and a_m2m.area_id == m2m.area_id):
+								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(m2m.mid)+"'  as monitor to the m2m list of "+str(a_m2m.mid),"l")
 								a_m2m.m2m.append(m2m)
 					else: # and if this is not the monitor, check if there is another monitor already online
 						for a_m2m in server_m2m.clients:
-							if(a_m2m.account == m2m.account and a_m2m.m2m_monitor==1):
+							if(a_m2m.account == m2m.account and a_m2m.area_id == m2m.area_id and a_m2m.m2m_monitor==1):
+								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(a_m2m.mid)+"'  as monitor to the m2m list of "+str(m2m.mid),"l")
 								m2m.m2m.append(a_m2m)
 				# bad password
 				else:
