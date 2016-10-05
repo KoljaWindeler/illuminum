@@ -73,6 +73,13 @@ def recv_m2m_con_handle(data,m2m):
 		p.rint2(str(m2m.mid)+"' disconneted","l","A_m2m")
 		db.update_last_seen_m2m(m2m.mid,"") #<- this returns bad file descriptor
 
+		# remove the m2m monitor from all its client lists (a_m2m)
+		for a_m2m in server_m2m.clients:
+			for viewer in a_m2m.m2m:
+				if(viewer==m2m):
+					p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] releasing '"+str(a_m2m.mid)+"' from m2m monitor "+str(m2m.mid),"l")
+					a_m2m.m2m.remove(viewer)
+					
 		# try to find that m2m in all ws clients lists, so go through all clients and their lists
 		for ws in server_ws.clients:
 			if(m2m in ws.v2m):
@@ -199,6 +206,16 @@ def recv_m2m_msg_handle(data,m2m):
 						p.rint2("Sending an emergency update request for m2m "+str(m2m.alias),"d","A_m2m",p.bcolors.WARNING)
 						msg2 = { "cmd": "git_update" }
 						msg_q_m2m.append((msg2,m2m))
+				# special handling for monitor devices, we need to get on the m2m list of all our cameras
+					if(m2m.m2m_monitor==1):
+						for a_m2m in server_m2m.clients:
+							if(a_m2m.account == m2m.account):
+								a_m2m.m2m.append(m2m)
+					else: # and if this is not the monitor, check if there is another monitor already online
+						for a_m2m in server_m2m.clients:
+							if(a_m2m.account == m2m.account and a_m2m.m2m_monitor==1):
+								m2m.m2m.append(a_m2m)
+				# bad password
 				else:
 					p.rint2("'"+str(enc.get('mid'))+"' log-in: failed","l","A_m2m",p.bcolors.FAIL)
 					msg["ok"]=-2 # not logged in
@@ -261,6 +278,8 @@ def recv_m2m_msg_handle(data,m2m):
 				"rm":		rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 			}
 			informed=0
+			for subscriber in m2m.m2m:
+				msg_q_m2m.append((msg,subscriber))
 			for subscriber in m2m.m2v:
 				msg_q_ws.append((msg,subscriber))
 				informed+=1
