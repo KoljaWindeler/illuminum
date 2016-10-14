@@ -4,10 +4,11 @@ from u_gpio import u_gpio
 from threading import Timer
 import socket
 import time
-import json, base64, datetime, string, random,
+import json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess, pwd
 import light, p
-import classes
+import external
+from classes import *
 ###################### import libs #######################
 
 ###################### koljas cams are running on ro-filesystems #######################
@@ -690,6 +691,7 @@ def parse_incoming_msg(con):
 					if(w.handle_movements_started!=""):
 						w.handle_movements_started.cancel()
 					w.handle_movements_stopped=external.movements_stopped()
+					w.handle_movements_stopped.start()
 				else:
 					# stop callback that would switch off stuff and call the switch on
 					if(w.handle_movements_stopped!=""):
@@ -697,6 +699,7 @@ def parse_incoming_msg(con):
 					if(w.handle_movements_started!=""):
 						w.handle_movements_started.cancel()
 					w.handle_movements_started=external.movements_started()
+					w.handle_movements_started.start()
 			
 			############## M2M CMD ############# backup
 			else:
