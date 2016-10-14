@@ -48,7 +48,7 @@ class m2m_clients:
 		self.with_pir = "0"					# is motione detection supported
 		self.with_cam = "0"					# is a camera attached
 		self.with_ext = "0"					# is a relay attached
-		self.m2m_monitor=1						# 1=this m2m device shall get status updates from all other m2m devices on this account and area
+		self.m2m_monitor = 0					# 1=this m2m device shall get status updates from all other m2m devices on this account and area
 		
 
 # dies ist der WEBSOCKET client
