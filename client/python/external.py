@@ -1,16 +1,23 @@
+import threading,subprocess,os
+import p
+
+timer_sec=20*60
+
 def movements_stopped():
-	print("movement stopped function called, starting timer")
-	#return threading.Timer(20*60*1000,switch_monitor_off)
-	return threading.Timer(20,switch_monitor_off)
+	p.rint("MOVEMENT, no motion, starting timer","l")
+	return threading.Timer(1,dummy)
+	#return threading.Timer(timer_sec,switch_monitor_off)
 	
 def movements_started():
-	#str(subprocess.Popen(["xset","s","off"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-	#str(subprocess.Popen(["xset","-dpms"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-	#str(subprocess.Popen(["xset","s","noblank"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-	print("movement started function called")
-	return ""
+	p.rint("MOVEMENT, motion, turn display on","l")
+	path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","externals","disp_on.sh")
+	str(subprocess.Popen([path],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+	return threading.Timer(1,dummy)
 	
 def switch_monitor_off():
-	#str(subprocess.Popen(["xset","+dpms"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-	#str(subprocess.Popen(["xset","s","activate"],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
-	print("for testing: switching the monitor off")
+	p.rint("MOVEMENT, no motion for long time, turn display off","l")
+	path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","externals","disp_off.sh")
+	str(subprocess.Popen([path],stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode())
+
+def dummy():
+	return ""
