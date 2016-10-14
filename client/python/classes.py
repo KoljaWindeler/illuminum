@@ -1,5 +1,5 @@
 class watcher:
-	def __init__(self,state):
+	def __init__(self):
 		self.clients = [] 				# list of all watcher_m2m clients
 		self.handle_movements_stopped = ""			# the handle for the 'after'-functions
 		self.handle_movements_started = ""			# the handle for the 'after'-functions
