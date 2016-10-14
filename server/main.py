@@ -210,12 +210,12 @@ def recv_m2m_msg_handle(data,m2m):
 					if(m2m.m2m_monitor==1):
 						for a_m2m in server_m2m.clients:
 							if(a_m2m.account == m2m.account and a_m2m.area_id == m2m.area_id):
-								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(m2m.mid)+"'  as monitor to the m2m list of "+str(a_m2m.mid),"l")
+								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(m2m.alias)+"' as monitor to the m2m list of "+str(a_m2m.alias),"l")
 								a_m2m.m2m.append(m2m)
 					else: # and if this is not the monitor, check if there is another monitor already online
 						for a_m2m in server_m2m.clients:
 							if(a_m2m.account == m2m.account and a_m2m.area_id == m2m.area_id and a_m2m.m2m_monitor==1):
-								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(a_m2m.mid)+"'  as monitor to the m2m list of "+str(m2m.mid),"l")
+								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(a_m2m.alias)+"' as monitor to the m2m list of "+str(m2m.alias),"l")
 								m2m.m2m.append(a_m2m)
 				# bad password
 				else:
@@ -1477,6 +1477,7 @@ def populate_m2m(m2m):
 	m2m.with_lights = db_r["with_lights"]
 	m2m.with_pir = db_r["with_pir"]
 	m2m.with_ext = db_r["with_ext"]
+	m2m.m2m_monitor = db_r["monitor"]
 
 
 #******************************************************#
