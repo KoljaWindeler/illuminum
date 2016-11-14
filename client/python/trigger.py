@@ -35,14 +35,12 @@ class runner(threading.Thread):
 	def run(self,config,gpio):
 		self.alive = True
 		try:
-			# sensor offline
-			if(not(config.with_pir)):
-				p.rint("TRIGGER: configured without PIR","l")
-				self.s.state = 5
-
 			# basic config 
 			busy=1
 			p.rint("TRIGGER: thread started","l")
+			if(not(config.with_pir)):
+				p.rint("TRIGGER: configured without PIR","l")
+				
 			while self.alive:
 		
 				# cpu spacing
@@ -52,7 +50,11 @@ class runner(threading.Thread):
 
 				# try to get the pin state
 				try:
-					gpio_state=gpio.get(gpio.PIN_PIR)
+					# sensor offline
+					if(not(config.with_pir)):
+						gpio_state=4
+					else:
+						gpio_state=gpio.get(gpio.PIN_PIR)
 				except:
 					p.rint("TRIGGER: Trouble reading GPIO, trying to reconfigure","d")
 					break
