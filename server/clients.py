@@ -1,5 +1,5 @@
 #A info container for each camera client
-m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
+m2m_state = ["idle","alert","disabled,idle","disabled,movement","no pir","error"]
 det_state = ["off","on,single","on,permanent","error"]
 
 
