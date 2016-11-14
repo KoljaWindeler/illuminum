@@ -75,7 +75,7 @@ class runner(threading.Thread):
 
 					# call everyone who subscribed to our update list
 					for callb in self.s.callback_action:
-						if(not(type(callb) is str) and config.with_pir): # only call callbacks if we are configured with PIR
+						if(not(type(callb) is str)):
 							try:
 								callb("state_change",(self.s.state,self.s.detection))
 							except:
