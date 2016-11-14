@@ -79,10 +79,10 @@ class CPUsaver:
 ###################### config properties #######################
 class config:
 	def __init__(self):
-		self.with_cam=0
-		self.with_lights=0
-		self.with_pir=0
-		self.with_ext=0
+		self.with_cam=-1
+		self.with_lights=-1
+		self.with_pir=-1
+		self.with_ext=-1
 
 
 ###################### config properties #######################
