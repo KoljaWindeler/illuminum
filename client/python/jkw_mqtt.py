@@ -55,7 +55,7 @@ class runner(threading.Thread):
 		
 	def send(self, topic,msg):
 		p.rint2("Publish: "+topic+" : "+msg,"l","MQTT")
-		self.c.publish(topic, msg)
+		self.c.publish(topic, msg, retain=True)
 		
 	def motion_publish(self, event, data):
 		if(event == "state_change"): # should always be true
