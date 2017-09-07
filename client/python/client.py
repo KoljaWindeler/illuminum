@@ -668,7 +668,7 @@ def parse_incoming_msg(con):
 #********************************************************#
 
 # manual version 
-SEC_VERSION="20151229"
+SEC_VERSION="20170907"
 
 
 config = config()
