@@ -1,14 +1,11 @@
 ###################### import libs #######################
 import OpenSSL
 from u_gpio import u_gpio
-from threading import Timer
 import socket
 import time
 import json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess, pwd
-import light, p
-import external
-from classes import *
+import light, p, jkw_mqtt
 ###################### import libs #######################
 
 ###################### koljas cams are running on ro-filesystems #######################
@@ -79,10 +76,10 @@ class CPUsaver:
 ###################### config properties #######################
 class config:
 	def __init__(self):
-		self.with_cam=-1
-		self.with_lights=-1
-		self.with_pir=-1
-		self.with_ext=-1
+		self.with_cam=0
+		self.with_lights=0
+		self.with_pir=0
+		self.with_ext=0
 
 
 ###################### config properties #######################
@@ -174,32 +171,33 @@ def trigger_handle(event, data):
 		##### light dimming #########
 		# if we change the state of the sensor, we should most likely change the light
 		# clear all old dimming actions
-		light.clear_q()
-		# set new color
-		if(_detection == 0 and _state == 1): # deactive and motion
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time(), light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b, 4000) # 4 sec to dimm to default color - now
-			else:
-				(r,g,b) = light.runner.get_color()
-				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
-		elif(_detection == 0 and _state == 0): # deactive and no motion
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time()+light.get_delay_off(), 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
-			else:
-				(r,g,b) = light.runner.get_color()
-				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
-			#rint("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+light.get_delay_off())))).strftime('%y_%m_%d %H:%M:%S')))
-		elif(_detection == 1 and _state == 1): # alarm, go red, now
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time(), 100, 0, 0, 4000)
-			else:
-				light.set_old_color(100, 0, 0,time.time()+light.get_delay_off())# set the color to which we return as soon as the webfeed is closed
-		elif(_detection == 1 and _state == 0): # off while nobody is there
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time(), 0, 0, 0, 4000)
-			else:
-				(r,g,b) = light.runner.get_color()
-				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
+		if (0): #illumino disabled :(
+			light.clear_q()
+			# set new color
+			if(_detection == 0 and _state == 1): # deactive and motion
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time(), light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b, 4000) # 4 sec to dimm to default color - now
+				else:
+					(r,g,b) = light.runner.get_color()
+					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
+			elif(_detection == 0 and _state == 0): # deactive and no motion
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time()+light.get_delay_off(), 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
+				else:
+					(r,g,b) = light.runner.get_color()
+					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
+				#rint("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+light.get_delay_off())))).strftime('%y_%m_%d %H:%M:%S')))
+			elif(_detection == 1 and _state == 1): # alarm, go red, now
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time(), 100, 0, 0, 4000)
+				else:
+					light.set_old_color(100, 0, 0,time.time()+light.get_delay_off())# set the color to which we return as soon as the webfeed is closed
+			elif(_detection == 1 and _state == 0): # off while nobody is there
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time(), 0, 0, 0, 4000)
+				else:
+					(r,g,b) = light.runner.get_color()
+					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
 		##### light dimming #########
 
 		##### camera picture upload #########
@@ -377,7 +375,6 @@ def parse_incoming_msg(con):
 				else:
 					con.ack_request_ts = con.unacknowledged_msg[0][1]		# move to latest ts
 
-			############## M2M CMD ############# prelogin
 			elif(enc.get("cmd") == "prelogin" and register_mode==0):
 				p.rint("<-- encryption challange received","l")
 				#### send login
@@ -411,7 +408,6 @@ def parse_incoming_msg(con):
 				msg["v_hash"] = v_hash
 				con.msg_q.append(msg)
 
-			############## M2M CMD ############# prelogin
 			elif(enc.get("cmd") == "prelogin" and register_mode==1):
 				# try to get cam name from raspimjpeg config file
 				alias="SecretCam"
@@ -446,7 +442,6 @@ def parse_incoming_msg(con):
 
 				#rint(msg)
 
-			############## M2M CMD ############# login
 			elif(enc.get("cmd") == "login"):
 				if(enc.get("ok") == 1):
 					con.logged_in = 1
@@ -465,22 +460,14 @@ def parse_incoming_msg(con):
 				else:
 					con.logged_in = 0
 					p.rint("<-- ERROR log-in failed","l")
-					
-			############## M2M CMD ############# heartbeat
 			elif(enc.get("cmd") == "m2m_hb"):
 				con.hb_out = 0
 				p.rint("<-- connection checked OK","l")
-			
-			############## M2M CMD ############# set detection
 			elif(enc.get("cmd") == "set_detection"):
 				p.rint("<-- received request to change detection state to "+str(enc.get("state")),"l")
 				trigger.set_detection(enc.get("state"))
-				
-			############## M2M CMD ############# write file
 			elif(enc.get("cmd") == "wf"):
 				ignore = 1
-				
-			############## M2M CMD ############# set color
 			elif(enc.get("cmd") == "set_color"):
 				# avoid light output message, like to many many commands
 				r = enc.get("r", 0)
@@ -489,7 +476,6 @@ def parse_incoming_msg(con):
 				light.set_color(r,g,b)
 				light.add_q_entry(time.time(), r, g, b, 500) # 4 sec to dimm to warm orange - now
 
-			############## M2M CMD ############# set camera intervall
 			elif(enc.get("cmd") == "set_interval"):
 				if(enc.get("interval", 0) == 0):
 					cam.webview_active = 0
@@ -513,8 +499,6 @@ def parse_incoming_msg(con):
 				else:
 					light.add_q_entry(time.time(),-1,-1,-1,1000) # 4 sec to dimm to off - in 10 min from now
 ######### SPY MODE #########
-
-			############## M2M CMD ############# register
 			elif(enc.get("cmd") == "register"):
 				if(enc.get("ok",0) == 1):
 					p.rint("<-- successful registered, sending sign in","l")
@@ -527,7 +511,6 @@ def parse_incoming_msg(con):
 				msg["cmd"] = "prelogin"
 				con.msg_q.append(msg)
 	
-			############## M2M CMD ############# update parameter
 			elif(enc.get("cmd") == "update_parameter"):
 				p.rint("<-- Received Parameter update from server","l")
 				if(enc.get("alarm_while_streaming","no_alarm")=="alarm"):
@@ -560,7 +543,7 @@ def parse_incoming_msg(con):
 					trigger.restart(config,gpio)
 
 
-			############## M2M CMD #############  get the git version
+			# get the git version
 			elif(enc.get("cmd") == "get_version"):
 				path=os.path.join(os.path.dirname(os.path.realpath(__file__)),"..","..",".git")
 				try: 
@@ -580,7 +563,7 @@ def parse_incoming_msg(con):
 				msg["v_hash"] = v_hash
 				con.msg_q.append(msg)
 
-			############## M2M CMD #############  run a git update
+			# run a git update
 			elif(enc.get("cmd") == "git_update"):
 				p.rint("<-- update request received from server","l")
 				# remount root rw
@@ -611,7 +594,7 @@ def parse_incoming_msg(con):
 				msg["cmd_result"] = ret_res
 				con.msg_q.append(msg)
 
-			############## M2M CMD ############## run a reboot
+			# run a reboot
 			elif(enc.get("cmd") == "reboot"):
 				con.sock.shutdown()
 				con.sock.close()
@@ -621,7 +604,7 @@ def parse_incoming_msg(con):
 				result=str(subprocess.Popen("reboot",stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE).communicate()[0].decode()).replace("\n","")
 
 				
-			############## M2M CMD #############  set a pin 
+			# set a pin 
 			elif(enc.get("cmd") == "toggle_external_pin"):
 				state = 0
 				if(str(enc.get("state",0))=="1"):
@@ -635,7 +618,7 @@ def parse_incoming_msg(con):
 				msg["ok"] = "1"
 				con.msg_q.append(msg)
 
-			############## M2M CMD ############## set alias
+			# set alias
 			elif(enc.get("cmd") == "set_alias"):
 				alias = enc.get("alias","-")
 				p.rint("<-- Trying to set a new name: "+str(alias),"l")
@@ -664,46 +647,9 @@ def parse_incoming_msg(con):
 					print(str(repr(traceback.format_tb(sys.exc_info()[2]))))
 					print("--> setting new name failed")
 				con.msg_q.append(msg)
-			
-			############## M2M CMD #############  this is the monitoring section, if the device is set as a monitor it will receive the state_change from all other m2ms in the same area
-			elif(enc.get("cmd")=="state_change"):
-			
-				### update the state that we've saved, or add client to list
-				f=0
-				for m in w.clients:
-					if(m.mid==enc.get("mid")):
-						m.state=enc.get("state")
-						f=1
-						break
-				if(f==0):
-					w.clients.append(watcher_m2m(mid=enc.get("mid"), state=enc.get("state")))
-					
-				### check all states
-				all_state=0 #0=idle, 1=alert, 2=detection disabled, idle, 3=detection disabled, movement
-				for m in w.clients:
-					if(m.state%2==1):
-						all_state=1
-						break
-				if(all_state==0):
-					#we are convinced that there is no movement anymore
-					if(w.handle_movements_stopped!=""):
-						w.handle_movements_stopped.cancel()
-					if(w.handle_movements_started!=""):
-						w.handle_movements_started.cancel()
-					w.handle_movements_stopped=external.movements_stopped()
-					w.handle_movements_stopped.start()
-				else:
-					# stop callback that would switch off stuff and call the switch on
-					if(w.handle_movements_stopped!=""):
-						w.handle_movements_stopped.cancel()
-					if(w.handle_movements_started!=""):
-						w.handle_movements_started.cancel()
-					w.handle_movements_started=external.movements_started()
-					w.handle_movements_started.start()
-			
-			############## M2M CMD ############# backup
+
 			else:
-				p.rint("<-- unsupported command received:"+enc.get("cmd"),"l")
+				p.rint("<-- unsopported command received:"+enc.get("cmd"),"l")
 
 
 		#end of "if"
@@ -727,7 +673,6 @@ SEC_VERSION="20151229"
 
 config = config()
 gpio = u_gpio()
-w=watcher()
 
 p.rint("STARTUP, settings pins","l")
 # init objects and vars
@@ -749,7 +694,14 @@ d = Debugging()				# debug handle
 p.rint("STARTUP, creating CPUsaver","l")
 b = CPUsaver()
 
+p.rint("STARTUP, creating mqtt","l")
+jkw_mqtt.r.set_id(m2m_mid)
+jkw_mqtt.r.set_light(light)
+jkw_mqtt.r.m.subscribe_topic(m2m_mid+"/PWM_dimm/switch")  # on / off
+jkw_mqtt.r.m.subscribe_topic(m2m_mid+"/PWM_RGB_dimm/color/set") # set color
+jkw_mqtt.start()
 
+trigger.subscribe_callback(jkw_mqtt.r.motion_publish) # tell trigger to call mq.publish to report moti
 trigger.subscribe_callback(trigger_handle)
 
 #only start listening to keyboard input if we are not in register mode
