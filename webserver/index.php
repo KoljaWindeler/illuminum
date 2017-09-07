@@ -1,7 +1,9 @@
 <?php
-if($_GET['useas']=="dummy"){
-	header_remove('X-Frame-Options');
-	exit(0);
+if(isset($_GET['useas'])){
+	if($_GET['useas']=="dummy"){
+		header_remove('X-Frame-Options');
+		exit(0);
+	};
 };
 ///////////////// server status ///////////////////////////
 $v=exec('git -C '.realpath(dirname(__FILE__)).' rev-list HEAD --count');

@@ -1,5 +1,5 @@
 #A info container for each camera client
-m2m_state = ["idle","alert","disabled,idle","disabled,movement","error"]
+m2m_state = ["idle","alert","disabled,idle","disabled,movement","no pir","error"]
 det_state = ["off","on,single","on,permanent","error"]
 
 
@@ -19,6 +19,7 @@ class m2m_clients:
 		self.last_comm=0					# timestamp of the last incoming msg
 		self.comm_timeout=11*60					# max time with incoming msg
 		self.m2v=[]							# list of all active viewer subscribers. those will get a message for e.g. idle -> motion detected
+		self.m2m=[]							# list of all active M2M! viewer subscribers. those will get a message for e.g. idle -> motion detected
 		self.area=" "						# a location like "in front of the main entrace"
 		self.area_id=-1						# a location like 3
 		self.account=" "					# the accout the device belongs to .. something like JKW even if there are two logins (kolja,caro) to the ACCOUNT
@@ -47,6 +48,8 @@ class m2m_clients:
 		self.with_pir = "0"					# is motione detection supported
 		self.with_cam = "0"					# is a camera attached
 		self.with_ext = "0"					# is a relay attached
+		self.m2m_monitor = 0					# 1=this m2m device shall get status updates from all other m2m devices on this account and area
+		
 
 # dies ist der WEBSOCKET client
 class ws_clients:

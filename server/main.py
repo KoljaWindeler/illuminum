@@ -73,6 +73,13 @@ def recv_m2m_con_handle(data,m2m):
 		p.rint2(str(m2m.mid)+"' disconneted","l","A_m2m")
 		db.update_last_seen_m2m(m2m.mid,"") #<- this returns bad file descriptor
 
+		# remove the m2m monitor from all its client lists (a_m2m)
+		for a_m2m in server_m2m.clients:
+			for viewer in a_m2m.m2m:
+				if(viewer==m2m):
+					p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] releasing '"+str(a_m2m.mid)+"' from m2m monitor "+str(m2m.mid),"l")
+					a_m2m.m2m.remove(viewer)
+					
 		# try to find that m2m in all ws clients lists, so go through all clients and their lists
 		for ws in server_ws.clients:
 			if(m2m in ws.v2m):
@@ -199,6 +206,18 @@ def recv_m2m_msg_handle(data,m2m):
 						p.rint2("Sending an emergency update request for m2m "+str(m2m.alias),"d","A_m2m",p.bcolors.WARNING)
 						msg2 = { "cmd": "git_update" }
 						msg_q_m2m.append((msg2,m2m))
+				# special handling for monitor devices, we need to get on the m2m list of all our cameras
+					if(m2m.m2m_monitor==1):
+						for a_m2m in server_m2m.clients:
+							if(a_m2m.account == m2m.account and a_m2m.area_id == m2m.area_id):
+								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(m2m.alias)+"' as monitor to the m2m list of "+str(a_m2m.alias),"l")
+								a_m2m.m2m.append(m2m)
+					else: # and if this is not the monitor, check if there is another monitor already online
+						for a_m2m in server_m2m.clients:
+							if(a_m2m.account == m2m.account and a_m2m.area_id == m2m.area_id and a_m2m.m2m_monitor==1):
+								p.rint("[A_m2m  "+time.strftime("%H:%M:%S")+"] adding '"+str(a_m2m.alias)+"' as monitor to the m2m list of "+str(m2m.alias),"l")
+								m2m.m2m.append(a_m2m)
+				# bad password
 				else:
 					p.rint2("'"+str(enc.get('mid'))+"' log-in: failed","l","A_m2m",p.bcolors.FAIL)
 					msg["ok"]=-2 # not logged in
@@ -261,6 +280,8 @@ def recv_m2m_msg_handle(data,m2m):
 				"rm":		rm.get_account(m2m.account).get_area(m2m.area).print_rules(bars=0,account_info=0,print_out=0)
 			}
 			informed=0
+			for subscriber in m2m.m2m:
+				msg_q_m2m.append((msg,subscriber))
 			for subscriber in m2m.m2v:
 				msg_q_ws.append((msg,subscriber))
 				informed+=1
@@ -1447,7 +1468,7 @@ def populate_m2m(m2m):
 	m2m.alarm_while_streaming=db_r["alarm_while_streaming"]
 	m2m.resolution=db_r["resolution"]
 	m2m.state=-1 # assume offline
-	m2m.detection=-1 # off?
+	m2m.detection=db.get_areas_state(db_r["account"],db_r["area"])["state"]
 	m2m.last_comm =	db_r["last_seen"]
 	m2m.v_hash = db_r["v_hash"]
 	m2m.v_short = db_r["v_short"]
@@ -1456,6 +1477,7 @@ def populate_m2m(m2m):
 	m2m.with_lights = db_r["with_lights"]
 	m2m.with_pir = db_r["with_pir"]
 	m2m.with_ext = db_r["with_ext"]
+	m2m.m2m_monitor = db_r["monitor"]
 
 
 #******************************************************#
@@ -1752,10 +1774,16 @@ def rm_check_rules(account,login,use_db):
 			#rint("updateing to db that detection of area "+str(b.area)+" should be")
 			#rint(detection_state)
 
+		# get all areas in this account, we have to check if we have at least on box in each area online, those ares with all boxes offline need to send a fake message to the ws to show the status change
+		dead_areas_on_account=db.get_areas_for_account(account)
+			
 		# send an update to every box in this account which has to change the status?
 		#rint("now we have to check for every box what there detection status shall be and send it to them")
 		for m2m in server_m2m.clients:
 			if(m2m.account==account):
+				for dead_area in dead_areas_on_account: 
+					if(dead_area["area"]==m2m.area):
+						dead_areas_on_account.remove(dead_area)
 				#rint("checkin for box "+m2m.alias+" in area "+m2m.area)
 				db_r2=db.get_state(m2m.area,account)
 				if(type(db_r2)!=int):
@@ -1789,6 +1817,38 @@ def rm_check_rules(account,login,use_db):
 				for ws in m2m.m2v:
 					msg_q_ws.append((msg2,ws))
 
+		# generate fake update messages for areas without clients to toggle status for this area
+		if(len(dead_areas_on_account)):
+			all_m2m_on_account=db.get_m2m4account(account) # get all  m2m boxes for this account
+			for dead_area in dead_areas_on_account: # all remaining dead_area, which haven't been update in the last step
+				for db_m2m in all_m2m_on_account: # find a box that is in the non-updated-area
+					if(db_m2m["area"]==dead_area["area"]):
+						# remove this area from the dead_areas_on_account
+						dead_areas_on_account.remove(dead_area)
+
+						# generate object
+						m2m_temp = m2m_clients("")
+						m2m_temp.mid=db_m2m["mid"]
+						# fill it with values from db, which updates the state
+						populate_m2m(m2m_temp)
+
+						# generate status change message
+						msg={
+							"mid":		m2m_temp.mid,
+							"cmd":		"state_change",
+							"alarm_ws":	m2m_temp.alarm_ws,
+							"state":	m2m_temp.state,
+							"area":		m2m_temp.area,
+							"account":	m2m_temp.account,
+							"detection":	m2m_temp.detection,
+							"rm":		rm.get_account(m2m_temp.account).get_area(m2m_temp.area).print_rules(bars=0,account_info=0,print_out=0)
+						}
+						# now go through all ws clients to check which one is on the same account, and connect them
+						for ws in server_ws.clients:
+							if(ws.account == account):
+								msg_q_ws.append((msg,ws))
+						break #for m2m in all_m2m_on_account
+			
 #******************************************************#
 
 #******************************************************#
