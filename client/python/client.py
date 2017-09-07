@@ -5,7 +5,7 @@ import socket
 import time
 import json, base64, datetime, string, random
 import hashlib, select, trigger, uuid, os, sys, subprocess, pwd
-import light, p
+import light, p, jkw_mqtt
 ###################### import libs #######################
 
 ###################### koljas cams are running on ro-filesystems #######################
@@ -171,32 +171,33 @@ def trigger_handle(event, data):
 		##### light dimming #########
 		# if we change the state of the sensor, we should most likely change the light
 		# clear all old dimming actions
-		light.clear_q()
-		# set new color
-		if(_detection == 0 and _state == 1): # deactive and motion
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time(), light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b, 4000) # 4 sec to dimm to default color - now
-			else:
-				(r,g,b) = light.runner.get_color()
-				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
-		elif(_detection == 0 and _state == 0): # deactive and no motion
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time()+light.get_delay_off(), 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
-			else:
-				(r,g,b) = light.runner.get_color()
-				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
-			#rint("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+light.get_delay_off())))).strftime('%y_%m_%d %H:%M:%S')))
-		elif(_detection == 1 and _state == 1): # alarm, go red, now
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time(), 100, 0, 0, 4000)
-			else:
-				light.set_old_color(100, 0, 0,time.time()+light.get_delay_off())# set the color to which we return as soon as the webfeed is closed
-		elif(_detection == 1 and _state == 0): # off while nobody is there
-			if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
-				light.add_q_entry(time.time(), 0, 0, 0, 4000)
-			else:
-				(r,g,b) = light.runner.get_color()
-				light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
+		if (0): #illumino disabled :(
+			light.clear_q()
+			# set new color
+			if(_detection == 0 and _state == 1): # deactive and motion
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time(), light.runner.l.d_r, light.runner.l.d_g, light.runner.l.d_b, 4000) # 4 sec to dimm to default color - now
+				else:
+					(r,g,b) = light.runner.get_color()
+					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
+			elif(_detection == 0 and _state == 0): # deactive and no motion
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time()+light.get_delay_off(), 0, 0, 0, 4000) # 4 sec to dimm to off - in 10 min from now
+				else:
+					(r,g,b) = light.runner.get_color()
+					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
+				#rint("[A "+time.strftime("%H:%M:%S")+"] setting lights off to "+str((datetime.datetime.fromtimestamp(int((time.time()+light.get_delay_off())))).strftime('%y_%m_%d %H:%M:%S')))
+			elif(_detection == 1 and _state == 1): # alarm, go red, now
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time(), 100, 0, 0, 4000)
+				else:
+					light.set_old_color(100, 0, 0,time.time()+light.get_delay_off())# set the color to which we return as soon as the webfeed is closed
+			elif(_detection == 1 and _state == 0): # off while nobody is there
+				if(cam.webview_active == 0): # only change color if the webcam is no running to avoid that we switch the light during movement, while the videofeed is running
+					light.add_q_entry(time.time(), 0, 0, 0, 4000)
+				else:
+					(r,g,b) = light.runner.get_color()
+					light.set_old_color(r,g,b,time.time()+light.get_delay_off()) # set the color to which we return as soon as the webfeed is closed
 		##### light dimming #########
 
 		##### camera picture upload #########
@@ -693,7 +694,14 @@ d = Debugging()				# debug handle
 p.rint("STARTUP, creating CPUsaver","l")
 b = CPUsaver()
 
+p.rint("STARTUP, creating mqtt","l")
+jkw_mqtt.r.set_id(m2m_mid)
+jkw_mqtt.r.set_light(light)
+jkw_mqtt.r.m.subscribe_topic(m2m_mid+"/PWM_dimm/switch")  # on / off
+jkw_mqtt.r.m.subscribe_topic(m2m_mid+"/PWM_RGB_dimm/color/set") # set color
+jkw_mqtt.start()
 
+trigger.subscribe_callback(jkw_mqtt.r.motion_publish) # tell trigger to call mq.publish to report moti
 trigger.subscribe_callback(trigger_handle)
 
 #only start listening to keyboard input if we are not in register mode
